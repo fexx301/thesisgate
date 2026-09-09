@@ -1,0 +1,61 @@
+{
+  "recordedAt": "2026-09-09T13:07:00.819Z",
+  "method": "POST /api/research",
+  "responseStatus": 200,
+  "caseId": "E01",
+  "packetHash": "46bc036285837f37bd63bc0bf7093379bb271be72230509649955f753251e588",
+  "packetHashVersion": "raw-case-v1-pre-benchmark-manifest",
+  "provider": "openrouter",
+  "protocol": "openai_chat",
+  "requestedModel": "openai/gpt-5.6-luna",
+  "returnedModel": "openai/gpt-5.6-luna",
+  "reasoningEffort": "low",
+  "promptVersion": "claims-v2",
+  "benchmarkStatus": "development_integration_pre_claims-v3_freeze",
+  "marketMode": "captured_real",
+  "instrument": {
+    "symbol": "RNVDAUSDT",
+    "category": "SPOT",
+    "status": "online"
+  },
+  "snapshot": {
+    "id": "snapshot_7de5ee043d0e35d42d9f7974",
+    "hash": "7de5ee043d0e35d42d9f79747aa70774b896f2332463e4d6a96a3538d39299fe",
+    "exchangeTimestamp": "2026-09-08T21:51:19.332Z",
+    "mode": "captured_real",
+    "validationWarnings": []
+  },
+  "evidence": {
+    "status": "assessed",
+    "assessmentOrigin": "runtime_model",
+    "verdict": "mixed",
+    "claimStatuses": ["supported", "insufficient", "insufficient"],
+    "claimDistinctions": ["factual", "causal", "forecast"],
+    "validatedCitationCount": 2,
+    "summary": "The source supports that the announcement describes planned NVIDIA GPU deployments, but it provides no evidence that rNVDA will rise by tomorrow evening or generate a 100 USDT net profit."
+  },
+  "economics": {
+    "computationStatus": "calculated",
+    "goalComparison": "below",
+    "requestedNotional": "10000",
+    "frictionProxy": "42.782415024",
+    "scenarioBidPriceShift": "0.003",
+    "netPnl": "-12.880809902658",
+    "breakEvenShift": "0.0042923195778675211",
+    "requiredGoalShift": "0.0143252257975365687"
+  },
+  "partialErrors": [],
+  "browserAcceptance": {
+    "command": "PLAYWRIGHT_BASE_URL=http://127.0.0.1:3102 npm run test:e2e",
+    "testsPassed": 4,
+    "testsTotal": 4,
+    "coverage": [
+      "desktop captured research flow",
+      "mobile captured research flow",
+      "desktop horizontal overflow check",
+      "mobile horizontal overflow check"
+    ]
+  },
+  "scope": "One real authenticated Luna request through the local app plus the captured browser acceptance matrix; this is integration evidence, not the complete 12-case research gate or a claim of current market conditions.",
+  "secretsIncluded": false
+}

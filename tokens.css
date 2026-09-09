@@ -1,0 +1,88 @@
+:root {
+  --color-paper: oklch(98.5% 0.004 250);
+  --color-paper-2: oklch(97% 0.008 250);
+  --color-paper-3: oklch(94.5% 0.012 250);
+  --color-ink: oklch(24% 0.02 258);
+  --color-ink-2: oklch(34% 0.018 257);
+  --color-muted: oklch(49% 0.018 257);
+  --color-subtle: oklch(50% 0.014 252);
+  --color-rule: oklch(88.5% 0.012 250);
+  --color-rule-strong: oklch(77% 0.02 250);
+  --color-accent: oklch(58% 0.2 256);
+  --color-accent-strong: oklch(48% 0.18 256);
+  --color-accent-ink: oklch(14% 0.02 258);
+  --color-focus: oklch(30% 0.08 258);
+  --color-success: oklch(49% 0.14 154);
+  --color-success-ink: oklch(29% 0.08 154);
+  --color-warning: oklch(55% 0.14 78);
+  --color-warning-ink: oklch(34% 0.08 78);
+  --color-danger: oklch(53% 0.16 25);
+  --color-danger-ink: oklch(34% 0.1 25);
+  --color-accent-wash: color-mix(in oklab, var(--color-accent) 10%, transparent);
+  --color-success-wash: color-mix(in oklab, var(--color-success) 10%, transparent);
+  --color-warning-wash: color-mix(in oklab, var(--color-warning) 12%, transparent);
+  --color-danger-wash: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  --color-graphite: oklch(22% 0.016 260);
+  --color-graphite-2: oklch(28% 0.018 260);
+  --color-graphite-3: oklch(34% 0.02 260);
+  --color-graphite-rule: oklch(43% 0.02 260);
+  --color-graphite-rule-strong: oklch(52% 0.024 260);
+  --color-on-graphite: oklch(95% 0.006 250);
+  --color-on-graphite-muted: oklch(80% 0.014 250);
+  --color-on-graphite-subtle: oklch(74% 0.012 250);
+  --color-on-graphite-accent: oklch(82% 0.11 256);
+  --color-on-graphite-success: oklch(82% 0.1 154);
+  --color-on-graphite-warning: oklch(86% 0.1 78);
+  --color-on-graphite-danger: oklch(82% 0.11 25);
+
+  --font-display: "Space Grotesk", "Avenir Next", ui-sans-serif, sans-serif;
+  --font-body: "Inter", "Avenir Next", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+  --page-gutter: clamp(1rem, 4vw, 4rem);
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.9531rem;
+  --text-2xl: 2.4414rem;
+  --text-3xl: 3.0518rem;
+  --text-display: clamp(2.75rem, 5vw + 1rem, 5.25rem);
+  --text-display-s: clamp(2.5rem, 4vw + 0.8rem, 4rem);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+  --dur-spin: 1000ms;
+
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-pill: 999px;
+  --rule-thin: 1px;
+  --shadow-whisper: 0 1px 2px oklch(24% 0.02 258 / 0.06);
+  --focus-ring: 0 0 0 1px var(--color-paper), 0 0 0 4px var(--color-focus);
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 400;
+}

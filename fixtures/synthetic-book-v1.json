@@ -1,0 +1,36 @@
+{
+  "description": "Small deterministic synthetic SPOT book for offline benchmark cases. It is not venue data.",
+  "fixtureVersion": "synthetic-book-v1",
+  "capturedAtUTC": "2026-09-09T00:00:00.000Z",
+  "instrument": {
+    "symbol": "SYNTHETICUSDT",
+    "asset": "NVDA",
+    "category": "SPOT",
+    "baseCoin": "synthetic",
+    "quoteCoin": "USDT",
+    "symbolType": "stock",
+    "isReality": true,
+    "status": "online",
+    "quantityStep": "0.01",
+    "priceTick": "0.01",
+    "minOrderQty": "0.01",
+    "maxOrderQty": "0",
+    "minOrderNotional": "10",
+    "maxPositionQty": "0",
+    "rawMetadataTime": "2026-09-09T00:00:00.000Z"
+  },
+  "snapshot": {
+    "id": "snapshot_d48547bf49b3cb23f8d849a3",
+    "hash": "d48547bf49b3cb23f8d849a3f8926945b65efa0dbb46467f8de1d4dca75907cf",
+    "asset": "NVDA",
+    "symbol": "SYNTHETICUSDT",
+    "bids": [["99", "2"], ["98", "3"]],
+    "asks": [["100", "2"], ["101", "3"]],
+    "exchangeTimestamp": "2026-09-09T00:00:00.000Z",
+    "receivedAt": "2026-09-09T00:00:00.000Z",
+    "mode": "synthetic",
+    "rawResponseReference": "fixture:synthetic-book-v1.json",
+    "validationWarnings": []
+  },
+  "secretsIncluded": false
+}

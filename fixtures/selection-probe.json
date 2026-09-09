@@ -1,0 +1,1204 @@
+{
+  "description": "Read-only selection spike, captured real API responses. Depth sweeps are estimates on displayed snapshots, not executable quotes or fills. 0.1% per side fee is a published standard scenario, not verified user fee. No future funding, exit liquidity, or price prediction demonstrated.",
+  "capturedAtUTC": "2026-09-08T21:51:19Z",
+  "requests": [
+    {
+      "name": "nvda_spot_instrument",
+      "url": "https://api.bitget.com/api/v3/market/instruments?category=SPOT&symbol=RNVDAUSDT",
+      "response": {
+        "code": "00000",
+        "msg": "success",
+        "requestTime": 1788904279213,
+        "data": [
+          {
+            "symbol": "RNVDAUSDT",
+            "category": "SPOT",
+            "baseCoin": "rNVDA",
+            "quoteCoin": "USDT",
+            "symbolType": "stock",
+            "buyLimitPriceRatio": "0.1",
+            "sellLimitPriceRatio": "0.1",
+            "minOrderQty": "0.0001",
+            "maxOrderQty": "0",
+            "pricePrecision": "2",
+            "quantityPrecision": "4",
+            "quotePrecision": "6",
+            "minOrderAmount": "10",
+            "maxSymbolOrderNum": "",
+            "maxProductOrderNum": "400",
+            "status": "online",
+            "maintainTime": "",
+            "areaSymbol": "yes",
+            "maxPositionNum": "200",
+            "isReality": "yes",
+            "launchTime": "1776914552903"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tsla_spot_instrument",
+      "url": "https://api.bitget.com/api/v3/market/instruments?category=SPOT&symbol=RTSLAUSDT",
+      "response": {
+        "code": "00000",
+        "msg": "success",
+        "requestTime": 1788904279214,
+        "data": [
+          {
+            "symbol": "RTSLAUSDT",
+            "category": "SPOT",
+            "baseCoin": "rTSLA",
+            "quoteCoin": "USDT",
+            "symbolType": "stock",
+            "buyLimitPriceRatio": "0.1",
+            "sellLimitPriceRatio": "0.1",
+            "minOrderQty": "0.0001",
+            "maxOrderQty": "0",
+            "pricePrecision": "2",
+            "quantityPrecision": "4",
+            "quotePrecision": "6",
+            "minOrderAmount": "10",
+            "maxSymbolOrderNum": "",
+            "maxProductOrderNum": "400",
+            "status": "online",
+            "maintainTime": "",
+            "areaSymbol": "yes",
+            "maxPositionNum": "200",
+            "isReality": "yes",
+            "launchTime": "1780323652017"
+          }
+        ]
+      }
+    },
+    {
+      "name": "nvda_spot_ticker",
+      "url": "https://api.bitget.com/api/v3/market/tickers?category=SPOT&symbol=RNVDAUSDT",
+      "response": {
+        "code": "00000",
+        "msg": "success",
+        "requestTime": 1788904279215,
+        "data": [
+          {
+            "category": "SPOT",
+            "symbol": "RNVDAUSDT",
+            "ts": "1788904277664",
+            "lastPrice": "225.64",
+            "openPrice24h": "231.89",
+            "highPrice24h": "226.48",
+            "lowPrice24h": "224.85",
+            "ask1Price": "225.7",
+            "bid1Price": "225.64",
+            "bid1Size": "1",
+            "ask1Size": "1",
+            "price24hPcnt": "-0.02695",
+            "volume24h": "75875574.4776",
+            "turnover24h": "17129521124.1917",
+            "platformTurnover24h": "522704.6207"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tsla_spot_ticker",
+      "url": "https://api.bitget.com/api/v3/market/tickers?category=SPOT&symbol=RTSLAUSDT",
+      "response": {
+        "code": "00000",
+        "msg": "success",
+        "requestTime": 1788904279211,
+        "data": [
+          {
+            "category": "SPOT",
+            "symbol": "RTSLAUSDT",
+            "ts": "1788904277995",
+            "lastPrice": "366.85",
+            "openPrice24h": "355.21",
+            "highPrice24h": "370",
+            "lowPrice24h": "364.85",
+            "ask1Price": "366.88",
+            "bid1Price": "366.86",
+            "bid1Size": "1",
+            "ask1Size": "51",
+            "price24hPcnt": "0.03277",
+            "volume24h": "27432131.9886",
+            "turnover24h": "10086267880.5647",
+            "platformTurnover24h": "3770277.39"
+          }
+        ]
+      }
+    },
+    {
+      "name": "nvda_spot_book",
+      "url": "https://api.bitget.com/api/v3/market/orderbook?category=SPOT&symbol=RNVDAUSDT&limit=50",
+      "response": {
+        "code": "00000",
+        "msg": "success",
+        "requestTime": 1788904279331,
+        "data": {
+          "a": [
+            [
+              225.66,
+              0.827
+            ],
+            [
+              225.68,
+              0.509
+            ],
+            [
+              225.77,
+              113.28
+            ],
+            [
+              225.78,
+              88.32
+            ],
+            [
+              225.81,
+              111.36
+            ],
+            [
+              225.82,
+              110.4
+            ],
+            [
+              225.87,
+              83.52
+            ],
+            [
+              225.88,
+              87.36
+            ],
+            [
+              225.89,
+              118.08
+            ],
+            [
+              225.91,
+              87.36
+            ],
+            [
+              226.02,
+              203.4
+            ],
+            [
+              226.32,
+              196.2
+            ],
+            [
+              226.37,
+              160.2
+            ],
+            [
+              226.38,
+              183.6
+            ],
+            [
+              226.46,
+              158.4
+            ],
+            [
+              226.54,
+              190.8
+            ],
+            [
+              226.56,
+              208.8
+            ],
+            [
+              226.57,
+              138.6
+            ],
+            [
+              226.65,
+              160.2
+            ],
+            [
+              226.66,
+              174.6
+            ],
+            [
+              226.69,
+              180
+            ],
+            [
+              226.72,
+              217.8
+            ],
+            [
+              226.84,
+              140.4
+            ],
+            [
+              226.94,
+              81.36
+            ],
+            [
+              227.08,
+              87.12
+            ],
+            [
+              227.18,
+              128.16
+            ],
+            [
+              227.3,
+              82.8
+            ],
+            [
+              227.43,
+              56.8799
+            ],
+            [
+              227.52,
+              84.24
+            ],
+            [
+              227.62,
+              55.44
+            ],
+            [
+              227.7,
+              69.12
+            ],
+            [
+              227.74,
+              75.6
+            ],
+            [
+              227.81,
+              61.2
+            ],
+            [
+              227.83,
+              63.36
+            ],
+            [
+              227.99,
+              77.76
+            ],
+            [
+              228.1,
+              55.44
+            ],
+            [
+              228.37,
+              54
+            ],
+            [
+              228.56,
+              82.8
+            ],
+            [
+              228.76,
+              150.3938
+            ],
+            [
+              228.94,
+              80.64
+            ],
+            [
+              228.96,
+              77.76
+            ],
+            [
+              229.04,
+              54.72
+            ],
+            [
+              229.07,
+              62.4983
+            ],
+            [
+              229.22,
+              68.4
+            ],
+            [
+              229.24,
+              54
+            ],
+            [
+              229.58,
+              74.88
+            ],
+            [
+              230.13,
+              85.68
+            ],
+            [
+              230.27,
+              62.64
+            ],
+            [
+              230.64,
+              88.56
+            ],
+            [
+              231.81,
+              62.64
+            ]
+          ],
+          "b": [
+            [
+              225.62,
+              0.6131
+            ],
+            [
+              225.6,
+              0.8347
+            ],
+            [
+              225.24,
+              205.2
+            ],
+            [
+              225.2,
+              142.2
+            ],
+            [
+              225.18,
+              178.2
+            ],
+            [
+              225.12,
+              181.8
+            ],
+            [
+              225.07,
+              291.6
+            ],
+            [
+              225.06,
+              216
+            ],
+            [
+              225.01,
+              214.2
+            ],
+            [
+              225,
+              171
+            ],
+            [
+              224.96,
+              137.544
+            ],
+            [
+              224.88,
+              205.2
+            ],
+            [
+              224.73,
+              172.8
+            ],
+            [
+              224.52,
+              151.7088
+            ],
+            [
+              224.46,
+              160.2
+            ],
+            [
+              224.44,
+              69.12
+            ],
+            [
+              224.34,
+              56.16
+            ],
+            [
+              224.29,
+              116.7939
+            ],
+            [
+              224.22,
+              72.4141
+            ],
+            [
+              224.11,
+              62.64
+            ],
+            [
+              223.97,
+              57.2187
+            ],
+            [
+              223.91,
+              88.56
+            ],
+            [
+              223.66,
+              75.6
+            ],
+            [
+              223.5,
+              81.36
+            ],
+            [
+              223.31,
+              66.96
+            ],
+            [
+              223.18,
+              63.36
+            ],
+            [
+              223.05,
+              80.64
+            ],
+            [
+              222.96,
+              87.12
+            ],
+            [
+              222.87,
+              80.3053
+            ],
+            [
+              222.68,
+              54
+            ],
+            [
+              222.56,
+              60.48
+            ],
+            [
+              222.53,
+              62.64
+            ],
+            [
+              222.39,
+              59.04
+            ],
+            [
+              222.14,
+              55.44
+            ],
+            [
+              222.09,
+              74.16
+            ],
+            [
+              222.04,
+              82.8
+            ],
+            [
+              221.4,
+              87.12
+            ],
+            [
+              221.23,
+              72.72
+            ],
+            [
+              220.91,
+              66.96
+            ],
+            [
+              220.66,
+              87.84
+            ],
+            [
+              220.62,
+              87.84
+            ],
+            [
+              219.46,
+              58.32
+            ],
+            [
+              219.28,
+              78.48
+            ],
+            [
+              219.17,
+              79.92
+            ],
+            [
+              218.61,
+              80.64
+            ],
+            [
+              218.54,
+              87.12
+            ],
+            [
+              218.14,
+              77.76
+            ],
+            [
+              218.11,
+              74.16
+            ],
+            [
+              217.43,
+              59.04
+            ],
+            [
+              216.98,
+              75.6
+            ]
+          ],
+          "ts": "1788904279332"
+        }
+      }
+    },
+    {
+      "name": "tsla_spot_book",
+      "url": "https://api.bitget.com/api/v3/market/orderbook?category=SPOT&symbol=RTSLAUSDT&limit=50",
+      "response": {
+        "code": "00000",
+        "msg": "success",
+        "requestTime": 1788904279221,
+        "data": {
+          "a": [
+            [
+              366.97,
+              0.465
+            ],
+            [
+              367.01,
+              0.604
+            ],
+            [
+              367.18,
+              29.52
+            ],
+            [
+              367.19,
+              78.12
+            ],
+            [
+              367.2,
+              29.52
+            ],
+            [
+              367.22,
+              31.372
+            ],
+            [
+              367.25,
+              36.72
+            ],
+            [
+              367.31,
+              22.763
+            ],
+            [
+              367.39,
+              32.202
+            ],
+            [
+              367.64,
+              43.92
+            ],
+            [
+              367.92,
+              44.28
+            ],
+            [
+              367.95,
+              78.454
+            ],
+            [
+              368.01,
+              64.8
+            ],
+            [
+              368.03,
+              72.576
+            ],
+            [
+              368.04,
+              88.128
+            ],
+            [
+              368.08,
+              72.576
+            ],
+            [
+              368.33,
+              85.536
+            ],
+            [
+              368.42,
+              100.224
+            ],
+            [
+              368.46,
+              66.528
+            ],
+            [
+              368.58,
+              161.568
+            ],
+            [
+              368.6,
+              74.304
+            ],
+            [
+              368.88,
+              90.72
+            ],
+            [
+              369.48,
+              12.816
+            ],
+            [
+              369.75,
+              12.096
+            ],
+            [
+              370.16,
+              13.68
+            ],
+            [
+              370.19,
+              68.256
+            ],
+            [
+              370.77,
+              11.664
+            ],
+            [
+              370.78,
+              13.824
+            ],
+            [
+              371.18,
+              12.672
+            ],
+            [
+              372.22,
+              13.824
+            ],
+            [
+              372.34,
+              14.112
+            ],
+            [
+              372.41,
+              11.664
+            ],
+            [
+              372.51,
+              12.96
+            ],
+            [
+              373.14,
+              15.204
+            ],
+            [
+              373.27,
+              17.856
+            ],
+            [
+              373.33,
+              16.704
+            ],
+            [
+              373.6,
+              12.24
+            ],
+            [
+              373.67,
+              10.943
+            ],
+            [
+              374.24,
+              11.376
+            ],
+            [
+              374.38,
+              12.816
+            ],
+            [
+              374.97,
+              12.96
+            ],
+            [
+              376.06,
+              13.536
+            ],
+            [
+              377.42,
+              12.096
+            ],
+            [
+              377.52,
+              11.808
+            ],
+            [
+              378.03,
+              16.416
+            ],
+            [
+              378.36,
+              17.712
+            ],
+            [
+              378.39,
+              14.256
+            ],
+            [
+              379.21,
+              15.408
+            ],
+            [
+              380.09,
+              10.8
+            ],
+            [
+              381.53,
+              17.136
+            ]
+          ],
+          "b": [
+            [
+              366.87,
+              0.377
+            ],
+            [
+              366.82,
+              0.433
+            ],
+            [
+              366.76,
+              0.031
+            ],
+            [
+              366.55,
+              0.04
+            ],
+            [
+              366.5,
+              0.034
+            ],
+            [
+              366.14,
+              98.496
+            ],
+            [
+              366.12,
+              70.848
+            ],
+            [
+              366.09,
+              80.352
+            ],
+            [
+              366.06,
+              98.496
+            ],
+            [
+              365.9,
+              82.944
+            ],
+            [
+              365.89,
+              106.272
+            ],
+            [
+              365.86,
+              103.68
+            ],
+            [
+              365.79,
+              85.536
+            ],
+            [
+              365.7,
+              73.44
+            ],
+            [
+              365.65,
+              68.256
+            ],
+            [
+              365.58,
+              17.136
+            ],
+            [
+              365.4,
+              16.992
+            ],
+            [
+              365.32,
+              69.12
+            ],
+            [
+              364.98,
+              16.704
+            ],
+            [
+              364.61,
+              12.384
+            ],
+            [
+              364.37,
+              24.336
+            ],
+            [
+              364.27,
+              11.808
+            ],
+            [
+              363.97,
+              17.136
+            ],
+            [
+              363.94,
+              13.68
+            ],
+            [
+              363.9,
+              15.84
+            ],
+            [
+              363.85,
+              13.104
+            ],
+            [
+              363.82,
+              13.536
+            ],
+            [
+              363.78,
+              11.232
+            ],
+            [
+              363.74,
+              11.664
+            ],
+            [
+              363.6,
+              13.104
+            ],
+            [
+              363.57,
+              11.952
+            ],
+            [
+              363.15,
+              11.584
+            ],
+            [
+              362.81,
+              16.704
+            ],
+            [
+              362.4,
+              11.17
+            ],
+            [
+              361.85,
+              13.68
+            ],
+            [
+              361.8,
+              13.392
+            ],
+            [
+              361.66,
+              14.4
+            ],
+            [
+              361.61,
+              14.4
+            ],
+            [
+              361.59,
+              17.568
+            ],
+            [
+              361.55,
+              16.128
+            ],
+            [
+              361.5,
+              17.136
+            ],
+            [
+              361.39,
+              13.68
+            ],
+            [
+              360.9,
+              16.128
+            ],
+            [
+              360.67,
+              17.712
+            ],
+            [
+              359.36,
+              11.513
+            ],
+            [
+              357.62,
+              14.976
+            ],
+            [
+              356.4,
+              16.624
+            ],
+            [
+              356.32,
+              11.52
+            ],
+            [
+              356.29,
+              14.112
+            ],
+            [
+              355.8,
+              14.4
+            ]
+          ],
+          "ts": "1788904279223"
+        }
+      }
+    }
+  ],
+  "calculations": [
+    {
+      "asset": "nvda",
+      "bookTime": "2026-09-08T21:51:19.332Z",
+      "tickerTime": "2026-09-08T21:51:17.664Z",
+      "requestedNotional": 1000,
+      "entry": {
+        "qty": 4.429892279753732,
+        "spent": 1000,
+        "unspent": 0,
+        "vwap": 225.73912340270095
+      },
+      "exit": {
+        "total": 998.3224070917306,
+        "filledQty": 4.429892279753732,
+        "unfilledQty": 0,
+        "vwap": 225.36042505016164
+      },
+      "mid": 225.64,
+      "entryVsMidBps": 4.392988951469334,
+      "estimatedImmediateRoundTripCost": 3.675915315360953,
+      "staticBookBreakEvenExitPrice": 226.19105357968334,
+      "feeAssumptionPerSide": 0.001,
+      "complete": true
+    },
+    {
+      "asset": "nvda",
+      "bookTime": "2026-09-08T21:51:19.332Z",
+      "tickerTime": "2026-09-08T21:51:17.664Z",
+      "requestedNotional": 10000,
+      "entry": {
+        "qty": 44.29347025734154,
+        "spent": 10000,
+        "unspent": 0,
+        "vwap": 225.76691196017822
+      },
+      "exit": {
+        "total": 9977.19471076361,
+        "filledQty": 44.29347025734154,
+        "unfilledQty": 0,
+        "vwap": 225.25204398745237
+      },
+      "mid": 225.64,
+      "entryVsMidBps": 5.624532892138934,
+      "estimatedImmediateRoundTripCost": 42.782483947152286,
+      "staticBookBreakEvenExitPrice": 226.2188977699083,
+      "feeAssumptionPerSide": 0.001,
+      "complete": true
+    },
+    {
+      "asset": "nvda",
+      "bookTime": "2026-09-08T21:51:19.332Z",
+      "tickerTime": "2026-09-08T21:51:17.664Z",
+      "requestedNotional": 100000,
+      "entry": {
+        "qty": 442.8731074511888,
+        "spent": 100000,
+        "unspent": 0,
+        "vwap": 225.79831179074583
+      },
+      "exit": {
+        "total": 99741.94267385869,
+        "filledQty": 442.8731074511888,
+        "unfilledQty": 0,
+        "vwap": 225.2156227048664
+      },
+      "mid": 225.64,
+      "entryVsMidBps": 7.016122617702347,
+      "estimatedImmediateRoundTripCost": 457.7992688151571,
+      "staticBookBreakEvenExitPrice": 226.25036046299957,
+      "feeAssumptionPerSide": 0.001,
+      "complete": true
+    },
+    {
+      "asset": "nvda",
+      "bookTime": "2026-09-08T21:51:19.332Z",
+      "tickerTime": "2026-09-08T21:51:17.664Z",
+      "requestedNotional": 1000000,
+      "entry": {
+        "qty": 4409.8401250677025,
+        "spent": 1000000,
+        "unspent": 0,
+        "vwap": 226.7655905064466
+      },
+      "exit": {
+        "total": 987534.735437846,
+        "filledQty": 4409.8401250677025,
+        "unfilledQty": 0,
+        "vwap": 223.9388974271907
+      },
+      "mid": 225.64,
+      "entryVsMidBps": 49.884351464573044,
+      "estimatedImmediateRoundTripCost": 14452.799297591671,
+      "staticBookBreakEvenExitPrice": 227.21957567262567,
+      "feeAssumptionPerSide": 0.001,
+      "complete": true
+    },
+    {
+      "asset": "nvda",
+      "bookTime": "2026-09-08T21:51:19.332Z",
+      "tickerTime": "2026-09-08T21:51:17.664Z",
+      "requestedNotional": 10000000,
+      "entry": {
+        "qty": 5152.108000000002,
+        "spent": 1170548.8336660042,
+        "unspent": 8829451.166333996,
+        "vwap": 227.19803887379763
+      },
+      "exit": {
+        "total": 1118427.5669409998,
+        "filledQty": 5009.432599999999,
+        "unfilledQty": 142.6754000000028,
+        "vwap": 223.26432078175878
+      },
+      "mid": 225.64,
+      "entryVsMidBps": 69.04976395132323,
+      "estimatedImmediateRoundTripCost": null,
+      "staticBookBreakEvenExitPrice": 227.65288980247388,
+      "feeAssumptionPerSide": 0.001,
+      "complete": false
+    },
+    {
+      "asset": "tsla",
+      "bookTime": "2026-09-08T21:51:19.223Z",
+      "tickerTime": "2026-09-08T21:51:17.995Z",
+      "requestedNotional": 1000,
+      "entry": {
+        "qty": 2.7240054741543656,
+        "spent": 1000,
+        "unspent": 0,
+        "vwap": 367.10645756335634
+      },
+      "exit": {
+        "total": 997.9848743068794,
+        "filledQty": 2.7240054741543656,
+        "unfilledQty": 0,
+        "vwap": 366.36669190860994
+      },
+      "mid": 366.92,
+      "entryVsMidBps": 5.081695283886134,
+      "estimatedImmediateRoundTripCost": 4.013110567427361,
+      "staticBookBreakEvenExitPrice": 367.841405426346,
+      "feeAssumptionPerSide": 0.001,
+      "complete": true
+    },
+    {
+      "asset": "tsla",
+      "bookTime": "2026-09-08T21:51:19.223Z",
+      "tickerTime": "2026-09-08T21:51:17.995Z",
+      "requestedNotional": 10000,
+      "entry": {
+        "qty": 27.235144425077618,
+        "spent": 10000,
+        "unspent": 0,
+        "vwap": 367.17264443041415
+      },
+      "exit": {
+        "total": 9972.49328979792,
+        "filledQty": 27.235144425077618,
+        "unfilledQty": 0,
+        "vwap": 366.16267327796623
+      },
+      "mid": 366.92,
+      "entryVsMidBps": 6.885545361772216,
+      "estimatedImmediateRoundTripCost": 47.47920349187552,
+      "staticBookBreakEvenExitPrice": 367.90772479964414,
+      "feeAssumptionPerSide": 0.001,
+      "complete": true
+    },
+    {
+      "asset": "tsla",
+      "bookTime": "2026-09-08T21:51:19.223Z",
+      "tickerTime": "2026-09-08T21:51:17.995Z",
+      "requestedNotional": 100000,
+      "entry": {
+        "qty": 272.2921156566206,
+        "spent": 100000,
+        "unspent": 4.547473508864641e-13,
+        "vwap": 367.2526461475183
+      },
+      "exit": {
+        "total": 99690.48368726252,
+        "filledQty": 272.2921156566206,
+        "unfilledQty": 0,
+        "vwap": 366.11593929873163
+      },
+      "mid": 366.92,
+      "entryVsMidBps": 9.065903944136533,
+      "estimatedImmediateRoundTripCost": 509.2067964247253,
+      "staticBookBreakEvenExitPrice": 367.98788668034615,
+      "feeAssumptionPerSide": 0.001,
+      "complete": true
+    },
+    {
+      "asset": "tsla",
+      "bookTime": "2026-09-08T21:51:19.223Z",
+      "tickerTime": "2026-09-08T21:51:17.995Z",
+      "requestedNotional": 1000000,
+      "entry": {
+        "qty": 1741.7350000000006,
+        "spent": 643628.3737499998,
+        "unspent": 356371.62625000015,
+        "vwap": 369.5328932070605
+      },
+      "exit": {
+        "total": 523424.21336999995,
+        "filledQty": 1435.79,
+        "unfilledQty": 305.94500000000073,
+        "vwap": 364.5548536833381
+      },
+      "mid": 366.92,
+      "entryVsMidBps": 71.21152314020662,
+      "estimatedImmediateRoundTripCost": null,
+      "staticBookBreakEvenExitPrice": 370.2726987990666,
+      "feeAssumptionPerSide": 0.001,
+      "complete": false
+    },
+    {
+      "asset": "tsla",
+      "bookTime": "2026-09-08T21:51:19.223Z",
+      "tickerTime": "2026-09-08T21:51:17.995Z",
+      "requestedNotional": 10000000,
+      "entry": {
+        "qty": 1741.7350000000006,
+        "spent": 643628.373750003,
+        "unspent": 9356371.626249997,
+        "vwap": 369.5328932070624
+      },
+      "exit": {
+        "total": 523424.21336999995,
+        "filledQty": 1435.79,
+        "unfilledQty": 305.94500000000073,
+        "vwap": 364.5548536833381
+      },
+      "mid": 366.92,
+      "entryVsMidBps": 71.2115231402577,
+      "estimatedImmediateRoundTripCost": null,
+      "staticBookBreakEvenExitPrice": 370.27269879906845,
+      "feeAssumptionPerSide": 0.001,
+      "complete": false
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "recordedAt": "2026-09-09T09:23:55.932Z",
+  "method": "POST /api/research",
+  "responseStatus": 200,
+  "asset": "NVDA",
+  "marketMode": "live",
+  "instrument": {
+    "symbol": "RNVDAUSDT",
+    "baseCoin": "rNVDA",
+    "category": "SPOT",
+    "symbolType": "stock",
+    "isReality": true,
+    "status": "online"
+  },
+  "snapshot": {
+    "exchangeTimestamp": "2026-09-09T09:23:55.875Z",
+    "receivedAt": "2026-09-09T09:23:55.932Z",
+    "mode": "live",
+    "validationWarnings": []
+  },
+  "economics": {
+    "computationStatus": "calculated",
+    "scenarioBidPriceShift": "0",
+    "netPnl": "-0.208827532",
+    "breakEvenShift": "0.0020907139986378588"
+  },
+  "evidence": {
+    "status": "unavailable",
+    "verdict": "not_assessed",
+    "provenance": "user_pasted_unverified",
+    "partialErrors": ["model_unconfigured"]
+  },
+  "limitations": [
+    "This proves live market retrieval and server orchestration, not runtime model integration.",
+    "The book is a conditional snapshot, not a fill or liquidity guarantee.",
+    "The source text was supplied by the user and was not authenticated by the adjacent URL."
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "templateVersion": "research-gate-v3",
+  "status": "unscored",
+  "instruction": "Run npm run eval:runner and complete its report.unscored.json only after inspecting every immutable artifact. Change status to scored-final only when the manual fields and validator requirements are genuinely satisfied.",
+  "requiredReportFields": [
+    "reportVersion",
+    "status",
+    "recordedAt",
+    "benchmarkManifestHash",
+    "rubricVersion",
+    "promptVersion",
+    "modelVersion",
+    "scoringMethod",
+    "artifactRoot",
+    "generalBaseline",
+    "calculatorVersion",
+    "cases"
+  ],
+  "requiredCaseScoringFields": [
+    "observedOutcome",
+    "scoring.evidenceAssessmentCorrect",
+    "scoring.economicsInterpretationCorrect",
+    "scoring.failureBehaviorCorrect",
+    "scoring.noMaterialFabrication",
+    "baselineOmissions",
+    "correctedOmissions",
+    "graderRationale",
+    "materialErrors",
+    "grader"
+  ],
+  "omissionIds": "Use only evals/benchmark-manifest.json omissionTaxonomy values; correctedOmissions must be a unique subset of baselineOmissions.",
+  "gateRule": "The validator derives aggregate counts. A pass requires at least 10 completeCorrect cases, all machine numeric checks, no material fabrication, and at least 3 unique corrected omissions.",
+  "secretsIncluded": false
+}

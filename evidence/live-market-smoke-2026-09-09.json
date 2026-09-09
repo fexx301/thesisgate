@@ -1,0 +1,46 @@
+{
+  "recordedAt": "2026-09-09T09:08:23.661Z",
+  "method": "POST /api/market",
+  "mode": "live",
+  "source": "thesisgate/src/server/bitget.ts",
+  "endpointFamily": "https://api.bitget.com/api/v3/market",
+  "assets": [
+    {
+      "asset": "NVDA",
+      "symbol": "RNVDAUSDT",
+      "baseCoin": "rNVDA",
+      "category": "SPOT",
+      "symbolType": "stock",
+      "isReality": true,
+      "status": "online",
+      "bestBid": "225.91",
+      "bestAsk": "225.95",
+      "bookSidesNonEmpty": true,
+      "bookUncrossed": true,
+      "exchangeTimestamp": "2026-09-09T09:08:22.783Z",
+      "receivedAt": "2026-09-09T09:08:23.661Z",
+      "validationWarnings": []
+    },
+    {
+      "asset": "TSLA",
+      "symbol": "RTSLAUSDT",
+      "baseCoin": "rTSLA",
+      "category": "SPOT",
+      "symbolType": "stock",
+      "isReality": true,
+      "status": "online",
+      "bestBid": "366.86",
+      "bestAsk": "366.94",
+      "bookSidesNonEmpty": true,
+      "bookUncrossed": true,
+      "exchangeTimestamp": "2026-09-09T09:08:22.788Z",
+      "receivedAt": "2026-09-09T09:08:22.851Z",
+      "validationWarnings": []
+    }
+  ],
+  "limitations": [
+    "This is a read-only smoke observation, not an execution or liquidity guarantee.",
+    "It does not validate runtime model access or the research benchmark gate.",
+    "The captured replay remains a separate historical mode."
+  ]
+}

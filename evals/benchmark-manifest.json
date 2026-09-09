@@ -1,0 +1,85 @@
+{
+  "manifestVersion": "research-gate-v3",
+  "casesPath": "evals/cases.json",
+  "caseProjectionVersion": "case-input-v1",
+  "rubricVersion": "research-rubric-v1",
+  "calculatorVersion": "economics-v1",
+  "implementationFiles": [
+    "src/domain/contracts.ts",
+    "src/domain/economics.ts",
+    "src/domain/intent.ts",
+    "src/domain/claim-prompt.ts",
+    "evals/run-runner.mjs",
+    "package-lock.json"
+  ],
+  "omissionTaxonomy": [
+    "source_date_or_event_time",
+    "plan_vs_realized",
+    "causal_support",
+    "forecast_support",
+    "source_provenance",
+    "market_mode_or_staleness",
+    "threshold_vs_forecast",
+    "goal_comparison",
+    "depth_sufficiency",
+    "prompt_injection_boundary",
+    "ambiguous_percentage_reference",
+    "two_conclusions"
+  ],
+  "sourceRules": {
+    "allowedProvenance": ["synthetic_test", "user_pasted_unverified", "captured_official_excerpt"],
+    "modelReceives": ["sourceId", "sourceText", "sourceProvenance"],
+    "modelDoesNotReceive": ["caseTitle", "expectedOutcome", "numericExpectation", "graderFields"]
+  },
+  "planDefaults": {
+    "category": "SPOT",
+    "side": "long",
+    "quoteCurrency": "USDT",
+    "horizon": {"originalText": "by the stated horizon", "endAtUTC": null, "timezone": null},
+    "invalidation": null,
+    "feeIn": "0.001",
+    "feeOut": "0.001",
+    "feeOrigin": "published_standard_assumption",
+    "depthOrigin": "illustrative_preset",
+    "haircutOrigin": "illustrative_preset",
+    "scenarioAssumptionOrigin": "illustrative_preset"
+  },
+  "caseExecution": {
+    "E01": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "normal"},
+    "E02": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "normal"},
+    "E03": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "normal"},
+    "E04": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "normal"},
+    "E05": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "normal"},
+    "E06": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "normal"},
+    "E07": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "clarification_then_unchanged_plan"},
+    "E08": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "normal"},
+    "E09": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 2, "failureBehavior": "variant_sweep"},
+    "E10": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "insufficient_depth"},
+    "E11": {"candidateCalls": 0, "baselineCalls": 0, "calculatorRuns": 1, "failureBehavior": "model_unavailable_and_historical_market"},
+    "E12": {"candidateCalls": 1, "baselineCalls": 1, "calculatorRuns": 1, "failureBehavior": "prompt_injection_as_data"}
+  },
+  "inferenceConfig": {
+    "provider": "openrouter",
+    "protocol": "openai_chat",
+    "modelAlias": "openai/gpt-5.6-luna",
+    "reasoningEffort": "low",
+    "temperature": 0.1,
+    "maxTokens": 2200,
+    "maxAttempts": 1,
+    "toolBudget": 0
+  },
+  "paidRunControls": {
+    "defaultMode": "dry_run",
+    "paidFlag": "THESISGATE_ALLOW_PAID_EVAL=1",
+    "exactCaseAllowlistVariable": "THESISGATE_EVAL_CASES",
+    "maxCallsVariable": "THESISGATE_EVAL_MAX_CALLS",
+    "serialExecution": true,
+    "semanticRetries": false,
+    "providerEndpointAllowlist": ["https://openrouter.ai/api/v1/chat/completions"]
+  },
+  "fixtures": {
+    "fixtures/selection-probe.json": "b95c490a4a00079a84932fd87c723a21d6494dc67db53ff852a2d2e513802eb9",
+    "fixtures/synthetic-book-v1.json": "7f0b522b8f69c5f6cb5bbc87d4d774308d7f0b1c1ae69bc8a0b8f3a4054b2419"
+  },
+  "secretsIncluded": false
+}

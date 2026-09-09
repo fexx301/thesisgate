@@ -1,0 +1,47 @@
+{
+  "recordedAt": "2026-09-09T14:21:21.636Z",
+  "runId": "20260909142104-f88058a7",
+  "status": "unscored_development_smoke",
+  "caseId": "E01",
+  "packetHash": "26406a0048442beda38453cc9518ba449a1aa83fafe0f443e1b5e0c1f342fa3b",
+  "benchmarkManifestHash": "0894c344b8c8123484ae1bf392c2edeb40b8cbe2cfea573654f0460a9137ac13",
+  "implementationHash": null,
+  "implementationBinding": "This paid smoke predates the implementation-hash audit binding; use the later dry-run artifacts for bound verification.",
+  "provider": "openrouter",
+  "model": "openai/gpt-5.6-luna",
+  "reasoningEffort": "low",
+  "protocol": "openai_chat",
+  "candidate": {
+    "promptVersion": "claims-v3",
+    "promptHash": "28a6c4735fdf055f118b955c93d21824319b265e319a084f4693000c50b1fed1",
+    "latencyMs": 9750,
+    "attempts": 1,
+    "status": "completed",
+    "usage": {"promptTokens": 358, "completionTokens": 758, "totalTokens": 1116, "costUsd": 0.0009812},
+    "claimStatuses": ["supported", "insufficient", "insufficient", "insufficient"],
+    "validatedCitationCount": 2
+  },
+  "generalBaseline": {
+    "promptVersion": "general-research-v1",
+    "promptHash": "5523e25b1c152dfc36b328d300d92a13bd491c69a96d9f8f640f244d6bab73a0",
+    "latencyMs": 7060,
+    "attempts": 1,
+    "status": "completed",
+    "usage": {"promptTokens": 274, "completionTokens": 817, "totalTokens": 1091, "costUsd": 0.0010352},
+    "claimStatuses": ["supported", "insufficient", "insufficient", "insufficient"],
+    "validatedCitationCount": 4
+  },
+  "fairness": {
+    "effectiveInputHash": "8fe2a17a844b39fabc1e039352f85c0ca71da1a8e80ef6a426dea96d18968550",
+    "inputProjectionHash": "59e7f280860389bbc721291ea93cf08def6c4e8f87234166b75330376ef72d50",
+    "sourceHash": "cf73bba60deee57f6dd8af22e8c64726cca97341f6b6bbe07473a0052e60b3d5",
+    "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+    "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+    "sameModel": true,
+    "sameCallCount": true,
+    "sameToolBudget": true
+  },
+  "totalReportedCostUsd": 0.0020164,
+  "scope": "Two-call development smoke only. E01 was already inspected and is not unseen validation; no research gate score is claimed.",
+  "secretsIncluded": false
+}

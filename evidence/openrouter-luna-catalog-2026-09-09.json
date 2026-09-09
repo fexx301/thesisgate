@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-09-09T11:36:32Z",
+  "endpoint": "https://openrouter.ai/api/v1/models",
+  "requestedModel": "openai/gpt-5.6-luna",
+  "catalog": {
+    "id": "openai/gpt-5.6-luna",
+    "name": "OpenAI: GPT-5.6 Luna",
+    "canonicalSlug": "openai/gpt-5.6-luna-20260709",
+    "supportedParameters": [
+      "response_format",
+      "structured_outputs",
+      "max_tokens",
+      "max_completion_tokens",
+      "reasoning",
+      "reasoning_effort"
+    ],
+    "reasoning": {
+      "mandatory": false,
+      "defaultEnabled": true,
+      "supportedEfforts": ["max", "xhigh", "high", "medium", "low", "none"],
+      "defaultEffort": "medium"
+    },
+    "contextLength": 1050000,
+    "maxCompletionTokens": 128000,
+    "inputModalities": ["text"],
+    "outputModalities": ["text"]
+  },
+  "verificationScope": "Public catalog availability only; no credential is included.",
+  "secretsIncluded": false
+}

@@ -1,0 +1,21 @@
+{
+  "date": "2026-09-09",
+  "framework": "Next.js 16 App Router",
+  "fontStack": "Avenir Next and system fallbacks are hard-coded in src/app/globals.css",
+  "palette": "Dark/light hex tokens with RGBA shadows and focus values in src/app/globals.css",
+  "motion": "No motion dependency; only CSS spinner and state transitions",
+  "spacing": "No named spacing scale; layout uses raw pixel values",
+  "preserve": [
+    "Workbench route and component ownership",
+    "Existing Phosphor icon set",
+    "Research, market, export, and follow-up behavior",
+    "Source-plus-scenario information architecture"
+  ],
+  "introduce": [
+    "Cobalt cool-light token system",
+    "Workbench macrostructure with a graphite plan rail",
+    "N9 edge-aligned header action",
+    "Ft2 inline-rule footer",
+    "4-point spacing and 8-state interactive styling"
+  ]
+}
