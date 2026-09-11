@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import { newId, sha256 } from "./identifiers";
 
 export class RequestValidationError extends Error {
   constructor(message: string) {
@@ -15,6 +16,11 @@ export class RequestOriginError extends Error {
     this.name = "RequestOriginError";
   }
 }
+
+export type RequestContext = {
+  requestId: string;
+  visitorKey: string;
+};
 
 function configuredOrigins() {
   return (process.env.THESIS_PUBLIC_ORIGINS ?? "")
@@ -47,6 +53,20 @@ export function assertAllowedOrigin(request: Request) {
   if (!origin || !allowed.includes(origin)) {
     throw new RequestOriginError("This API accepts browser requests only from the configured application origin.");
   }
+}
+
+/**
+ * Creates a non-reversible visitor bucket for quota accounting. The raw proxy
+ * address is never returned, logged, or sent to the model provider.
+ */
+export function requestContext(request: Request): RequestContext {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const address = forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
+  const secret = process.env.THESIS_VISITOR_HASH_SECRET?.trim() || "local-development-only";
+  return {
+    requestId: newId("req"),
+    visitorKey: sha256(`${secret}:${address}`),
+  };
 }
 
 export async function parseJsonRequest<T>(request: Request, schema: z.ZodType<T>, maxBytes: number) {

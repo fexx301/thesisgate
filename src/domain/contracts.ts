@@ -205,6 +205,27 @@ export const EvidenceResultSchema = z
   })
   .strict();
 
+export const ModelUsageSchema = z
+  .object({
+    promptTokens: z.number().int().nonnegative().nullable(),
+    completionTokens: z.number().int().nonnegative().nullable(),
+    totalTokens: z.number().int().nonnegative().nullable(),
+    costUsd: DecimalStringSchema.nullable(),
+  })
+  .strict();
+
+export const ReportPerformanceSchema = z
+  .object({
+    totalDurationMs: z.number().int().nonnegative(),
+    marketDurationMs: z.number().int().nonnegative().nullable(),
+    modelDurationMs: z.number().int().nonnegative().nullable(),
+    modelCalls: z.number().int().nonnegative(),
+    modelRunStatus: z.enum(["provider_call", "evidence_reused", "not_attempted", "quota_denied", "provider_failed"]),
+    modelUsage: ModelUsageSchema.nullable(),
+    reusedEvidence: z.boolean(),
+  })
+  .strict();
+
 export const ScenarioRowSchema = z
   .object({
     label: z.string().min(1),
@@ -262,6 +283,7 @@ export const PartialErrorSchema = z
       "model_unconfigured",
       "model_timeout",
       "model_invalid_output",
+      "model_budget",
       "market_unavailable",
       "market_invalid",
       "insufficient_depth",
@@ -287,10 +309,12 @@ export const ResearchResultSchema = z
     confirmedPlan: PlanSchema,
     instrument: InstrumentSchema.nullable(),
     snapshot: MarketSnapshotSchema.nullable(),
+    recomputeToken: z.string().regex(/^v1\.[a-f0-9]{64}\.[A-Za-z0-9_-]{43}$/).nullable(),
     sources: z.array(SourceDocumentSchema),
     claims: z.array(ClaimAssessmentSchema).max(5),
     evidence: EvidenceResultSchema,
     economics: EconomicsResultSchema,
+    performance: ReportPerformanceSchema,
     partialErrors: z.array(PartialErrorSchema),
     generatedAt: z.string().datetime({ offset: true }),
     limitations: z.array(z.string()),
@@ -314,6 +338,28 @@ export const MarketRequestSchema = z
   })
   .strict();
 
+export const RecomputeRequestSchema = z
+  .object({
+    plan: PlanSchema,
+    instrument: InstrumentSchema,
+    snapshot: MarketSnapshotSchema,
+    recomputeToken: z.string().regex(/^v1\.[a-f0-9]{64}\.[A-Za-z0-9_-]{43}$/),
+    planRevision: z.number().int().nonnegative(),
+    scenarioRevision: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const RecomputeResultSchema = z
+  .object({
+    reportId: z.string().min(8),
+    reportRevision: z.number().int().nonnegative(),
+    economicsInputHash: z.string().min(8),
+    economics: EconomicsResultSchema,
+    performance: ReportPerformanceSchema,
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
 export const IntentRequestSchema = z
   .object({
     message: z.string().trim().min(1).max(500),
@@ -332,15 +378,19 @@ export type SourceDocument = z.infer<typeof SourceDocumentSchema>;
 export type Citation = z.infer<typeof CitationSchema>;
 export type ClaimAssessment = z.infer<typeof ClaimAssessmentSchema>;
 export type EvidenceResult = z.infer<typeof EvidenceResultSchema>;
+export type ModelUsage = z.infer<typeof ModelUsageSchema>;
+export type ReportPerformance = z.infer<typeof ReportPerformanceSchema>;
 export type EconomicsResult = z.infer<typeof EconomicsResultSchema>;
 export type ResearchResult = z.infer<typeof ResearchResultSchema>;
 export type PartialError = z.infer<typeof PartialErrorSchema>;
 export type ScenarioRow = z.infer<typeof ScenarioRowSchema>;
 export type ResearchRequest = z.infer<typeof ResearchRequestSchema>;
+export type RecomputeRequest = z.infer<typeof RecomputeRequestSchema>;
+export type RecomputeResult = z.infer<typeof RecomputeResultSchema>;
 
 export const RESEARCH_REQUEST_MAX_BYTES = 120_000;
 export const MAX_SOURCE_CHARS = 15_000;
 export const MAX_MODEL_SOURCE_COUNT = 3;
 export const FORMULA_VERSION = "economics-v1";
-export const SCHEMA_VERSION = "research-v1";
-export const PROMPT_VERSION = "claims-v3";
+export const SCHEMA_VERSION = "research-v2";
+export const PROMPT_VERSION = "claims-v4";

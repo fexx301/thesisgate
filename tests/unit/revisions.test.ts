@@ -52,4 +52,19 @@ describe("revision safety", () => {
       economicsInputHash(changed, syntheticInstrument(), syntheticSnapshot(), "economics-v1"),
     );
   });
+
+  it("invalidates an in-flight response when a saved draft is restored", () => {
+    const restoring = revisionReducer(state, {
+      type: "restore-draft",
+      plan,
+      sourceText: "restored source",
+      sourceUrl: "",
+      marketMode: "captured_real",
+      changedMessage: "Saved draft restored.",
+    });
+    expect(restoring.report).toBeNull();
+    expect(restoring.requestState).toBe("idle");
+    expect(restoring.activeRequestId).toBe(state.activeRequestId + 1);
+    expect(revisionReducer(restoring, { type: "request-success", requestId: state.activeRequestId, report: {} as never })).toBe(restoring);
+  });
 });

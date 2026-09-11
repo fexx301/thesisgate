@@ -14,7 +14,9 @@ import { economicsInputHash, evidenceInputHash } from "@/domain/revisions";
 import { getMarket, MarketAdapterError } from "./bitget";
 import { newId } from "./identifiers";
 import { assessClaims, ModelAdapterError, unavailableEvidence } from "./model";
+import { assertRecomputeSigningConfigured, createRecomputeToken } from "./recompute";
 import { createPastedSourceDocument, sourceUrlStatus } from "./sources";
+import type { RequestContext } from "./http";
 
 const BASE_LIMITATIONS = [
   "This is a conditional research brief, not a buy or sell instruction.",
@@ -27,7 +29,9 @@ function errorFor(kind: PartialError["kind"], message: string, recovery: string)
   return { kind, message, recovery };
 }
 
-export async function runResearch(request: ResearchRequest): Promise<ResearchResult> {
+export async function runResearch(request: ResearchRequest, context: RequestContext = { requestId: "local-request", visitorKey: "local-visitor" }): Promise<ResearchResult> {
+  assertRecomputeSigningConfigured();
+  const startedAt = Date.now();
   const generatedAt = new Date().toISOString();
   const source = request.sourceText
     ? createPastedSourceDocument({ text: request.sourceText, originalUrl: request.sourceUrl, fetchedAt: generatedAt })
@@ -66,6 +70,37 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     ));
   }
 
+  let evidence = unavailableEvidence(
+    source
+      ? "Runtime claim assessment is not available until the server model adapter is configured. The supplied source remains visible and economics is independent."
+      : "Evidence cannot be assessed without usable source text and a thesis.",
+  );
+  let claims = [] as ResearchResult["claims"];
+  let modelId: string | null = null;
+  let marketDurationMs: number | null = null;
+  let modelDurationMs: number | null = null;
+  let modelCalls = 0;
+  let modelRunStatus: ResearchResult["performance"]["modelRunStatus"] = "not_attempted";
+  let modelUsage = null as ResearchResult["performance"]["modelUsage"];
+
+  const marketPromise = (async () => {
+    const marketStartedAt = Date.now();
+    try {
+      return { market: await getMarket(request.plan.asset, request.marketMode), error: null, durationMs: Date.now() - marketStartedAt };
+    } catch (error) {
+      return { market: null, error, durationMs: Date.now() - marketStartedAt };
+    }
+  })();
+  const evidencePromise = (async () => {
+    if (!source || !request.plan.thesis.trim()) return { result: null, error: null };
+    try {
+      return { result: await assessClaims(request.plan, sources, context), error: null };
+    } catch (error) {
+      return { result: null, error };
+    }
+  })();
+  const [marketOutcome, evidenceOutcome] = await Promise.all([marketPromise, evidencePromise]);
+
   let instrument = null;
   let snapshot = null;
   let economics = missingEconomics(
@@ -74,10 +109,10 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     request.inputRevision,
     "Market data is not available yet, so no threshold or whole-position result can be calculated.",
   );
-  try {
-    const market = await getMarket(request.plan.asset, request.marketMode);
-    instrument = market.instrument;
-    snapshot = market.snapshot;
+  marketDurationMs = marketOutcome.durationMs;
+  if (marketOutcome.market) {
+    instrument = marketOutcome.market.instrument;
+    snapshot = marketOutcome.market.snapshot;
     economics = calculateEconomics({
       plan: request.plan,
       instrument,
@@ -92,7 +127,8 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
         "Reduce the notional or exit-depth stress, then re-run with the limitation visible.",
       ));
     }
-  } catch (error) {
+  } else {
+    const error = marketOutcome.error;
     const kind = error instanceof MarketAdapterError ? error.kind : "market_unavailable";
     partialErrors.push(errorFor(
       kind,
@@ -103,36 +139,42 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     ));
   }
 
-  let evidence = unavailableEvidence(
-    source
-      ? "Runtime claim assessment is not available until the server model adapter is configured. The supplied source remains visible and economics is independent."
-      : "Evidence cannot be assessed without usable source text and a thesis.",
-  );
-  let claims = [] as ResearchResult["claims"];
-  let modelId: string | null = null;
-  if (source && request.plan.thesis.trim()) {
-    try {
-      const result = await assessClaims(request.plan, sources);
-      evidence = result.evidence;
-      claims = result.claims;
-      modelId = result.modelId;
-    } catch (error) {
-      const adapterError = error instanceof ModelAdapterError ? error : new ModelAdapterError("model_invalid_output", "The model adapter failed.");
-      partialErrors.push(errorFor(
-        adapterError.kind,
-        adapterError.message,
-        adapterError.kind === "model_unconfigured"
-          ? "Configure the server-only model variables in .env.local, then retry."
+  if (evidenceOutcome.result) {
+    evidence = evidenceOutcome.result.evidence;
+    claims = evidenceOutcome.result.claims;
+    modelId = evidenceOutcome.result.modelId;
+    modelDurationMs = evidenceOutcome.result.performance.modelDurationMs;
+    modelCalls = evidenceOutcome.result.performance.modelCalls;
+    modelUsage = evidenceOutcome.result.performance.modelUsage;
+    modelRunStatus = "provider_call";
+  } else if (evidenceOutcome.error) {
+    const adapterError = evidenceOutcome.error instanceof ModelAdapterError
+      ? evidenceOutcome.error
+      : new ModelAdapterError("model_invalid_output", "The model adapter failed.");
+    modelDurationMs = adapterError.durationMs || null;
+    modelCalls = adapterError.attempted ? 1 : 0;
+    modelRunStatus = adapterError.kind === "model_budget"
+      ? "quota_denied"
+      : adapterError.attempted
+        ? "provider_failed"
+        : "not_attempted";
+    partialErrors.push(errorFor(
+      adapterError.kind,
+      adapterError.message,
+      adapterError.kind === "model_unconfigured"
+        ? "Configure the server-only model variables in .env.local, then retry."
+        : adapterError.kind === "model_budget"
+          ? "Configure the durable quota service and provider hard limit before enabling public model calls."
           : "Review the provider response and retry explicitly. Automatic model retries are disabled.",
-      ));
-      evidence = unavailableEvidence(adapterError.message);
-    }
+    ));
+    evidence = unavailableEvidence(adapterError.message);
   }
 
   const evidenceHash = evidenceInputHash(request.plan, sources, PROMPT_VERSION, modelId ?? "runtime-model-unavailable");
   const economicsHash = instrument && snapshot
     ? economicsInputHash(request.plan, instrument, snapshot, FORMULA_VERSION)
     : null;
+  const recomputeToken = instrument && snapshot ? createRecomputeToken(instrument, snapshot) : null;
   const limitations = [...BASE_LIMITATIONS];
   if (request.marketMode === "captured_real") {
     limitations.push("Captured market mode is historical replay data from the selection spike. It is not current market data.");
@@ -157,10 +199,20 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
     confirmedPlan: request.plan,
     instrument,
     snapshot,
+    recomputeToken,
     sources,
     claims,
     evidence,
     economics,
+    performance: {
+      totalDurationMs: Math.max(0, Date.now() - startedAt),
+      marketDurationMs,
+      modelDurationMs,
+      modelCalls,
+      modelRunStatus,
+      modelUsage,
+      reusedEvidence: false,
+    },
     partialErrors,
     generatedAt,
     limitations,

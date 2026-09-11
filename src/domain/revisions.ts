@@ -24,6 +24,7 @@ export type WorkbenchAction =
   | { type: "set-source-text"; sourceText: string }
   | { type: "set-source-url"; sourceUrl: string }
   | { type: "set-market-mode"; marketMode: MarketMode; changedMessage?: string }
+  | { type: "restore-draft"; plan: Plan; sourceText: string; sourceUrl: string; marketMode: MarketMode; changedMessage: string }
   | { type: "begin-request"; requestId: number; requestState: "submitting" | "refreshing" }
   | { type: "request-success"; requestId: number; report: ResearchResult }
   | { type: "request-error"; requestId: number; message: string }
@@ -60,6 +61,22 @@ export function revisionReducer(state: WorkbenchState, action: WorkbenchAction):
       };
     case "set-market-mode":
       return { ...state, marketMode: action.marketMode, changedMessage: action.changedMessage ?? null };
+    case "restore-draft":
+      return {
+        ...state,
+        plan: action.plan,
+        sourceText: action.sourceText,
+        sourceUrl: action.sourceUrl,
+        marketMode: action.marketMode,
+        planRevision: state.planRevision + 1,
+        thesisRevision: state.thesisRevision + 1,
+        scenarioRevision: state.scenarioRevision + 1,
+        activeRequestId: state.activeRequestId + 1,
+        requestState: "idle",
+        report: null,
+        errorMessage: null,
+        changedMessage: action.changedMessage,
+      };
     case "begin-request":
       return { ...state, activeRequestId: action.requestId, requestState: action.requestState, errorMessage: null };
     case "request-success":

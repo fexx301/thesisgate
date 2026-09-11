@@ -60,6 +60,7 @@ describe("model availability boundary", () => {
     vi.stubEnv("THESIS_LLM_PROTOCOL", "openai_chat");
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
       model: "test-model",
+      usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150, cost: 0.0012 },
       choices: [{ message: { content: JSON.stringify({
         summary: "The supplied passage supports the narrow fact.",
         mostConsequentialUnknown: null,
@@ -79,6 +80,20 @@ describe("model availability boundary", () => {
     const result = await assessClaims(plan, [source]);
     expect(result.evidence.verdict).toBe("supported");
     expect(result.claims[0]?.citations[0]?.startOffset).toBe(20);
+    expect(result.performance.modelDurationMs).toBeGreaterThanOrEqual(0);
+    expect(result.performance.modelUsage?.costUsd).toBe("0.0012");
+  });
+
+  it("keeps production model calls closed without durable quota controls", async () => {
+    if (!source) throw new Error("test source was not created");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("THESIS_LLM_ENABLED", "true");
+    vi.stubEnv("THESIS_LLM_API_KEY", "test-key");
+    vi.stubEnv("THESIS_LLM_BASE_URL", "https://provider.example/v1/chat/completions");
+    vi.stubEnv("THESIS_LLM_MODEL", "test-model");
+    vi.stubEnv("THESIS_LLM_PROTOCOL", "openai_chat");
+
+    await expect(assessClaims(plan, [source])).rejects.toHaveProperty("kind", "model_budget");
   });
 
   it("passes the selected reasoning effort to the explicit chat adapter", async () => {

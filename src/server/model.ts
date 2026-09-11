@@ -3,13 +3,23 @@ import "server-only";
 import {
   ClaimAssessmentSchema,
   EvidenceResultSchema,
+  ModelUsageSchema,
   PROMPT_VERSION,
   type ClaimAssessment,
   type EvidenceResult,
+  type ModelUsage,
   type Plan,
   type SourceDocument,
 } from "@/domain/contracts";
 import { claimAssessmentPrompt } from "@/domain/claim-prompt";
+import {
+  acquireModelSlot,
+  assertProductionBudgetControls,
+  maxModelCallCostUsd,
+  ModelQuotaError,
+  reserveModelBudget,
+  settleModelBudget,
+} from "./quota";
 
 const MODEL_TIMEOUT_MS = 15_000;
 const MODEL_RESPONSE_MAX_BYTES = 256_000;
@@ -20,15 +30,19 @@ function isReasoningEffort(value: string): value is ReasoningEffort {
   return REASONING_EFFORTS.has(value as ReasoningEffort);
 }
 
-type ModelAdapterErrorKind = "model_unconfigured" | "model_timeout" | "model_invalid_output";
+type ModelAdapterErrorKind = "model_unconfigured" | "model_timeout" | "model_invalid_output" | "model_budget";
 
 export class ModelAdapterError extends Error {
-  kind: ModelAdapterErrorKind;
+  readonly kind: ModelAdapterErrorKind;
+  readonly durationMs: number;
+  readonly attempted: boolean;
 
-  constructor(kind: ModelAdapterErrorKind, message: string) {
+  constructor(kind: ModelAdapterErrorKind, message: string, options?: { durationMs?: number; attempted?: boolean }) {
     super(message);
     this.name = "ModelAdapterError";
     this.kind = kind;
+    this.durationMs = options?.durationMs ?? 0;
+    this.attempted = options?.attempted ?? false;
   }
 }
 
@@ -53,11 +67,21 @@ type ModelClaim = {
 };
 
 function configuredModel(): ModelConfig {
-  if (process.env.THESIS_LLM_ENABLED !== "true" || process.env.NODE_ENV === "production") {
+  if (process.env.THESIS_LLM_ENABLED !== "true") {
     throw new ModelAdapterError(
       "model_unconfigured",
-      "Runtime claim assessment is disabled until durable public budget controls are configured. Economics can still be calculated; the supplied source remains visible.",
+      "Runtime claim assessment is disabled. Economics can still be calculated; the supplied source remains visible.",
     );
+  }
+  if (process.env.NODE_ENV === "production") {
+    try {
+      assertProductionBudgetControls();
+    } catch (error) {
+      throw new ModelAdapterError(
+        "model_budget",
+        error instanceof Error ? error.message : "Durable production model budget controls are not configured.",
+      );
+    }
   }
   const apiKey = process.env.THESIS_LLM_API_KEY?.trim();
   const baseUrl = process.env.THESIS_LLM_BASE_URL?.trim();
@@ -100,6 +124,42 @@ function record(value: unknown): Record<string, unknown> {
 function stringValue(value: unknown) {
   if (typeof value !== "string") throw new Error("Expected a string");
   return value;
+}
+
+function nonNegativeInteger(value: unknown) {
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0) return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
+  return null;
+}
+
+function nonNegativeNumber(value: unknown) {
+  const parsed = typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : Number.NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function usageFromResponse(response: unknown): ModelUsage | null {
+  const root = record(response);
+  const usageValue = root.usage;
+  if (!usageValue || typeof usageValue !== "object" || Array.isArray(usageValue)) return null;
+  const usage = usageValue as Record<string, unknown>;
+  const promptTokens = nonNegativeInteger(usage.prompt_tokens);
+  const completionTokens = nonNegativeInteger(usage.completion_tokens);
+  const explicitTotal = nonNegativeInteger(usage.total_tokens);
+  const totalTokens = explicitTotal ?? (promptTokens !== null && completionTokens !== null ? promptTokens + completionTokens : null);
+  const costNumber = nonNegativeNumber(usage.cost ?? usage.cost_usd);
+  const costUsd = costNumber === null ? null : costNumber.toString();
+  if (promptTokens === null && completionTokens === null && totalTokens === null && costUsd === null) return null;
+  return ModelUsageSchema.parse({ promptTokens, completionTokens, totalTokens, costUsd });
+}
+
+function modelError(error: unknown, durationMs: number, attempted: boolean) {
+  if (error instanceof ModelAdapterError) {
+    return new ModelAdapterError(error.kind, error.message, { durationMs, attempted: attempted || error.attempted });
+  }
+  if (error instanceof ModelQuotaError) {
+    return new ModelAdapterError("model_budget", error.message, { durationMs, attempted });
+  }
+  return new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model request failed.", { durationMs, attempted });
 }
 
 function parseModelClaims(value: unknown) {
@@ -179,56 +239,93 @@ function extractContent(response: unknown, protocol: ModelConfig["protocol"]) {
   return stringValue(message.content);
 }
 
-async function callModel(config: ModelConfig, prompt: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+async function callModel(config: ModelConfig, prompt: string, context: { requestId: string; visitorKey: string }) {
+  const startedAt = Date.now();
+  let providerStarted = false;
+  let releaseSlot: (() => void) | null = null;
+  let reservation: Awaited<ReturnType<typeof reserveModelBudget>> = null;
+  let result: { parsed: unknown; response: unknown; usage: ModelUsage | null } | null = null;
+  let failure: ModelAdapterError | null = null;
   try {
-    const reasoning = config.reasoningEffort ? { effort: config.reasoningEffort } : undefined;
-    const body = config.protocol === "openai_responses"
-      ? {
-          model: config.model,
-          ...(reasoning ? { reasoning } : {}),
-          input: prompt,
-          temperature: 0.1,
-          max_output_tokens: 2200,
-        }
-      : {
-          model: config.model,
-          ...(reasoning ? { reasoning } : {}),
-          temperature: 0.1,
-          max_tokens: 2200,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: `You are a source-bounded claim assessor. Prompt version: ${PROMPT_VERSION}.` },
-            { role: "user", content: prompt },
-          ],
-        };
-    const response = await fetch(config.baseUrl, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${config.apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    const parsed = await readModelText(response);
-    const content = extractContent(parsed, config.protocol);
+    releaseSlot = acquireModelSlot();
+    reservation = await reserveModelBudget(context);
+    providerStarted = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
     try {
-      return { parsed: JSON.parse(content) as unknown, response: parsed };
-    } catch {
-      throw new Error("Model content was not strict JSON");
+      const reasoning = config.reasoningEffort ? { effort: config.reasoningEffort } : undefined;
+      const body = config.protocol === "openai_responses"
+        ? {
+            model: config.model,
+            ...(reasoning ? { reasoning } : {}),
+            input: prompt,
+            temperature: 0.1,
+            max_output_tokens: 2200,
+          }
+        : {
+            model: config.model,
+            ...(reasoning ? { reasoning } : {}),
+            temperature: 0.1,
+            max_tokens: 2200,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: `You are a source-bounded claim assessor. Prompt version: ${PROMPT_VERSION}.` },
+              { role: "user", content: prompt },
+            ],
+          };
+      const response = await fetch(config.baseUrl, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${config.apiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const parsed = await readModelText(response);
+      const content = extractContent(parsed, config.protocol);
+      try {
+        result = { parsed: JSON.parse(content) as unknown, response: parsed, usage: usageFromResponse(parsed) };
+      } catch {
+        throw new Error("Model content was not strict JSON");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new ModelAdapterError("model_timeout", "The claim-assessment request timed out.");
+      }
+      if (error instanceof ModelAdapterError) throw error;
+      throw new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model request failed.");
+    } finally {
+      clearTimeout(timeout);
     }
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new ModelAdapterError("model_timeout", "The claim-assessment request timed out.");
-    }
-    if (error instanceof ModelAdapterError) throw error;
-    throw new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model request failed.");
+    failure = modelError(error, Date.now() - startedAt, providerStarted);
   } finally {
-    clearTimeout(timeout);
+    releaseSlot?.();
   }
+
+  if (reservation) {
+    try {
+      await settleModelBudget({
+        reservationId: reservation.reservationId,
+        actualCostUsd: result?.usage?.costUsd === null || result?.usage?.costUsd === undefined
+          ? reservation.reservedCostUsd ?? maxModelCallCostUsd()
+          : Number(result.usage.costUsd),
+      });
+    } catch (error) {
+      failure = modelError(error, Date.now() - startedAt, providerStarted);
+    }
+  }
+
+  if (failure) throw failure;
+  if (!result) {
+    throw new ModelAdapterError("model_invalid_output", "The model request returned no result.", {
+      durationMs: Date.now() - startedAt,
+      attempted: providerStarted,
+    });
+  }
+  return { ...result, durationMs: Date.now() - startedAt };
 }
 
 function validateCitations(claim: ModelClaim, sources: SourceDocument[]) {
@@ -271,14 +368,17 @@ export function unavailableEvidence(summary: string): EvidenceResult {
   });
 }
 
-export async function assessClaims(plan: Plan, sources: SourceDocument[]) {
+export async function assessClaims(plan: Plan, sources: SourceDocument[], context: { requestId: string; visitorKey: string } = { requestId: "local-request", visitorKey: "local-visitor" }) {
   const config = configuredModel();
-  const result = await callModel(config, claimAssessmentPrompt(plan, sources));
+  const result = await callModel(config, claimAssessmentPrompt(plan, sources), context);
   let parsed;
   try {
     parsed = parseModelClaims(result.parsed);
   } catch (error) {
-    throw new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model output did not match the required schema.");
+    throw new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model output did not match the required schema.", {
+      durationMs: result.durationMs,
+      attempted: true,
+    });
   }
 
   let claims: ClaimAssessment[];
@@ -292,6 +392,7 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[]) {
     throw new ModelAdapterError(
       "model_invalid_output",
       error instanceof Error ? error.message : "The model citations did not match the supplied sources.",
+      { durationMs: result.durationMs, attempted: true },
     );
   }
   const evidence = EvidenceResultSchema.parse({
@@ -304,5 +405,14 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[]) {
   });
   const responseRoot = record(result.response);
   const responseModel = typeof responseRoot.model === "string" ? responseRoot.model : config.model;
-  return { evidence, claims, modelId: responseModel };
+  return {
+    evidence,
+    claims,
+    modelId: responseModel,
+    performance: {
+      modelDurationMs: result.durationMs,
+      modelUsage: result.usage,
+      modelCalls: 1,
+    },
+  };
 }

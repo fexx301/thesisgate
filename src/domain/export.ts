@@ -14,6 +14,19 @@ function statusLabel(valueToFormat: string) {
   return valueToFormat.replaceAll("_", " ");
 }
 
+function costLabel(valueToFormat: string | null) {
+  return valueToFormat === null ? "Not reported by provider" : `${new Decimal(valueToFormat).toFixed(6)} USD`;
+}
+
+function suppliedUrlDomain(valueToFormat: string | null) {
+  if (!valueToFormat) return "Not supplied";
+  try {
+    return new URL(valueToFormat).hostname;
+  } catch {
+    return "Invalid supplied URL";
+  }
+}
+
 export function toJson(report: ResearchResult) {
   const validated = ResearchResultSchema.parse(report);
   return JSON.stringify(validated, null, 2);
@@ -27,10 +40,12 @@ export function toMarkdown(report: ResearchResult) {
     ? validated.sources
         .map((source) => [
           `- ${source.title}`,
-          `  - Publisher: ${source.publisher}`,
+          `  - Supplied URL domain: ${suppliedUrlDomain(source.originalUrl)}`,
           `  - URL: ${source.originalUrl ?? "Not supplied"}`,
           `  - Provenance: ${source.provenance}`,
           `  - Publication date: ${source.publicationDate ?? "Unknown"}`,
+          `  - Event date: ${source.eventDate ?? "Unknown"}`,
+          `  - Text received: ${source.fetchedAt}`,
           `  - Text hash: ${source.textHash}`,
           `  - Truncated: ${source.truncated ? "yes" : "no"}`,
         ].join("\n"))
@@ -68,6 +83,12 @@ export function toMarkdown(report: ResearchResult) {
     `Schema version: ${validated.schemaVersion}`,
     `Prompt version: ${validated.promptVersion}`,
     `Model: ${validated.modelId ?? "Not configured"}`,
+    `Total duration: ${validated.performance.totalDurationMs} ms`,
+    `Market duration: ${validated.performance.marketDurationMs === null ? "Not measured" : `${validated.performance.marketDurationMs} ms`}`,
+    `Model duration: ${validated.performance.modelDurationMs === null ? "Not measured" : `${validated.performance.modelDurationMs} ms`}`,
+    `Model calls: ${validated.performance.modelCalls}`,
+    `Provider cost: ${costLabel(validated.performance.modelUsage?.costUsd ?? null)}`,
+    `Evidence reused: ${validated.performance.reusedEvidence ? "yes" : "no"}`,
     "",
     "## Confirmed plan",
     "",

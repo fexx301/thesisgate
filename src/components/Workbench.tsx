@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useReducer, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 import Decimal from "decimal.js";
 import {
@@ -19,11 +19,24 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import { toJson, toMarkdown } from "@/domain/export";
-import { PlanSchema, type Asset, type Plan, type ResearchResult } from "@/domain/contracts";
+import { InstrumentSchema, MAX_SOURCE_CHARS, MarketSnapshotSchema, PlanSchema, RecomputeResultSchema, ResearchResultSchema, type Asset, type Instrument, type MarketSnapshot, type Plan, type ResearchResult } from "@/domain/contracts";
+import { TelemetryEventSchema, type TelemetryEvent } from "@/domain/telemetry";
 import { revisionReducer, type MarketMode, type WorkbenchState } from "@/domain/revisions";
 
 const CAPTURED_SOURCE_URL = "https://nvidianews.nvidia.com/news/aws-and-nvidia-to-deliver-2-million-additional-gpus-and-next-generation-infrastructure-for-agentic-and-physical-ai";
 const CAPTURED_SOURCE_TEXT = `NVIDIA and AWS announced a planned expansion of AI infrastructure on August 26, 2026. The announcement describes additional NVIDIA GPU deployments across AWS data centers, with further systems planned for 2027 to 2028. The source describes planned infrastructure and future deployment. It does not state that the deployment is already producing revenue or provide a price forecast.`;
+const DRAFT_STORAGE_KEY = "thesisgate.draft.v1";
+const TELEMETRY_CONSENT_KEY = "thesisgate.telemetry-consent.v1";
+const APPROVED_SOURCE_HOSTS = new Set(["nvidianews.nvidia.com", "investor.nvidia.com", "ir.tesla.com"]);
+
+type DraftPayload = {
+  version: 1;
+  savedAt: string;
+  plan: Plan;
+  sourceText: string;
+  sourceUrl: string;
+  marketMode: MarketMode;
+};
 
 function initialPlan(): Plan {
   return {
@@ -101,6 +114,127 @@ function formatTimestamp(value: string | null | undefined) {
   } catch {
     return value;
   }
+}
+
+function ageSeconds(value: string | null | undefined, now: number) {
+  if (!value) return null;
+  const receivedAt = new Date(value).getTime();
+  if (!Number.isFinite(receivedAt)) return null;
+  return Math.max(0, Math.floor((now - receivedAt) / 1000));
+}
+
+function formatAge(value: string | null | undefined, now: number) {
+  const seconds = ageSeconds(value, now);
+  if (seconds === null) return "Age unavailable";
+  if (seconds < 5) return "just now";
+  if (seconds < 60) return `${seconds}s old`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m old`;
+  return `${Math.floor(minutes / 60)}h old`;
+}
+
+function formatDuration(value: number | null | undefined) {
+  if (value === null || value === undefined) return "Not measured";
+  if (value < 1_000) return `${value} ms`;
+  return `${(value / 1_000).toFixed(1)} s`;
+}
+
+function formatProviderCost(value: string | null | undefined) {
+  if (value === null || value === undefined) return "Not reported by provider";
+  try {
+    return `${new Decimal(value).toFixed(6)} USD`;
+  } catch {
+    return "Not reported by provider";
+  }
+}
+
+function canonicalSuppliedUrl(value: string | null | undefined) {
+  if (!value?.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443")) return null;
+    if (url.hostname === "localhost" || url.hostname.endsWith(".localhost") || url.hostname.includes(":") || /^(?:\d{1,3}\.){3}\d{1,3}$/.test(url.hostname)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function suppliedUrlDomain(value: string | null) {
+  if (!value) return "Not supplied";
+  const canonical = canonicalSuppliedUrl(value);
+  return canonical ? new URL(canonical).hostname : "Invalid supplied URL";
+}
+
+function sourceUrlIssue(value: string, hasSource: boolean) {
+  if (!value.trim()) return null;
+  const canonical = canonicalSuppliedUrl(value);
+  if (!canonical) {
+    return {
+      message: "The supplied source URL is not eligible for retrieval: use an HTTPS URL without credentials or a custom port.",
+      recovery: "Keep the URL as context if useful, but paste the relevant source text for this first slice.",
+    };
+  }
+  if (!APPROVED_SOURCE_HOSTS.has(new URL(canonical).hostname)) {
+    return {
+      message: "The supplied source URL is not eligible for retrieval: this host is not in the initial official-source allowlist.",
+      recovery: "Keep the URL as context if useful, but paste the relevant source text for this first slice.",
+    };
+  }
+  if (!hasSource) {
+    return {
+      message: "The source URL was retained as an unverified reference, but URL retrieval is disabled.",
+      recovery: "Paste the source text to continue, then re-run the brief.",
+    };
+  }
+  return null;
+}
+
+function normalizeSourceText(value: string) {
+  const canonical = value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return canonical.slice(0, MAX_SOURCE_CHARS);
+}
+
+function evidenceInputsMatch(report: ResearchResult, plan: Plan, sourceText: string) {
+  const reportPlan = report.confirmedPlan;
+  const samePlan = JSON.stringify({
+    asset: reportPlan.asset,
+    thesis: reportPlan.thesis,
+    horizon: reportPlan.horizon,
+    invalidation: reportPlan.invalidation,
+  }) === JSON.stringify({
+    asset: plan.asset,
+    thesis: plan.thesis,
+    horizon: plan.horizon,
+    invalidation: plan.invalidation,
+  });
+  const normalizedSource = normalizeSourceText(sourceText);
+  const reportSource = report.sources[0]?.cleanedText ?? "";
+  return samePlan && reportSource === normalizedSource && Boolean(report.instrument && report.snapshot);
+}
+
+function parseDraft(value: unknown): DraftPayload | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  const parsedPlan = PlanSchema.safeParse(candidate.plan);
+  if (!parsedPlan.success) return null;
+  if (candidate.version !== 1 || typeof candidate.savedAt !== "string" || typeof candidate.sourceText !== "string" || typeof candidate.sourceUrl !== "string") return null;
+  if (candidate.sourceText.length > 60_000 || candidate.sourceUrl.length > 2_000) return null;
+  if (candidate.marketMode !== "captured_real" && candidate.marketMode !== "live") return null;
+  return {
+    version: 1,
+    savedAt: candidate.savedAt,
+    plan: parsedPlan.data,
+    sourceText: candidate.sourceText,
+    sourceUrl: candidate.sourceUrl,
+    marketMode: candidate.marketMode,
+  };
 }
 
 function modeLabel(mode: MarketMode | "synthetic") {
@@ -227,7 +361,7 @@ function EvidencePanel({ report }: { report: ResearchResult }) {
           <WarningCircle size={20} weight="regular" aria-hidden="true" />
           <div>
             <strong>Claims were not assessed</strong>
-            <p>Configure the server-only runtime model to assess the exact claim. No source verdict was invented.</p>
+            <p>No claim verdict was invented. When enabled, the server-only model can assess the exact claim against the supplied text.</p>
           </div>
         </div>
       )}
@@ -235,7 +369,7 @@ function EvidencePanel({ report }: { report: ResearchResult }) {
   );
 }
 
-function EconomicsPanel({ report }: { report: ResearchResult }) {
+function EconomicsPanel({ report, now, onRefresh, isRefreshing }: { report: ResearchResult; now: number; onRefresh: () => void; isRefreshing: boolean }) {
   const result = report.economics;
   const comparisonTone = result.goalComparison === "meets" ? "good" : result.goalComparison === "below" ? "bad" : "warn";
   const computationTone = result.computationStatus === "calculated" ? "good" : result.computationStatus === "threshold_only" ? "warn" : "bad";
@@ -249,6 +383,11 @@ function EconomicsPanel({ report }: { report: ResearchResult }) {
       <div className="economics-reference">
         <div><span>Price reference</span><strong>{priceReference}</strong></div>
         <div><span>Snapshot</span><strong>{modeLabel(report.snapshot?.mode ?? "synthetic")} at {formatTimestamp(report.snapshot?.exchangeTimestamp)}</strong></div>
+        <div className="snapshot-age">
+          <span>{report.snapshot?.mode === "live" ? "Exchange data age" : "Captured at"}</span>
+          <strong className={report.snapshot?.mode === "live" && (ageSeconds(report.snapshot.exchangeTimestamp, now) ?? 0) > 30 ? "snapshot-age-warning" : undefined}>{report.snapshot?.mode === "live" ? `${formatAge(report.snapshot.exchangeTimestamp, now)} · received ${formatTimestamp(report.snapshot.receivedAt)}` : `${formatTimestamp(report.snapshot?.receivedAt)} · historical replay`}</strong>
+          {report.snapshot?.mode === "live" ? <button className="button button-quiet refresh-button" type="button" onClick={onRefresh} disabled={isRefreshing}><IconText icon={<ArrowClockwise size={15} className={isRefreshing ? "spin" : undefined} aria-hidden="true" />}>{isRefreshing ? "Refreshing" : "Refresh live snapshot"}</IconText></button> : null}
+        </div>
       </div>
       <dl className="metric-grid">
         <Metric label="Entry VWAP" value={formatMoney(result.entryVWAP)} note={`${formatNumber(result.quantity)} ${result.units.baseAsset}`} emphasis />
@@ -305,11 +444,11 @@ function SourcesPanel({ report }: { report: ResearchResult }) {
           <details key={source.id} className="source-item" open>
             <summary><span>{source.title}</span><CaretDown size={18} aria-hidden="true" /></summary>
             <div className="source-details">
-              <p><span>Publisher</span>{source.publisher}</p>
+              <p><span>Supplied URL domain</span>{suppliedUrlDomain(source.originalUrl)}</p>
               <p><span>Publication date</span>{source.publicationDate ?? "Unknown"}</p>
               <p><span>Event date</span>{source.eventDate ?? "Unknown"}</p>
               <p><span>Provenance</span>{source.provenance.replaceAll("_", " ")}</p>
-              <p><span>Retrieved</span>{formatTimestamp(source.fetchedAt)}</p>
+              <p><span>Text received</span>{formatTimestamp(source.fetchedAt)}</p>
               <p><span>Text hash</span><code>{source.textHash.slice(0, 16)}...</code></p>
               {source.originalUrl ? <a href={source.originalUrl} target="_blank" rel="noreferrer">Open supplied URL</a> : null}
               <p className="source-note">Pasted text is retained as unverified source material. An official-looking URL does not authenticate it.</p>
@@ -318,6 +457,24 @@ function SourcesPanel({ report }: { report: ResearchResult }) {
         )) : <p className="muted-copy">No source document was supplied.</p>}
       </div>
     </section>
+  );
+}
+
+function RunDetails({ report }: { report: ResearchResult }) {
+  const performance = report.performance;
+  return (
+    <details className="run-details">
+      <summary><span>Run details</span><CaretDown size={17} aria-hidden="true" /></summary>
+      <div className="run-details-grid">
+        <p><span>Claim model</span><strong>{report.modelId ?? "Not configured"}</strong></p>
+        <p><span>Total duration</span><strong>{formatDuration(performance.totalDurationMs)}</strong></p>
+        <p><span>Market request</span><strong>{formatDuration(performance.marketDurationMs)}</strong></p>
+        <p><span>Model request</span><strong>{performance.reusedEvidence ? "Reused, no new call" : formatDuration(performance.modelDurationMs)}</strong></p>
+        <p><span>Model calls in brief</span><strong>{performance.modelCalls}</strong></p>
+        <p><span>Provider cost</span><strong>{performance.reusedEvidence ? "No new cost" : formatProviderCost(performance.modelUsage?.costUsd)}</strong></p>
+      </div>
+      <p className="run-details-note">Provider cost is shown only when the provider reports it. A missing cost is not treated as zero.</p>
+    </details>
   );
 }
 
@@ -340,7 +497,72 @@ function ChangePanel({ report }: { report: ResearchResult }) {
 export default function Workbench() {
   const [state, dispatch] = useReducer(revisionReducer, undefined, initialState);
   const [followUpDraft, setFollowUpDraft] = useState("");
+  const [clock, setClock] = useState(() => Date.now());
+  const [savedDraft, setSavedDraft] = useState<DraftPayload | null>(null);
+  const [draftStatus, setDraftStatus] = useState<string | null>(null);
+  const [telemetryConsent, setTelemetryConsent] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
+  const requestCounterRef = useRef(0);
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionStartedRef = useRef(false);
+  const telemetryConsentRef = useRef(false);
+
+  const track = useCallback((event: TelemetryEvent["event"], details: Omit<Partial<TelemetryEvent>, "event" | "sessionId" | "occurredAt"> = {}) => {
+    if (process.env.NEXT_PUBLIC_TELEMETRY_ENABLED !== "true" || !telemetryConsentRef.current) return;
+    if (!sessionIdRef.current) {
+      sessionIdRef.current = typeof globalThis.crypto?.randomUUID === "function"
+        ? globalThis.crypto.randomUUID()
+        : `tg_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    }
+    const parsed = TelemetryEventSchema.safeParse({
+      event,
+      sessionId: sessionIdRef.current,
+      occurredAt: new Date().toISOString(),
+      ...details,
+    });
+    if (!parsed.success) return;
+    void fetch("/api/telemetry", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(parsed.data),
+      keepalive: true,
+    }).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 10_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (active && raw) setSavedDraft(parseDraft(JSON.parse(raw) as unknown));
+        const consent = window.localStorage.getItem(TELEMETRY_CONSENT_KEY) === "yes";
+        telemetryConsentRef.current = consent;
+        if (active) setTelemetryConsent(consent);
+      } catch {
+        if (active) setSavedDraft(null);
+      }
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (sessionStartedRef.current) return;
+    sessionStartedRef.current = true;
+    track("session_started", { marketMode: state.marketMode });
+  }, [track, state.marketMode]);
+
+  useEffect(() => {
+    /* Keep the previous cleanup separate from browser draft hydration. */
+    return () => controllerRef.current?.abort();
+  }, []);
 
   const planErrors = useMemo(() => {
     const parsed = PlanSchema.safeParse(state.plan);
@@ -372,16 +594,128 @@ export default function Workbench() {
     commitPlan({ ...state.plan, asset }, `Asset changed to r${asset}. Market data will be reloaded on submit.`, true);
   }
 
-  function submitResearch(overrides?: { plan?: Plan; sourceText?: string; sourceUrl?: string; marketMode?: MarketMode; inputRevision?: number }) {
-    const nextPlan = overrides?.plan ?? state.plan;
-    const nextSource = overrides?.sourceText ?? state.sourceText;
-    const nextUrl = overrides?.sourceUrl ?? state.sourceUrl;
-    const nextMode = overrides?.marketMode ?? state.marketMode;
-    const requestId = state.activeRequestId + 1;
+  function beginRequest(nextMode: MarketMode) {
+    const requestId = Math.max(requestCounterRef.current, state.activeRequestId) + 1;
+    requestCounterRef.current = requestId;
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
     dispatch({ type: "begin-request", requestId, requestState: nextMode === "live" ? "refreshing" : "submitting" });
+    return { requestId, controller, startedAt: performance.now() };
+  }
+
+  async function responsePayload(response: Response, fallback: string) {
+    const payload = await response.json() as Record<string, unknown>;
+    if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : fallback);
+    return payload;
+  }
+
+  function submitEconomics(nextPlan: Plan, nextMode: MarketMode, inputRevision: number, refreshMarket: boolean, nextSourceUrl: string) {
+    const baseReport = state.report;
+    if (!baseReport?.instrument || !baseReport.snapshot || !baseReport.recomputeToken) return;
+    const request = beginRequest(nextMode);
+    track("brief_submitted", { marketMode: nextMode, reusedEvidence: true, modelConfigured: Boolean(baseReport.modelId) });
+    void (async () => {
+      let instrument: Instrument = baseReport.instrument as Instrument;
+      let snapshot: MarketSnapshot = baseReport.snapshot as MarketSnapshot;
+      let recomputeToken = baseReport.recomputeToken;
+      const sourceReference = canonicalSuppliedUrl(nextSourceUrl);
+      let marketDurationMs: number | null = null;
+      try {
+        if (refreshMarket || snapshot.mode !== nextMode) {
+          const marketStartedAt = performance.now();
+          const marketResponse = await fetch("/api/market", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ asset: nextPlan.asset, mode: nextMode }),
+            signal: request.controller.signal,
+          });
+          const marketPayload = await responsePayload(marketResponse, "The market snapshot could not be refreshed.");
+          const parsedInstrument = InstrumentSchema.safeParse(marketPayload.instrument);
+          const parsedSnapshot = MarketSnapshotSchema.safeParse(marketPayload.snapshot);
+          if (!parsedInstrument.success || !parsedSnapshot.success || typeof marketPayload.recomputeToken !== "string") throw new Error("The refreshed market response did not match the expected contract.");
+          instrument = parsedInstrument.data;
+          snapshot = parsedSnapshot.data;
+          recomputeToken = marketPayload.recomputeToken;
+          marketDurationMs = Math.max(0, Math.round(performance.now() - marketStartedAt));
+        }
+
+        const recomputeResponse = await fetch("/api/recompute", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ plan: nextPlan, instrument, snapshot, recomputeToken, planRevision: inputRevision, scenarioRevision: inputRevision }),
+          signal: request.controller.signal,
+        });
+        const recompute = RecomputeResultSchema.parse(await responsePayload(recomputeResponse, "The economics could not be recomputed."));
+        const partialErrors: ResearchResult["partialErrors"] = baseReport.partialErrors.filter((item) => !["insufficient_depth", "market_unavailable", "market_invalid", "source_unavailable"].includes(item.kind));
+        const urlIssue = sourceUrlIssue(nextSourceUrl, baseReport.sources.length > 0);
+        if (urlIssue) partialErrors.push({ kind: "source_unavailable", ...urlIssue });
+        if (recompute.economics.computationStatus === "insufficient_depth") {
+          partialErrors.push({
+            kind: "insufficient_depth",
+            message: "The requested position or stressed exit could not be filled by the displayed depth.",
+            recovery: "Reduce the notional or exit-depth stress, then re-run with the limitation visible.",
+          });
+        }
+        const report: ResearchResult = {
+          ...baseReport,
+          reportId: recompute.reportId,
+          inputRevision,
+          reportRevision: recompute.reportRevision,
+          confirmedPlan: nextPlan,
+          instrument,
+          snapshot,
+          recomputeToken,
+          sources: baseReport.sources.map((source, index) => index === 0
+            ? {
+                ...source,
+                originalUrl: sourceReference,
+                publisher: sourceReference ? new URL(sourceReference).hostname : "User supplied source",
+              }
+            : source),
+          economics: recompute.economics,
+          economicsInputHash: recompute.economicsInputHash,
+          performance: {
+            ...recompute.performance,
+            totalDurationMs: Math.max(0, Math.round(performance.now() - request.startedAt)),
+            marketDurationMs,
+            reusedEvidence: true,
+          },
+          partialErrors,
+          generatedAt: recompute.generatedAt,
+        };
+        dispatch({ type: "request-success", requestId: request.requestId, report });
+        track("brief_completed", {
+          marketMode: nextMode,
+          durationMs: report.performance.totalDurationMs,
+          evidenceStatus: report.evidence.status,
+          computationStatus: report.economics.computationStatus,
+          reusedEvidence: true,
+          modelConfigured: Boolean(report.modelId),
+        });
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        const message = error instanceof Error ? error.message : "The economics could not be recomputed.";
+        dispatch({ type: "request-error", requestId: request.requestId, message });
+        track("brief_failed", { marketMode: nextMode, durationMs: Math.max(0, Math.round(performance.now() - request.startedAt)), reusedEvidence: true, errorKind: "network" });
+      }
+    })();
+  }
+
+  function submitResearch(overrides?: { plan?: Plan; sourceText?: string; sourceUrl?: string; marketMode?: MarketMode; inputRevision?: number; forceMarketRefresh?: boolean }) {
+    const nextPlan = overrides?.plan ?? state.plan;
+    const nextSource = overrides?.sourceText ?? state.sourceText;
+    const nextUrl = overrides?.sourceUrl ?? state.sourceUrl;
+    const nextMode = overrides?.marketMode ?? state.marketMode;
+    const inputRevision = overrides?.inputRevision ?? state.planRevision;
+    const canReuseEvidence = Boolean(state.report && state.report.recomputeToken && evidenceInputsMatch(state.report, nextPlan, nextSource));
+    if (canReuseEvidence) {
+      submitEconomics(nextPlan, nextMode, inputRevision, Boolean(overrides?.forceMarketRefresh) || state.report?.snapshot?.mode !== nextMode, nextUrl);
+      return;
+    }
+
+    const request = beginRequest(nextMode);
+    track("brief_submitted", { marketMode: nextMode, reusedEvidence: false });
     void fetch("/api/research", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -390,20 +724,85 @@ export default function Workbench() {
         sourceText: nextSource.trim() ? nextSource : null,
         sourceUrl: nextUrl.trim() ? nextUrl : null,
         marketMode: nextMode,
-        inputRevision: overrides?.inputRevision ?? state.planRevision,
+        inputRevision,
       }),
-      signal: controller.signal,
+      signal: request.controller.signal,
     })
-      .then(async (response) => {
-        const payload = await response.json() as ResearchResult | { error?: string };
-        if (!response.ok) throw new Error("error" in payload && payload.error ? payload.error : "The research request could not be completed.");
-        return payload as ResearchResult;
+      .then((response) => responsePayload(response, "The research request could not be completed."))
+      .then((payload) => {
+        const report = ResearchResultSchema.parse(payload);
+        dispatch({ type: "request-success", requestId: request.requestId, report });
+        track("brief_completed", {
+          marketMode: nextMode,
+          durationMs: report.performance?.totalDurationMs ?? Math.max(0, Math.round(performance.now() - request.startedAt)),
+          evidenceStatus: report.evidence?.status,
+          computationStatus: report.economics?.computationStatus,
+          reusedEvidence: false,
+          modelConfigured: Boolean(report.modelId),
+        });
       })
-      .then((report) => dispatch({ type: "request-success", requestId, report }))
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        dispatch({ type: "request-error", requestId, message: error instanceof Error ? error.message : "The research request could not be completed." });
+        const message = error instanceof Error ? error.message : "The research request could not be completed.";
+        dispatch({ type: "request-error", requestId: request.requestId, message });
+        track("brief_failed", { marketMode: nextMode, durationMs: Math.max(0, Math.round(performance.now() - request.startedAt)), reusedEvidence: false, errorKind: "network" });
       });
+  }
+
+  function saveDraft() {
+    const draft: DraftPayload = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      plan: state.plan,
+      sourceText: state.sourceText,
+      sourceUrl: state.sourceUrl,
+      marketMode: state.marketMode,
+    };
+    try {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      setSavedDraft(draft);
+      setDraftStatus("Draft saved in this browser only.");
+      track("draft_saved", { marketMode: state.marketMode });
+    } catch {
+      setDraftStatus("This browser did not allow local draft storage.");
+    }
+  }
+
+  function changeTelemetryConsent(enabled: boolean) {
+    telemetryConsentRef.current = enabled;
+    setTelemetryConsent(enabled);
+    try {
+      window.localStorage.setItem(TELEMETRY_CONSENT_KEY, enabled ? "yes" : "no");
+    } catch {
+      // Consent remains active for this tab even when persistent storage is unavailable.
+    }
+    if (enabled) track("session_started", { marketMode: state.marketMode });
+  }
+
+  function restoreDraft() {
+    if (!savedDraft) return;
+    controllerRef.current?.abort();
+    dispatch({
+      type: "restore-draft",
+      plan: savedDraft.plan,
+      sourceText: savedDraft.sourceText,
+      sourceUrl: savedDraft.sourceUrl,
+      marketMode: savedDraft.marketMode,
+      changedMessage: "Saved draft restored. Submit again to build a fresh brief.",
+    });
+    setDraftStatus(`Draft restored from ${formatTimestamp(savedDraft.savedAt)} UTC.`);
+    track("draft_restored", { marketMode: savedDraft.marketMode });
+  }
+
+  function clearDraft() {
+    try {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      // Storage may be unavailable; clearing the in-memory reference is still safe.
+    }
+    setSavedDraft(null);
+    setDraftStatus("Saved draft cleared from this browser.");
+    track("draft_cleared", { marketMode: state.marketMode });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -438,13 +837,14 @@ export default function Workbench() {
       });
       const result = await response.json() as { plan?: Plan; changed?: string[]; clarification?: string | null; refreshMarket?: boolean; error?: string };
       if (!response.ok || !result.plan) throw new Error(result.error ?? "The follow-up could not be parsed.");
+      track("follow_up_applied", { marketMode: result.refreshMarket ? "live" : state.marketMode, reusedEvidence: Boolean(state.report && !result.changed?.some((item) => item.includes("thesis"))) });
       if (result.changed?.length) {
         const nextPlan = result.plan;
         const evidenceChanged = result.changed.some((item) => item.includes("thesis"));
         commitPlan(nextPlan, `Changed: ${result.changed.join(", ")}.`, evidenceChanged);
         if (result.refreshMarket) {
           dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Changed: live market refresh requested." });
-          submitResearch({ plan: nextPlan, marketMode: "live", inputRevision: state.planRevision + 1 });
+          submitResearch({ plan: nextPlan, marketMode: "live", inputRevision: state.planRevision + 1, forceMarketRefresh: true });
         } else if (state.report && result.changed.some((item) => item.includes("notional") || item.includes("goal") || item.includes("scenario") || item.includes("depth"))) {
           submitResearch({ plan: nextPlan, inputRevision: state.planRevision + 1 });
         }
@@ -465,6 +865,7 @@ export default function Workbench() {
     anchor.download = `thesisgate-${state.report.reportId}.${kind === "markdown" ? "md" : "json"}`;
     anchor.click();
     URL.revokeObjectURL(url);
+    track("export_downloaded", { marketMode: state.marketMode });
   }
 
   const goalKind = state.plan.goal?.kind ?? "none";
@@ -506,6 +907,17 @@ export default function Workbench() {
             <span className="panel-index">01</span>
           </div>
           <p className="panel-intro">Start with the exact statement you want to test. Paste the relevant source passage below.</p>
+          <div className="draft-toolbar">
+            <div><strong>Local draft</strong><span>Stored in this browser only.</span></div>
+            <div className="draft-actions">
+              <button className="button button-quiet" type="button" onClick={saveDraft}>Save draft</button>
+              {savedDraft ? <button className="button button-quiet" type="button" onClick={restoreDraft}>Restore saved</button> : null}
+              {savedDraft ? <button className="text-button" type="button" onClick={clearDraft}>Clear</button> : null}
+            </div>
+          </div>
+          {savedDraft ? <p className="draft-available">Saved draft from {formatTimestamp(savedDraft.savedAt)} UTC is available.</p> : null}
+          {draftStatus ? <p className="draft-status" role="status">{draftStatus}</p> : null}
+          {process.env.NEXT_PUBLIC_TELEMETRY_ENABLED === "true" ? <label className="telemetry-control"><input type="checkbox" checked={telemetryConsent} onChange={(event) => changeTelemetryConsent(event.target.checked)} /><span><strong>Share anonymous validation events</strong><small>Optional. No thesis, source text, URL, or report content is sent.</small></span></label> : null}
 
           <fieldset>
             <legend>Thesis and source</legend>
@@ -605,7 +1017,7 @@ export default function Workbench() {
           <p className="button-note"><Info size={14} weight="bold" aria-hidden="true" /> No order placement. No price forecast.</p>
         </form>
 
-        <section id="report" className="report-column" aria-live="polite">
+        <section id="report" className="report-column" aria-live="off" aria-busy={isBusy}>
           <div className="report-header">
             <div><span className="panel-kicker">Research brief</span><h2>Keep the conclusions distinct.</h2></div>
             <div className="report-actions">
@@ -618,9 +1030,10 @@ export default function Workbench() {
           {isBusy && !state.report ? <ReportSkeleton /> : state.report ? (
             <>
               {!reportIsCurrent ? <div className="stale-banner" role="status"><Info size={16} weight="bold" aria-hidden="true" /><span>This report is from an earlier plan or market mode. Submit again before exporting.</span></div> : null}
-              <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} /></div>
+              <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} now={clock} onRefresh={() => { track("live_refresh_requested", { marketMode: "live" }); submitResearch({ marketMode: "live", forceMarketRefresh: true }); }} isRefreshing={state.requestState === "refreshing"} /></div>
               <ScenarioTable report={state.report} />
               <SourcesPanel report={state.report} />
+              <RunDetails report={state.report} />
               <ChangePanel report={state.report} />
               {state.report.partialErrors.length ? <details className="partial-details"><summary>Partial outcomes and recovery <CaretDown size={17} aria-hidden="true" /></summary><ul>{state.report.partialErrors.map((item) => <li key={`${item.kind}-${item.message}`}><strong>{humanize(item.kind)}</strong><span>{item.message}</span><small>Recovery: {item.recovery}</small></li>)}</ul></details> : null}
             </>

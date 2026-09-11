@@ -35,6 +35,8 @@ For the first successful run:
 3. Change one input, such as the budget, objective, or price scenario.
 4. Click **Stress-test my thesis** again.
 
+After the first brief, edits to the budget, objective, fees, depth, haircut, or scenario recompute the economics without another model call. A source-URL reference edit updates provenance without reassessing the pasted text. A market-mode change or live refresh requests a new market snapshot. A thesis, horizon, or source-text change requires a new evidence assessment.
+
 The captured example is historical replay data. It is included so the economics can be demonstrated without a live network request or an AI provider key.
 
 The replay always gives you an economics result. The evidence section may show `not_assessed` unless the optional local claim model is configured. That status means no claim assessment was run; it is not a negative verdict.
@@ -67,6 +69,8 @@ This section models a hypothetical entry and exit using the displayed order book
 The **break-even shift** is the conditional movement in displayed bid prices needed to cover modeled costs. It is not a forecast, a probability, a native-stock return, or a promise of execution.
 
 A stale snapshot is flagged but may still produce conditional math. Missing or insufficient depth can make whole-position profit or loss unavailable, and the report preserves that limitation instead of inventing a result.
+
+Live results show when the snapshot was received and its current age. Use **Refresh live snapshot** when the age is no longer appropriate for your decision. The button requests a new book and reuses the existing evidence review.
 
 ### Unknowns and provenance
 
@@ -129,6 +133,10 @@ Requests a public Bitget market snapshot at run time for the fixed `RNVDAUSDT` o
 - Input validation, bounded source text, provenance labels, timestamps, warnings, and hashes.
 - Decimal.js arithmetic for fees, quantity steps, entry sweeps, exit sweeps, depth, and haircuts.
 - Deterministic Markdown and JSON exports from the validated report.
+- A math-only recomputation path that avoids repeat claim-model calls for economics changes.
+- Visible run details for model name, market and model duration, model-call count, evidence reuse, and provider-reported cost.
+- Browser-local draft save and restore controls. Draft text is not sent anywhere by the draft feature.
+- Optional privacy-preserving success telemetry for submit, completion, failure, follow-up, refresh, export, and draft events.
 - Unit, integration, browser, and evaluation-gate test coverage.
 
 ### Not ready for public AI use
@@ -187,6 +195,34 @@ Keep the key in `.env.local`, never in source, browser state, logs, or exported 
 
 Before deployment, set `THESIS_PUBLIC_ORIGINS` to the exact HTTPS origin or comma-separated origins that serve the app. Production POST routes fail closed when the allowlist is missing or the request origin is not listed. Localhost and test runs do not require this deployment setting.
 
+Production claim-model calls also fail closed until the durable quota adapter is configured. The adapter is an integration boundary, not an in-memory counter. Set these server-only variables:
+
+~~~dotenv
+THESIS_LLM_QUOTA_URL=https://your-quota-service.example/reservations
+THESIS_LLM_QUOTA_TOKEN=your-quota-service-token
+THESIS_LLM_MAX_CALL_COST_USD=0.02
+THESIS_LLM_DAILY_BUDGET_USD=1
+THESIS_LLM_PER_VISITOR_BUDGET_USD=0.10
+THESIS_LLM_MAX_CONCURRENT=2
+THESIS_LLM_PROVIDER_HARD_LIMIT_USD=1
+THESIS_VISITOR_HASH_SECRET=long-random-server-secret
+THESIS_RECOMPUTE_SIGNING_SECRET=another-long-random-server-secret
+~~~
+
+The quota service must atomically handle a `reserve` request before the provider call and a `settle` request after it. The reserve body includes a request ID, one-way visitor bucket, maximum per-call reservation, daily and per-visitor caps, provider hard limit, concurrency cap, and a 60-second reservation expiry. It must return `{ "allowed": true, "reservationId": "..." }` or `{ "allowed": false, "reason": "..." }`. Settlement receives the reservation ID and actual provider-reported cost, or the reserved maximum when the provider reports no cost. The app never sends the raw visitor address to the model provider.
+
+The provider hard limit must also be enforced by the quota service or provider account. Environment variables alone are not evidence that a spending cap is active. Keep `THESIS_LLM_ENABLED` false until the reservation service has been tested under concurrent requests.
+
+Economics-only recomputations require `THESIS_RECOMPUTE_SIGNING_SECRET` in production. Each research and market response includes a server-signed receipt for its validated instrument and snapshot; `/api/recompute` rejects browser-substituted market data. The receipt authenticates origin, not freshness. Use the visible exchange age and refresh control when current data matters.
+
+For local development, the quota service is not required. The optional `THESIS_LLM_LOCAL_MAX_CONCURRENT` variable limits simultaneous local model calls in the running process.
+
+### Drafts and validation telemetry
+
+**Save draft** stores the current plan, source passage, URL reference, and market mode in this browser's `localStorage`. It is not encrypted and is not synchronized across devices. Do not save confidential material unless local browser storage is acceptable for it.
+
+Telemetry is disabled by default. To enable the client events and server sink, set `NEXT_PUBLIC_TELEMETRY_ENABLED=true` at build time and `THESIS_TELEMETRY_ENABLED=true` on the server. The workbench then shows an unchecked **Share anonymous validation events** control; events are sent only after a tester opts in. Without `THESIS_TELEMETRY_ENDPOINT`, events are written as sanitized server log records for the host's log collector. With an endpoint, the server forwards only the validated event envelope. Events contain no thesis, source text, URL, API key, IP address, or provider response. The event set is designed to answer whether a tester submitted, completed, recovered from an error, used a follow-up, refreshed live data, exported a brief, or restored a draft.
+
 ### Architecture
 
 ~~~text
@@ -196,7 +232,8 @@ Browser workbench
       -> server-only Bitget adapter or explicit captured replay
       -> pure Decimal.js economics
       -> optional server-only claim adapter
-      -> validated canonical ResearchResult
+      -> validated canonical ResearchResult (`research-v2`)
+  -> /api/recompute for economics-only changes
   -> deterministic Markdown or JSON export
 ~~~
 
@@ -212,9 +249,11 @@ All money and quantity arithmetic uses Decimal.js. `null` means unavailable; it 
 
 - `POST /api/research` builds the validated evidence and economics brief.
 - `POST /api/market` retrieves either captured or live market data.
+- `POST /api/recompute` recalculates economics from an already returned instrument and snapshot without calling the claim model.
 - `POST /api/intent` applies a bounded follow-up edit such as changing the budget or requesting a market refresh.
+- `POST /api/telemetry` accepts only the small validated event envelope when telemetry is enabled.
 
-All three routes validate input. Browser-origin checks apply to production POST requests. Provider keys are read only on the server.
+All POST routes validate input. Browser-origin checks apply to production POST requests. Provider keys are read only on the server.
 
 ### Evaluation tooling
 
