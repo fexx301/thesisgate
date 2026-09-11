@@ -773,7 +773,7 @@ select[aria-invalid="true"] {
 }
 
 .report-card {
-  padding: var(--space-6) 0;
+  padding: var(--space-6) var(--space-5);
   border-top: var(--rule-thin) solid var(--color-rule);
   border-radius: 0;
   background: transparent;
