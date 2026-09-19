@@ -44,15 +44,15 @@ function output(value: Decimal | null) {
   return value?.toString() ?? null;
 }
 
-function emptyScenarioTable(): ScenarioRow[] {
+function emptyScenarioTable(status: ScenarioRow["status"] = "unavailable", goal: { kind: string } | null = null): ScenarioRow[] {
   return SCENARIO_PRESETS.map(({ label, value }) => ({
     label,
     bidPriceShift: value,
     effectivePriceShift: null,
     netPnl: null,
     netReturn: null,
-    goalComparison: "unavailable",
-    status: "unavailable",
+    goalComparison: goal ? "unavailable" : "not_requested",
+    status,
   }));
 }
 
@@ -61,6 +61,7 @@ function emptyResult(
   status: EconomicsResult["computationStatus"],
   warnings: string[],
 ): EconomicsResult {
+  const scenarioStatus: ScenarioRow["status"] = status === "insufficient_depth" ? "insufficient_depth" : "unavailable";
   return {
     computationStatus: status,
     goalComparison: input.plan.goal ? "unavailable" : "not_requested",
@@ -93,7 +94,7 @@ function emptyResult(
     exitDepthMultiplier: input.plan.exitAssumptions.depthMultiplier,
     exitPriceHaircut: input.plan.exitAssumptions.priceHaircut,
     warnings,
-    scenarioTable: emptyScenarioTable(),
+    scenarioTable: emptyScenarioTable(scenarioStatus, input.plan.goal),
   };
 }
 
@@ -116,10 +117,12 @@ function validateInstrument(instrument: Instrument) {
 
 function validateBook(snapshot: MarketSnapshot): { bids: BookCheck; asks: BookCheck; warnings: string[]; valid: boolean } {
   const warnings: string[] = [];
+  const fatal: string[] = [];
   const normalize = (levels: MarketLevel[], side: "bid" | "ask"): BookCheck => {
     const sideWarnings: string[] = [];
     const nonZero = levels.filter(([, quantity]) => !decimal(quantity).isZero());
     if (nonZero.length !== levels.length) {
+      // Zero-quantity levels are filtered explicitly per spec; informative only, not fatal.
       sideWarnings.push(`${side === "bid" ? "Bid" : "Ask"} book contained zero-quantity levels; they were ignored.`);
     }
     let previous: Decimal | null = null;
@@ -128,10 +131,12 @@ function validateBook(snapshot: MarketSnapshot): { bids: BookCheck; asks: BookCh
       const currentQuantity = decimal(quantity);
       if (currentPrice.lte(0) || currentQuantity.lt(0)) {
         sideWarnings.push(`${side === "bid" ? "Bid" : "Ask"} book contains a non-positive level.`);
+        fatal.push(`${side} non-positive level`);
         continue;
       }
       if (previous && (side === "ask" ? currentPrice.lt(previous) : currentPrice.gt(previous))) {
         sideWarnings.push(`${side === "bid" ? "Bid" : "Ask"} levels are not sorted.`);
+        fatal.push(`${side} unsorted`);
       }
       previous = currentPrice;
     }
@@ -140,12 +145,19 @@ function validateBook(snapshot: MarketSnapshot): { bids: BookCheck; asks: BookCh
 
   const bids = normalize(snapshot.bids, "bid");
   const asks = normalize(snapshot.asks, "ask");
-  if (!bids.levels.length || !asks.levels.length) warnings.push("Both sides of the book need at least one non-zero level.");
+  if (!bids.levels.length || !asks.levels.length) {
+    warnings.push("Both sides of the book need at least one non-zero level.");
+    fatal.push("empty side");
+  }
   if (bids.levels.length && asks.levels.length && decimal(asks.levels[0][0]).lt(decimal(bids.levels[0][0]))) {
     warnings.push("The book is crossed: best ask is below best bid.");
+    fatal.push("crossed book");
   }
   warnings.push(...bids.warnings, ...asks.warnings);
-  return { bids, asks, warnings, valid: warnings.length === 0 };
+  // Propagate fatal sorting/crossed/empty signals; zero-qty filtering alone stays valid.
+  if (bids.warnings.some((w) => w.includes("not sorted") || w.includes("non-positive"))) fatal.push("bid malformed");
+  if (asks.warnings.some((w) => w.includes("not sorted") || w.includes("non-positive"))) fatal.push("ask malformed");
+  return { bids, asks, warnings, valid: fatal.length === 0 };
 }
 
 function sweep(levels: MarketLevel[], requestedQty: Decimal, transform?: (price: Decimal, quantity: Decimal) => [Decimal, Decimal]): Sweep {
@@ -174,21 +186,35 @@ function sweep(levels: MarketLevel[], requestedQty: Decimal, transform?: (price:
 }
 
 function budgetQuantity(levels: MarketLevel[], budget: Decimal) {
+  // Full visible ask capacity (all levels), independent of the requested budget.
+  const fullCapacity = levels.reduce(
+    (sum, [priceString, quantityString]) => sum.plus(decimal(priceString).mul(decimal(quantityString))),
+    new Decimal(0),
+  );
   let remainingBudget = budget;
   let quantity = new Decimal(0);
-  let visibleCapacity = new Decimal(0);
 
   for (const [priceString, quantityString] of levels) {
+    if (remainingBudget.isZero()) break;
     const price = decimal(priceString);
     const available = decimal(quantityString);
-    visibleCapacity = visibleCapacity.plus(price.mul(available));
-    const take = Decimal.min(available, Decimal.max(remainingBudget.div(price), 0));
+    if (available.lte(0)) continue;
+    const levelCapacity = available.mul(price);
+    if (remainingBudget.gte(levelCapacity)) {
+      // Level fully consumable within the remaining budget: spend its exact capacity.
+      quantity = quantity.plus(available);
+      remainingBudget = remainingBudget.minus(levelCapacity);
+      continue;
+    }
+    // Budget cannot fully buy this level: divide, then consume this level as
+    // budget-complete so rounded division cannot leave a phantom residue.
+    const take = Decimal.max(remainingBudget.div(price), 0);
     quantity = quantity.plus(take);
-    remainingBudget = remainingBudget.minus(take.mul(price));
-    if (remainingBudget.lte(0)) break;
+    remainingBudget = new Decimal(0);
+    break;
   }
 
-  return { quantity, remainingBudget: Decimal.max(remainingBudget, 0), visibleCapacity };
+  return { quantity, remainingBudget: Decimal.max(remainingBudget, 0), visibleCapacity: fullCapacity };
 }
 
 function roundDown(value: Decimal, step: Decimal) {
@@ -220,7 +246,7 @@ function scenarioValues(
     netPnl,
     netReturn,
     effectiveShift: new Decimal(1).plus(shift).mul(new Decimal(1).minus(haircut)).minus(1),
-    goalComparison: goal === null ? "unavailable" : netPnl.gte(goal) ? "meets" : "below",
+    goalComparison: goal === null ? "not_requested" : netPnl.gte(goal) ? "meets" : "below",
   } as const;
 }
 
@@ -292,8 +318,9 @@ export function calculateEconomics(input: EconomicsInput): EconomicsResult {
     price.mul(new Decimal(1).minus(haircut)),
     available.mul(depthMultiplier),
   ]);
+  // Visible exit capacity in USDT (stressed bid value), consistent with entry capacity units.
   const visibleExitCapacity = bookCheck.bids.levels.reduce(
-    (sum, [, available]) => sum.plus(decimal(available).mul(depthMultiplier)),
+    (sum, [price, available]) => sum.plus(decimal(price).mul(new Decimal(1).minus(haircut)).mul(decimal(available).mul(depthMultiplier))),
     new Decimal(0),
   );
   if (exitPlan.remainingQty.gt(0)) {
@@ -315,8 +342,38 @@ export function calculateEconomics(input: EconomicsInput): EconomicsResult {
   }
 
   const baseExitGross = exitPlan.value;
-  const exitFeeMultiplier = new Decimal(1).minus(decimal(input.plan.feeOut));
+  const feeOut = decimal(input.plan.feeOut);
+  // Guard degenerate math: non-positive books or invalid fees must yield unavailable thresholds, never Infinity/NaN.
+  if (baseExitGross.lte(0) || entryCash.lte(0) || feeOut.gte(1) || feeOut.lt(0)) {
+    return {
+      ...emptyResult(input, "invalid_book", [...warnings, "The stressed book produced no valid exit value; thresholds are unavailable."]),
+      quantity: output(quantity),
+      spentNotional: output(entryNotional),
+      entryCash: output(entryCash),
+      unspentNotional: output(unspent),
+      entryVWAP: output(entry.vwap),
+      matchedExitQuantity: output(exitPlan.filledQty),
+      unmatchedExitQuantity: output(exitPlan.remainingQty),
+      visibleEntryCapacity: output(entryPlan.visibleCapacity),
+      visibleExitCapacity: output(visibleExitCapacity),
+    };
+  }
+  const exitFeeMultiplier = new Decimal(1).minus(feeOut);
   const modeledExitNet = baseExitGross.mul(exitFeeMultiplier);
+  if (modeledExitNet.lte(0)) {
+    return {
+      ...emptyResult(input, "invalid_book", [...warnings, "The modeled exit value is non-positive after fees; thresholds are unavailable."]),
+      quantity: output(quantity),
+      spentNotional: output(entryNotional),
+      entryCash: output(entryCash),
+      unspentNotional: output(unspent),
+      entryVWAP: output(entry.vwap),
+      matchedExitQuantity: output(exitPlan.filledQty),
+      unmatchedExitQuantity: output(exitPlan.remainingQty),
+      visibleEntryCapacity: output(entryPlan.visibleCapacity),
+      visibleExitCapacity: output(visibleExitCapacity),
+    };
+  }
   const friction = entryCash.minus(modeledExitNet);
   const breakEvenShift = entryCash.div(modeledExitNet).minus(1);
   const goal = goalAmount(input.plan, entryCash);
@@ -324,8 +381,16 @@ export function calculateEconomics(input: EconomicsInput): EconomicsResult {
   const selectedShift = input.plan.scenario ? decimal(input.plan.scenario.bidPriceShift) : null;
   const selectedScenario = selectedShift === null
     ? null
-    : scenarioValues(baseExitGross, entryCash, decimal(input.plan.feeOut), haircut, selectedShift, goal);
-  const scenarioTable = buildScenarioTable(baseExitGross, entryCash, decimal(input.plan.feeOut), haircut, goal);
+    : scenarioValues(baseExitGross, entryCash, feeOut, haircut, selectedShift, goal);
+  const scenarioTable = buildScenarioTable(baseExitGross, entryCash, feeOut, haircut, goal);
+  // Out-of-range notice: thresholds beyond the ±3% preset band were computed, not simulated row-by-row.
+  const SUPPORTED_SHIFT = new Decimal("0.03");
+  if (breakEvenShift.abs().gt(SUPPORTED_SHIFT)) {
+    warnings.push(`Break-even shift ${breakEvenShift.toString()} is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
+  }
+  if (requiredGoalShift !== null && requiredGoalShift.abs().gt(SUPPORTED_SHIFT)) {
+    warnings.push(`Goal threshold ${requiredGoalShift.toString()} is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
+  }
 
   return {
     computationStatus: selectedScenario ? "calculated" : "threshold_only",
@@ -396,7 +461,7 @@ export function missingEconomics(plan: Plan, planRevision: number, scenarioRevis
     exitDepthMultiplier: plan.exitAssumptions.depthMultiplier,
     exitPriceHaircut: plan.exitAssumptions.priceHaircut,
     warnings: [message],
-    scenarioTable: emptyScenarioTable(),
+    scenarioTable: emptyScenarioTable("unavailable", plan.goal),
   };
 }
 

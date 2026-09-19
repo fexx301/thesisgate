@@ -12,6 +12,16 @@ function isFiniteDecimal(value: string) {
   }
 }
 
+// Zod refinements continue after earlier failures, so every Decimal construction in a
+// refinement must tolerate syntactically invalid text instead of throwing during parse.
+function checkedDecimal(value: string) {
+  try {
+    return new Decimal(value);
+  } catch {
+    return null;
+  }
+}
+
 export const DecimalStringSchema = z
   .string()
   .trim()
@@ -19,17 +29,17 @@ export const DecimalStringSchema = z
   .refine(isFiniteDecimal, "Enter a finite decimal number");
 
 export const NonNegativeDecimalStringSchema = DecimalStringSchema.refine(
-  (value) => new Decimal(value).gte(0),
+  (value) => checkedDecimal(value)?.gte(0) === true,
   "Enter zero or a positive number",
 );
 
 export const PositiveDecimalStringSchema = DecimalStringSchema.refine(
-  (value) => new Decimal(value).gt(0),
+  (value) => checkedDecimal(value)?.gt(0) === true,
   "Enter a number greater than zero",
 );
 
 const BoundedFractionSchema = NonNegativeDecimalStringSchema.refine(
-  (value) => new Decimal(value).lt(1),
+  (value) => checkedDecimal(value)?.lt(1) === true,
   "Enter a fraction below 1",
 );
 
@@ -62,10 +72,12 @@ export const ExitAssumptionsSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (new Decimal(value.depthMultiplier).gt(1)) {
+    const depth = checkedDecimal(value.depthMultiplier);
+    const haircut = checkedDecimal(value.priceHaircut);
+    if (depth !== null && depth.gt(1)) {
       context.addIssue({ code: "custom", path: ["depthMultiplier"], message: "Depth must be between 0 and 1" });
     }
-    if (new Decimal(value.priceHaircut).gte(1)) {
+    if (haircut !== null && haircut.gte(1)) {
       context.addIssue({ code: "custom", path: ["priceHaircut"], message: "Haircut must be below 1" });
     }
   });
@@ -77,7 +89,8 @@ export const PriceScenarioSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (new Decimal(value.bidPriceShift).lte(-1)) {
+    const shift = checkedDecimal(value.bidPriceShift);
+    if (shift !== null && shift.lte(-1)) {
       context.addIssue({ code: "custom", path: ["bidPriceShift"], message: "A price shift must be above -100%" });
     }
   });
@@ -233,7 +246,7 @@ export const ScenarioRowSchema = z
     effectivePriceShift: DecimalStringSchema.nullable(),
     netPnl: DecimalStringSchema.nullable(),
     netReturn: DecimalStringSchema.nullable(),
-    goalComparison: z.enum(["meets", "below", "unavailable"]),
+    goalComparison: z.enum(["meets", "below", "not_requested", "unavailable"]),
     status: z.enum(["calculated", "insufficient_depth", "unavailable"]),
   })
   .strict();

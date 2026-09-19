@@ -56,6 +56,20 @@ describe("Bitget market adapter", () => {
     expect(calls.some((url) => url.includes("symbol=RNVDAUSDT"))).toBe(true);
   });
 
+  it.each([
+    null, [], 7, "unavailable", {},
+    { code: "10001", data: [{ symbol: "RNVDAUSDT" }] },
+    { code: "00000", data: {} },
+    { code: "00000", data: [{ symbol: "RNVDAUSDT" }, { symbol: "RNVDAUSDT" }] },
+    { code: "00000", data: [{ symbol: "RTSLAUSDT" }] },
+  ])("preserves mandatory data with malformed optional ticker: %j", async (ticker) => {
+    mockMarketFetch(ticker);
+    const result = await fetchLiveMarket("NVDA");
+    expect(result.instrument.symbol).toBe("RNVDAUSDT");
+    expect(result.snapshot.asks).toEqual([["101", "2"]]);
+    expect(result.snapshot.validationWarnings.join(" ")).toContain("Ticker context was unavailable");
+  });
+
   it("flags a book older than the current-data freshness policy", async () => {
     mockMarketFetch({ code: "00000", data: [{ symbol: "RNVDAUSDT" }] }, Date.now() - 31_000);
     const result = await fetchLiveMarket("NVDA");

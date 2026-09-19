@@ -1,5 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../../src/app/api/research/route";
+import { resetLocalRateLimitsForTests } from "../../src/server/quota";
+import { resetRouteRateLimitsForTests } from "../../src/server/http";
+
+beforeEach(() => {
+  resetLocalRateLimitsForTests();
+  resetRouteRateLimitsForTests();
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 const requestBody = {
   plan: {
@@ -41,5 +52,25 @@ describe("research route", () => {
     expect(result.evidence.status).toBe("unavailable");
     expect(result.economics.computationStatus).toBe("calculated");
     expect(result.modelId).toBeNull();
+  });
+
+  it("reports a paid final-evidence failure as a partial result with usage", async () => {
+    vi.stubEnv("THESIS_LLM_ENABLED", "true");
+    vi.stubEnv("THESIS_LLM_API_KEY", "test-key");
+    vi.stubEnv("THESIS_LLM_BASE_URL", "https://provider.example/responses");
+    vi.stubEnv("THESIS_LLM_MODEL", "configured-model");
+    vi.stubEnv("THESIS_LLM_PROTOCOL", "openai_responses");
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({
+      model: "reported-model", status: "completed", usage: { input_tokens: 12, output_tokens: 8, cost: 0.003 },
+      output: [{ type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: JSON.stringify({ summary: "", mostConsequentialUnknown: null, claims: [] }) }] }],
+    })));
+    const response = await POST(new Request("http://localhost/api/research", { method: "POST", body: JSON.stringify(requestBody) }));
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.evidence.status).toBe("unavailable");
+    expect(result.economics.computationStatus).toBe("calculated");
+    expect(result.modelId).toBe("reported-model");
+    expect(result.performance).toMatchObject({ modelCalls: 1, modelRunStatus: "provider_failed", modelUsage: { costUsd: "0.003", promptTokens: 12, completionTokens: 8 } });
+    expect(result.partialErrors).toContainEqual(expect.objectContaining({ kind: "model_invalid_output" }));
   });
 });

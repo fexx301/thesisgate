@@ -117,6 +117,49 @@ function localDevelopmentConcurrency() {
 
 let activeModelCalls = 0;
 
+// Local time-window guard: 5 model analyses per visitor per 10 minutes + global daily ceiling.
+// This is a single-process guard for development and a defense-in-depth check in production;
+// production multi-instance enforcement remains the durable THESIS_LLM_QUOTA_URL service.
+const VISITOR_WINDOW_MS = 10 * 60 * 1000;
+const VISITOR_MAX = 5;
+const GLOBAL_DAILY_MAX = 200;
+const visitorCalls = new Map<string, number[]>();
+let globalDayKey = "";
+let globalDayCount = 0;
+
+function dayKey(now: number) {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+export function checkLocalModelRateLimit(visitorKey: string) {
+  const now = Date.now();
+  for (const [key, calls] of visitorCalls) {
+    if (now - calls[calls.length - 1] >= VISITOR_WINDOW_MS) visitorCalls.delete(key);
+  }
+  const day = dayKey(now);
+  if (day !== globalDayKey) {
+    globalDayKey = day;
+    globalDayCount = 0;
+  }
+  if (globalDayCount >= GLOBAL_DAILY_MAX) {
+    throw new ModelQuotaError("denied", "The daily model-analysis budget is exhausted. Replay captured results remain available.");
+  }
+  const calls = (visitorCalls.get(visitorKey) ?? []).filter((t) => now - t < VISITOR_WINDOW_MS);
+  if (calls.length >= VISITOR_MAX) {
+    throw new ModelQuotaError("denied", "Five analyses per visitor per ten minutes. Retry shortly; replay and exports remain available.");
+  }
+  calls.push(now);
+  visitorCalls.set(visitorKey, calls);
+  globalDayCount += 1;
+}
+
+export function resetLocalRateLimitsForTests() {
+  visitorCalls.clear();
+  globalDayKey = "";
+  globalDayCount = 0;
+  activeModelCalls = 0;
+}
+
 export function acquireModelSlot() {
   const limit = process.env.NODE_ENV === "production" ? quotaConfig().maxConcurrent : localDevelopmentConcurrency();
   if (activeModelCalls >= limit) {
@@ -129,9 +172,27 @@ export function acquireModelSlot() {
 }
 
 async function readQuotaResponse(response: Response) {
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > QUOTA_RESPONSE_MAX_BYTES) {
-    throw new ModelQuotaError("invalid_response", "The quota service response was too large.");
+  if (!response.body) throw new ModelQuotaError("invalid_response", "The quota service response had no body.");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > QUOTA_RESPONSE_MAX_BYTES) {
+        throw new ModelQuotaError("invalid_response", "The quota service response was too large.");
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+  } catch (error) {
+    void reader.cancel("quota intake stopped").catch(() => {});
+    throw error;
+  } finally {
+    reader.releaseLock();
   }
   let parsed: unknown;
   try {
@@ -163,10 +224,10 @@ async function quotaRequest(config: QuotaConfig, body: Record<string, unknown>) 
     return await readQuotaResponse(response);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new ModelQuotaError("transport", "The quota service timed out; the model call was not started.");
+      throw new ModelQuotaError("transport", "The quota service timed out.");
     }
     if (error instanceof ModelQuotaError) throw error;
-    throw new ModelQuotaError("transport", "The quota service could not be reached; the model call was not started.");
+    throw new ModelQuotaError("transport", "The quota service could not be reached.");
   } finally {
     clearTimeout(timeout);
   }
@@ -185,6 +246,7 @@ export async function reserveModelBudget(input: { requestId: string; visitorKey:
     perVisitorBudgetUsd: config.perVisitorBudgetUsd,
     providerHardLimitUsd: config.providerHardLimitUsd,
     maxConcurrent: config.maxConcurrent,
+    // Only the concurrency lease expires. Spend must stay reserved until settlement.
     expiresInSeconds: 60,
   });
   if (!result.allowed) {
@@ -199,11 +261,16 @@ export async function reserveModelBudget(input: { requestId: string; visitorKey:
 export async function settleModelBudget(input: { reservationId: string; actualCostUsd: number }) {
   if (process.env.NODE_ENV !== "production") return;
   const config = quotaConfig();
-  const result = await quotaRequest(config, {
-    operation: "settle",
-    idempotencyKey: input.reservationId,
-    reservationId: input.reservationId,
-    actualCostUsd: Number.isFinite(input.actualCostUsd) && input.actualCostUsd >= 0 ? input.actualCostUsd : config.maxCallCostUsd,
-  });
-  if (!result.allowed) throw new ModelQuotaError("transport", result.reason ?? "The quota service rejected settlement.");
+  try {
+    const result = await quotaRequest(config, {
+      operation: "settle",
+      idempotencyKey: input.reservationId,
+      reservationId: input.reservationId,
+      actualCostUsd: Number.isFinite(input.actualCostUsd) && input.actualCostUsd >= 0 ? input.actualCostUsd : config.maxCallCostUsd,
+    });
+    if (!result.allowed) throw new ModelQuotaError("transport", "The quota service rejected settlement.");
+  } catch {
+    // Do not cancel/refund an uncertain settlement or repeat the paid provider call.
+    throw new ModelQuotaError("transport", "Model budget settlement was not confirmed. The spend reservation must remain held pending reconciliation.");
+  }
 }

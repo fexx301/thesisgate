@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import type { Instrument, MarketSnapshot, Plan, ResearchResult, SourceDocument } from "./contracts";
 
 export type MarketMode = "captured_real" | "live";
@@ -8,6 +9,9 @@ export type WorkbenchState = {
   sourceText: string;
   sourceUrl: string;
   marketMode: MarketMode;
+  // Market mode the current report was requested for, independent of snapshot availability,
+  // so partial reports with failed market data are not falsely called stale.
+  reportMarketMode: MarketMode | null;
   planRevision: number;
   thesisRevision: number;
   scenarioRevision: number;
@@ -23,10 +27,10 @@ export type WorkbenchAction =
   | { type: "set-plan"; plan: Plan; changedMessage: string; evidenceChanged: boolean }
   | { type: "set-source-text"; sourceText: string }
   | { type: "set-source-url"; sourceUrl: string }
+  | { type: "request-success"; requestId: number; report: ResearchResult; requestedMarketMode: MarketMode }
   | { type: "set-market-mode"; marketMode: MarketMode; changedMessage?: string }
   | { type: "restore-draft"; plan: Plan; sourceText: string; sourceUrl: string; marketMode: MarketMode; changedMessage: string }
   | { type: "begin-request"; requestId: number; requestState: "submitting" | "refreshing" }
-  | { type: "request-success"; requestId: number; report: ResearchResult }
   | { type: "request-error"; requestId: number; message: string }
   | { type: "set-follow-up"; followUpMessage: string }
   | { type: "set-changed-message"; changedMessage: string | null };
@@ -68,6 +72,7 @@ export function revisionReducer(state: WorkbenchState, action: WorkbenchAction):
         sourceText: action.sourceText,
         sourceUrl: action.sourceUrl,
         marketMode: action.marketMode,
+        reportMarketMode: null,
         planRevision: state.planRevision + 1,
         thesisRevision: state.thesisRevision + 1,
         scenarioRevision: state.scenarioRevision + 1,
@@ -85,6 +90,7 @@ export function revisionReducer(state: WorkbenchState, action: WorkbenchAction):
         ...state,
         requestState: "idle",
         report: action.report,
+        reportMarketMode: action.requestedMarketMode,
         errorMessage: null,
         changedMessage: null,
       };
@@ -100,13 +106,14 @@ export function revisionReducer(state: WorkbenchState, action: WorkbenchAction):
   }
 }
 
-function hashString(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
+async function hashInput(kind: "evidence" | "economics", input: unknown) {
+  const payload = new TextEncoder().encode(JSON.stringify(input));
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", payload));
+  return `${kind}-v2:sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function numeric(value: string) {
+  return new Decimal(value).toString();
 }
 
 export function evidenceInputHash(
@@ -115,26 +122,67 @@ export function evidenceInputHash(
   promptVersion: string,
   modelVersion: string,
 ) {
-  return hashString(JSON.stringify({
+  return hashInput("evidence", {
     asset: plan.asset,
     thesis: plan.thesis,
-    sources,
-    horizon: plan.horizon,
+    sources: sources.map((source) => ({
+      textHash: source.textHash,
+      provenance: source.provenance,
+      publicationDate: source.publicationDate,
+      eventDate: source.eventDate,
+      publicationDatePrecision: source.publicationDatePrecision,
+    })),
+    horizon: {
+      originalText: plan.horizon.originalText,
+      endAtUTC: plan.horizon.endAtUTC,
+      timezone: plan.horizon.timezone,
+    },
     invalidation: plan.invalidation,
     promptVersion,
     modelVersion,
-  }));
+  });
 }
 
 export function economicsInputHash(plan: Plan, instrument: Instrument, snapshot: MarketSnapshot, formulaVersion: string) {
-  return hashString(JSON.stringify({
-    instrument,
-    snapshotHash: snapshot.hash,
-    notional: plan.purchaseNotionalExcludingFee,
-    fees: [plan.feeIn, plan.feeOut],
-    goal: plan.goal,
-    exitAssumptions: plan.exitAssumptions,
-    scenario: plan.scenario,
+  return hashInput("economics", {
+    asset: plan.asset,
+    category: plan.category,
+    side: plan.side,
+    quoteCurrency: plan.quoteCurrency,
+    instrument: {
+      symbol: instrument.symbol,
+      asset: instrument.asset,
+      category: instrument.category,
+      baseCoin: instrument.baseCoin,
+      quoteCoin: instrument.quoteCoin,
+      symbolType: instrument.symbolType,
+      isReality: instrument.isReality,
+      status: instrument.status.toLowerCase(),
+      quantityStep: numeric(instrument.quantityStep),
+      priceTick: numeric(instrument.priceTick),
+      minOrderQty: numeric(instrument.minOrderQty),
+      maxOrderQty: numeric(instrument.maxOrderQty),
+      minOrderNotional: numeric(instrument.minOrderNotional),
+      maxPositionQty: numeric(instrument.maxPositionQty),
+    },
+    book: {
+      asset: snapshot.asset,
+      symbol: snapshot.symbol,
+      bids: snapshot.bids.map(([price, quantity]) => [numeric(price), numeric(quantity)]),
+      asks: snapshot.asks.map(([price, quantity]) => [numeric(price), numeric(quantity)]),
+    },
+    notional: numeric(plan.purchaseNotionalExcludingFee),
+    fees: [numeric(plan.feeIn), numeric(plan.feeOut)],
+    goal: plan.goal?.kind === "profit_usdt"
+      ? { kind: plan.goal.kind, amount: numeric(plan.goal.amount) }
+      : plan.goal?.kind === "net_return"
+        ? { kind: plan.goal.kind, fractionOfEntryCash: numeric(plan.goal.fractionOfEntryCash) }
+        : plan.goal ? { kind: plan.goal.kind } : null,
+    exitAssumptions: {
+      depthMultiplier: numeric(plan.exitAssumptions.depthMultiplier),
+      priceHaircut: numeric(plan.exitAssumptions.priceHaircut),
+    },
+    scenario: plan.scenario ? { bidPriceShift: numeric(plan.scenario.bidPriceShift) } : null,
     formulaVersion,
-  }));
+  });
 }

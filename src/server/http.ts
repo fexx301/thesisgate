@@ -4,7 +4,7 @@ import { z } from "zod";
 import { newId, sha256 } from "./identifiers";
 
 export class RequestValidationError extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly status: 400 | 413 | 429 = 400) {
     super(message);
     this.name = "RequestValidationError";
   }
@@ -71,9 +71,37 @@ export function requestContext(request: Request): RequestContext {
 
 export async function parseJsonRequest<T>(request: Request, schema: z.ZodType<T>, maxBytes: number) {
   const declaredLength = Number(request.headers.get("content-length") ?? "0");
-  if (declaredLength > maxBytes) throw new RequestValidationError("Request body is too large.");
-  const body = await request.text();
-  if (new TextEncoder().encode(body).byteLength > maxBytes) throw new RequestValidationError("Request body is too large.");
+  if (declaredLength > maxBytes) {
+    void request.body?.cancel("request body too large").catch(() => {});
+    throw new RequestValidationError("Request body is too large.", 413);
+  }
+  if (!request.body) throw new RequestValidationError("Request body must be valid JSON.");
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let body = "";
+  let bytes = 0;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => reject(new RequestValidationError("Request body timed out.")), 5_000);
+  });
+  try {
+    while (true) {
+      const { done, value } = await Promise.race([reader.read(), deadline]);
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > maxBytes) throw new RequestValidationError("Request body is too large.", 413);
+      body += decoder.decode(value, { stream: true });
+    }
+    body += decoder.decode();
+  } catch (error) {
+    // Never await cancellation: a disconnected body's cancel hook can itself stall.
+    void reader.cancel("request intake stopped").catch(() => {});
+    if (error instanceof RequestValidationError) throw error;
+    throw new RequestValidationError("Request body could not be read.");
+  } finally {
+    clearTimeout(timeout);
+    reader.releaseLock();
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(body) as unknown;
@@ -87,4 +115,35 @@ export async function parseJsonRequest<T>(request: Request, schema: z.ZodType<T>
 
 export function jsonError(message: string, status: number) {
   return Response.json({ error: message }, { status, headers: { "cache-control": "no-store" } });
+}
+
+// Generic per-visitor time-window limiter for all POST routes (defense in depth).
+// Production multi-instance enforcement is the durable quota service; this prevents single-process abuse.
+const ROUTE_WINDOW_MS = 60_000;
+const ROUTE_MAX = 30;
+const routeCalls = new Map<string, number[]>();
+const ROUTE_BUCKET_MAX = 10_000;
+
+export function checkRouteRateLimit(visitorKey: string, route: string) {
+  const now = Date.now();
+  // Map insertion order tracks last activity; remove only expired buckets.
+  for (const [bucket, history] of routeCalls) {
+    if (now - history[history.length - 1] < ROUTE_WINDOW_MS) break;
+    routeCalls.delete(bucket);
+  }
+  const key = `${route}:${visitorKey}`;
+  if (!routeCalls.has(key) && routeCalls.size >= ROUTE_BUCKET_MAX) {
+    throw new RequestValidationError("Rate limit capacity is full. Retry shortly.", 429);
+  }
+  const calls = (routeCalls.get(key) ?? []).filter((t) => now - t < ROUTE_WINDOW_MS);
+  if (calls.length >= ROUTE_MAX) {
+    throw new RequestValidationError("Rate limit exceeded. Retry shortly; previous results and replay remain available.", 429);
+  }
+  calls.push(now);
+  routeCalls.delete(key);
+  routeCalls.set(key, calls);
+}
+
+export function resetRouteRateLimitsForTests() {
+  routeCalls.clear();
 }

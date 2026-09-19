@@ -29,13 +29,33 @@ function suppliedUrlDomain(valueToFormat: string | null) {
 
 export function toJson(report: ResearchResult) {
   const validated = ResearchResultSchema.parse(report);
-  return JSON.stringify(validated, null, 2);
+  // Distributable JSON excludes the server-only recompute capability token.
+  // Full cleanedText is retained as the canonical audit artifact; Markdown is the redistributable brief (excerpts only).
+  const { recomputeToken: _recomputeToken, ...distributable } = validated;
+  void _recomputeToken;
+  return JSON.stringify(distributable, null, 2);
 }
 
 export function toMarkdown(report: ResearchResult) {
   const validated = ResearchResultSchema.parse(report);
   const plan = validated.confirmedPlan;
   const economics = validated.economics;
+  const instrument = validated.instrument;
+  const baseAsset = economics.units.baseAsset;
+  const instrumentLines = instrument ? [
+    `- Instrument symbol: ${instrument.symbol}`,
+    `- Underlying asset: ${instrument.asset}`,
+    `- Base / quote: ${instrument.baseCoin} / ${instrument.quoteCoin}`,
+    `- Category: ${instrument.category}; type: ${instrument.symbolType}; Reality: ${instrument.isReality ? "yes" : "no"}`,
+    `- Venue status: ${instrument.status}`,
+    `- Quantity step: ${instrument.quantityStep} ${instrument.baseCoin}`,
+    `- Price tick: ${instrument.priceTick} ${instrument.quoteCoin}`,
+    `- Minimum order quantity: ${instrument.minOrderQty} ${instrument.baseCoin}`,
+    `- Maximum order quantity: ${instrument.maxOrderQty} ${instrument.baseCoin} (zero means no configured cap)`,
+    `- Minimum order notional: ${instrument.minOrderNotional} ${instrument.quoteCoin}`,
+    `- Maximum position quantity: ${instrument.maxPositionQty} ${instrument.baseCoin} (zero means no configured cap)`,
+    `- Instrument metadata time: ${instrument.rawMetadataTime}`,
+  ].join("\n") : "- Instrument metadata: Not available; venue rules could not be validated.";
   const sourceLines = validated.sources.length
     ? validated.sources
         .map((source) => [
@@ -55,7 +75,7 @@ export function toMarkdown(report: ResearchResult) {
     ? validated.claims
         .map((claim) => {
           const citations = claim.citations.length
-            ? claim.citations.map((citation) => `> ${citation.excerpt}`).join("\n")
+            ? claim.citations.map((citation) => `> ${citation.excerpt}\n> — source ${citation.sourceId} @ ${citation.startOffset}–${citation.endOffset}`).join("\n")
             : "> No validated citation";
           return [
             `### ${claim.claimId}: ${claim.status}`,
@@ -70,7 +90,7 @@ export function toMarkdown(report: ResearchResult) {
         .join("\n\n")
     : "No runtime claim assessments were recorded.";
   const scenarioLines = economics.scenarioTable
-    .map((row) => `| ${row.label} | ${percent(row.bidPriceShift)} | ${value(row.netPnl)} USDT | ${row.goalComparison} |`)
+    .map((row) => `| ${row.label} | ${percent(row.bidPriceShift)} | ${row.effectivePriceShift ? percent(row.effectivePriceShift) : "Not available"} | ${value(row.netPnl)} USDT | ${row.goalComparison} | ${row.status} |`)
     .join("\n");
 
   return [
@@ -94,13 +114,21 @@ export function toMarkdown(report: ResearchResult) {
     "",
     `- Asset: ${plan.asset} SPOT long` ,
     `- Purchase notional excluding fee: ${plan.purchaseNotionalExcludingFee} USDT`,
-    `- Horizon: ${plan.horizon.originalText || "Not supplied"}`,
+    `- Horizon: ${plan.horizon.originalText || "Not supplied"}${plan.horizon.endAtUTC ? ` (ends ${plan.horizon.endAtUTC}${plan.horizon.timezone ? ` ${plan.horizon.timezone}` : ""})` : ""}`,
+    `- Invalidation: ${plan.invalidation ?? "Not supplied — no stop-loss invented"}`,
     `- Goal: ${plan.goal ? JSON.stringify(plan.goal) : "Not requested"}`,
-    `- Scenario: ${plan.scenario?.bidPriceShift ?? "Not supplied"} bid-price shift`,
-    `- Fees: ${plan.feeIn} in, ${plan.feeOut} out`,
-    `- Exit depth multiplier: ${plan.exitAssumptions.depthMultiplier}`,
-    `- Exit price haircut: ${plan.exitAssumptions.priceHaircut}`,
+    `- Scenario: ${plan.scenario?.bidPriceShift ?? "Not supplied (threshold only)"} bid-price shift${plan.scenario ? ` (origin: ${plan.scenario.assumptionOrigin})` : ""}`,
+    `- Fees: ${plan.feeIn} in, ${plan.feeOut} out (origin: ${plan.feeOrigin}; published standard is 0.001 each side)`,
+    `- Exit depth multiplier: ${plan.exitAssumptions.depthMultiplier} (origin: ${plan.exitAssumptions.depthOrigin})`,
+    `- Exit price haircut: ${plan.exitAssumptions.priceHaircut} (origin: ${plan.exitAssumptions.haircutOrigin})`,
     `- Thesis: ${plan.thesis || "Not supplied"}`,
+    `- Evidence input hash: ${validated.evidenceInputHash}`,
+    `- Economics input hash: ${validated.economicsInputHash ?? "Not available"}`,
+    `- Snapshot hash: ${validated.snapshot?.hash ?? "Not available"}`,
+    "",
+    "## Instrument identity and venue rules",
+    "",
+    instrumentLines,
     "",
     "## Evidence behind the thesis",
     "",
@@ -117,19 +145,36 @@ export function toMarkdown(report: ResearchResult) {
     `- Computation status: ${statusLabel(economics.computationStatus)}`,
     `- Goal comparison: ${economics.goalComparison}`,
     `- Snapshot: ${economics.snapshotId ?? "Not available"}`,
+    `- Requested notional: ${value(economics.requestedNotional)} USDT`,
+    `- Rounded quantity: ${value(economics.quantity)} ${baseAsset}`,
+    `- Spent notional: ${value(economics.spentNotional)} USDT`,
+    `- Unspent notional: ${value(economics.unspentNotional)} USDT`,
+    `- Matched exit quantity: ${value(economics.matchedExitQuantity)} ${baseAsset}`,
+    `- Unmatched exit quantity: ${value(economics.unmatchedExitQuantity)} ${baseAsset}`,
     `- Entry VWAP: ${value(economics.entryVWAP)} USDT`,
     `- Entry cash: ${value(economics.entryCash)} USDT`,
     `- Modeled exit VWAP: ${value(economics.modeledExitVWAP)} USDT`,
+    `- Modeled exit gross: ${value(economics.modeledExitGross)} USDT`,
+    `- Modeled exit net: ${value(economics.modeledExitNet)} USDT`,
+    `- Selected scenario gross: ${value(economics.scenarioGross)} USDT`,
+    `- Selected scenario net: ${value(economics.scenarioNet)} USDT`,
     `- Immediate friction proxy: ${value(economics.frictionProxy)} USDT`,
     `- Break-even bid-price shift: ${percent(economics.breakEvenShift)}`,
-    `- Required goal shift: ${percent(economics.requiredGoalShift)}`,
+    `- Required goal shift: ${percent(economics.requiredGoalShift)} (pre-haircut scenario variable r; label consistently)`,
     `- Selected scenario PnL: ${value(economics.netPnl)} USDT`,
     `- Selected scenario return on entry cash: ${percent(economics.netReturn)}`,
+    `- Effective stressed price shift: ${economics.effectivePriceShift ? percent(economics.effectivePriceShift) : "Not available"} (shown whenever haircut is nonzero)`,
+    `- Visible entry capacity: ${economics.visibleEntryCapacity ? `${economics.visibleEntryCapacity} USDT` : "Not available"}`,
+    `- Visible exit capacity: ${economics.visibleExitCapacity ? `${economics.visibleExitCapacity} USDT (stressed)` : "Not available"}`,
+    "",
+    "### Calculator warnings",
+    "",
+    ...(economics.warnings.length ? economics.warnings.map((warning) => `- ${warning}`) : ["- None"]),
     "",
     "### Scenario comparison",
     "",
-    "| Scenario | Bid-price shift | Net PnL | Goal comparison |",
-    "| --- | ---: | ---: | --- |",
+    "| Scenario | Bid-price shift | Effective shift | Net PnL | Goal comparison | Status |",
+    "| --- | ---: | ---: | ---: | --- | --- |",
     scenarioLines,
     "",
     `- Snapshot mode: ${validated.snapshot?.mode ?? "Not available"}`,
@@ -142,8 +187,8 @@ export function toMarkdown(report: ResearchResult) {
     "",
     "## What could change this assessment",
     "",
-    "- Evidence condition: a validated source passage could confirm or contradict the exact causal or forecast claim.",
-    "- Numerical condition: a new order-book snapshot or a different explicit exit-depth assumption could change the threshold.",
+    `- Evidence condition: ${validated.claims.length ? `a validated passage addressing "${validated.claims[0].exactText.slice(0, 120)}" (currently ${validated.claims[0].status}) could change the ${validated.evidence.verdict} verdict` : "a validated source passage confirming or contradicting the exact causal or forecast claim could change the verdict"}.`,
+    `- Numerical condition: ${validated.economics.requiredGoalShift ? `a snapshot where the required ${percent(validated.economics.requiredGoalShift)} bid shift is met, or exit depth above ${validated.economics.exitDepthMultiplier} of snapshot ${validated.economics.snapshotId ?? "unknown"}, could change the ${validated.economics.goalComparison} outcome` : "a new order-book snapshot or a different explicit exit-depth assumption could change the threshold"}. These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.`,
     "",
     "## Limitations",
     "",

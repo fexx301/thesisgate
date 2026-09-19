@@ -11,6 +11,7 @@ import {
 } from "@/domain/contracts";
 import { calculateEconomics, missingEconomics } from "@/domain/economics";
 import { economicsInputHash, evidenceInputHash } from "@/domain/revisions";
+import { withMarketModeLimitations } from "@/domain/limitations";
 import { getMarket, MarketAdapterError } from "./bitget";
 import { newId } from "./identifiers";
 import { assessClaims, ModelAdapterError, unavailableEvidence } from "./model";
@@ -67,6 +68,20 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
       "ambiguous_input",
       "The trade thesis is blank, so there is no exact claim to assess.",
       "State the factual or causal claim you want to stress-test.",
+    ));
+  }
+  if (!request.plan.horizon.originalText.trim()) {
+    partialErrors.push(errorFor(
+      "ambiguous_input",
+      "No holding horizon was supplied, so calculations are shown as partial context without time dynamics.",
+      "Add a horizon such as 'until tomorrow evening' for a complete brief. The static book does not model time.",
+    ));
+  }
+  if (source?.truncated) {
+    partialErrors.push(errorFor(
+      "source_unavailable",
+      "The pasted source exceeded 15,000 characters and was truncated before assessment.",
+      "Paste the most relevant bounded passage, or split sources so cited sections are fully included.",
     ));
   }
 
@@ -153,10 +168,12 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
       : new ModelAdapterError("model_invalid_output", "The model adapter failed.");
     modelDurationMs = adapterError.durationMs || null;
     modelCalls = adapterError.attempted ? 1 : 0;
-    modelRunStatus = adapterError.kind === "model_budget"
-      ? "quota_denied"
-      : adapterError.attempted
-        ? "provider_failed"
+    modelUsage = adapterError.usage;
+    modelId = adapterError.modelId;
+    modelRunStatus = adapterError.attempted
+      ? "provider_failed"
+      : adapterError.kind === "model_budget"
+        ? "quota_denied"
         : "not_attempted";
     partialErrors.push(errorFor(
       adapterError.kind,
@@ -170,15 +187,12 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     evidence = unavailableEvidence(adapterError.message);
   }
 
-  const evidenceHash = evidenceInputHash(request.plan, sources, PROMPT_VERSION, modelId ?? "runtime-model-unavailable");
+  const evidenceHash = await evidenceInputHash(request.plan, sources, PROMPT_VERSION, modelId ?? "runtime-model-unavailable");
   const economicsHash = instrument && snapshot
-    ? economicsInputHash(request.plan, instrument, snapshot, FORMULA_VERSION)
+    ? await economicsInputHash(request.plan, instrument, snapshot, FORMULA_VERSION)
     : null;
   const recomputeToken = instrument && snapshot ? createRecomputeToken(instrument, snapshot) : null;
-  const limitations = [...BASE_LIMITATIONS];
-  if (request.marketMode === "captured_real") {
-    limitations.push("Captured market mode is historical replay data from the selection spike. It is not current market data.");
-  }
+  const limitations = withMarketModeLimitations(BASE_LIMITATIONS, request.marketMode);
   if (source?.provenance === "user_pasted_unverified") {
     limitations.push("Pasted source text is user-supplied and unverified, even when an official-looking URL is present.");
   }

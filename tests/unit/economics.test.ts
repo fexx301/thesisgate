@@ -83,6 +83,85 @@ describe("deterministic decimal economics", () => {
     expect(result.netPnl).toBeNull();
   });
 
+
+
+  it("reports sufficient depth when rounded division leaves a division residue", () => {
+    // 100 USDT at a single 3 USDT ask: 100/3 rounds down at Decimal's default precision,
+    // so spend-back previously left a phantom 1e-18 residue and a false insufficient_depth.
+    const result = calculateEconomics({
+      plan: plan({ purchaseNotionalExcludingFee: "100", goal: { kind: "break_even" } }),
+      instrument: syntheticInstrument(),
+      snapshot: { ...syntheticSnapshot(), asks: [["3", "100"]], bids: [["2.99", "100"]] },
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    expect(result.computationStatus).toBe("calculated");
+    expect(result.quantity).toBe("33.33");
+    expect(result.spentNotional).toBe("99.99");
+  });
+
+  it("still reports insufficient depth when the visible asks cannot fund the order", () => {
+    const result = calculateEconomics({
+      plan: plan({ purchaseNotionalExcludingFee: "350" }),
+      instrument: syntheticInstrument(),
+      snapshot: { ...syntheticSnapshot(), asks: [["3", "100"]], bids: [["2.99", "100"]] },
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    expect(result.computationStatus).toBe("insufficient_depth");
+    expect(result.visibleEntryCapacity).toBe("300");
+  });
+
+  it.each([
+    { budget: "100", quantity: "1", spent: "100", unspent: "0" },
+    { budget: "301", quantity: "3", spent: "301", unspent: "0" },
+    { budget: "301.001", quantity: "3", spent: "301", unspent: "0.001" },
+  ])("handles exact level boundaries for $budget USDT", ({ budget, quantity, spent, unspent }) => {
+    const result = calculateEconomics({
+      plan: plan({ purchaseNotionalExcludingFee: budget }),
+      instrument: syntheticInstrument(),
+      snapshot: { ...syntheticSnapshot(), asks: [["100", "1"], ["100.5", "2"], ["101", "1"]] },
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    expect(result.computationStatus).toBe("calculated");
+    expect(result.quantity).toBe(quantity);
+    expect(result.spentNotional).toBe(spent);
+    expect(result.unspentNotional).toBe(unspent);
+    expect(result.visibleEntryCapacity).toBe("402");
+  });
+
+  it.each([
+    { budget: "300", status: "calculated", unspent: "0" },
+    { budget: "300.000000001", status: "insufficient_depth", unspent: "0.000000001" },
+  ])("distinguishes full ask capacity from a real tiny shortfall at $budget USDT", ({ budget, status, unspent }) => {
+    const result = calculateEconomics({
+      plan: plan({ purchaseNotionalExcludingFee: budget }),
+      instrument: syntheticInstrument(),
+      snapshot: { ...syntheticSnapshot(), asks: [["3", "100"]], bids: [["2.99", "100"]] },
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    expect(result.computationStatus).toBe(status);
+    expect(new Decimal(result.unspentNotional!).eq(unspent)).toBe(true);
+    expect(result.visibleEntryCapacity).toBe("300");
+  });
+
+  it("consumes an exact first level before a partial repeating-division level", () => {
+    const result = calculateEconomics({
+      plan: plan({ purchaseNotionalExcludingFee: "101" }),
+      instrument: syntheticInstrument(),
+      snapshot: { ...syntheticSnapshot(), asks: [["2.5", "10"], ["3", "100"]], bids: [["2.49", "100"]] },
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    expect(result.computationStatus).toBe("calculated");
+    expect(result.quantity).toBe("35.33");
+    expect(result.spentNotional).toBe("100.99");
+    expect(result.unspentNotional).toBe("0.01");
+    expect(result.visibleEntryCapacity).toBe("325");
+  });
+
   it("does not claim a whole-position result when exit depth is zero", () => {
     const result = calculateEconomics({
       plan: plan({ exitAssumptions: { ...plan().exitAssumptions, depthMultiplier: "0" } }),
@@ -147,5 +226,66 @@ describe("deterministic decimal economics", () => {
     });
     expect(result.scenarioBidPriceShift).toBe("0");
     expect(result.netPnl).not.toBeNull();
+  });
+
+  it("marks scenario rows not_requested when no goal is set", () => {
+    const result = calculateEconomics({
+      plan: plan({ goal: null, scenario: { bidPriceShift: "0.01", assumptionOrigin: "user" } }),
+      instrument: syntheticInstrument(),
+      snapshot: syntheticSnapshot(),
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    expect(result.goalComparison).toBe("not_requested");
+    expect(result.scenarioTable.every((row) => row.goalComparison === "not_requested")).toBe(true);
+    expect(result.scenarioTable.every((row) => row.status === "calculated")).toBe(true);
+  });
+
+  it("filters zero-quantity levels without invalidating the book", () => {
+    const withZero = {
+      ...syntheticSnapshot(),
+      asks: [["100", "2"], ["101", "0"], ["101", "3"]] as unknown as [[string, string], [string, string], [string, string]],
+    };
+    const result = calculateEconomics({
+      plan: plan(),
+      instrument: syntheticInstrument(),
+      snapshot: withZero,
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    // Zero-qty filtering is informative, not fatal: calculation proceeds.
+    expect(result.computationStatus).not.toBe("invalid_book");
+    expect(result.warnings.join(" ")).toContain("zero-quantity");
+  });
+
+  it("labels out-of-range thresholds instead of claiming simulation", () => {
+    const market = createCapturedMarket("NVDA");
+    const result = calculateEconomics({
+      plan: plan({
+        asset: "NVDA",
+        purchaseNotionalExcludingFee: "10000",
+        goal: { kind: "profit_usdt", amount: "5000" },
+        scenario: { bidPriceShift: "0.01", assumptionOrigin: "user" },
+      }),
+      instrument: market.instrument,
+      snapshot: market.snapshot,
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    expect(result.requiredGoalShift).not.toBeNull();
+    expect(result.warnings.join(" ")).toContain("outside the ±3% scenario band");
+  });
+
+  it("reports exit capacity in USDT consistent with entry capacity", () => {
+    const result = calculateEconomics({
+      plan: plan(),
+      instrument: syntheticInstrument(),
+      snapshot: syntheticSnapshot(),
+      planRevision: 1,
+      scenarioRevision: 1,
+    });
+    // Synthetic bids: 99*2 + 98*3 = 492 USDT stressed at d=1,h=0.
+    expect(result.visibleExitCapacity).toBe("492");
+    expect(result.visibleEntryCapacity).toBe("503");
   });
 });

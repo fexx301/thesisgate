@@ -15,6 +15,7 @@ import { claimAssessmentPrompt } from "@/domain/claim-prompt";
 import {
   acquireModelSlot,
   assertProductionBudgetControls,
+  checkLocalModelRateLimit,
   maxModelCallCostUsd,
   ModelQuotaError,
   reserveModelBudget,
@@ -36,13 +37,17 @@ export class ModelAdapterError extends Error {
   readonly kind: ModelAdapterErrorKind;
   readonly durationMs: number;
   readonly attempted: boolean;
+  readonly usage: ModelUsage | null;
+  readonly modelId: string | null;
 
-  constructor(kind: ModelAdapterErrorKind, message: string, options?: { durationMs?: number; attempted?: boolean }) {
+  constructor(kind: ModelAdapterErrorKind, message: string, options?: { durationMs?: number; attempted?: boolean; usage?: ModelUsage | null; modelId?: string | null }) {
     super(message);
     this.name = "ModelAdapterError";
     this.kind = kind;
     this.durationMs = options?.durationMs ?? 0;
     this.attempted = options?.attempted ?? false;
+    this.usage = options?.usage ?? null;
+    this.modelId = options?.modelId ?? null;
   }
 }
 
@@ -142,8 +147,8 @@ function usageFromResponse(response: unknown): ModelUsage | null {
   const usageValue = root.usage;
   if (!usageValue || typeof usageValue !== "object" || Array.isArray(usageValue)) return null;
   const usage = usageValue as Record<string, unknown>;
-  const promptTokens = nonNegativeInteger(usage.prompt_tokens);
-  const completionTokens = nonNegativeInteger(usage.completion_tokens);
+  const promptTokens = nonNegativeInteger(usage.prompt_tokens ?? usage.input_tokens);
+  const completionTokens = nonNegativeInteger(usage.completion_tokens ?? usage.output_tokens);
   const explicitTotal = nonNegativeInteger(usage.total_tokens);
   const totalTokens = explicitTotal ?? (promptTokens !== null && completionTokens !== null ? promptTokens + completionTokens : null);
   const costNumber = nonNegativeNumber(usage.cost ?? usage.cost_usd);
@@ -152,14 +157,15 @@ function usageFromResponse(response: unknown): ModelUsage | null {
   return ModelUsageSchema.parse({ promptTokens, completionTokens, totalTokens, costUsd });
 }
 
-function modelError(error: unknown, durationMs: number, attempted: boolean) {
+function modelError(error: unknown, durationMs: number, attempted: boolean, usage: ModelUsage | null = null, modelId: string | null = null) {
+  const options = { durationMs, attempted, usage, modelId };
   if (error instanceof ModelAdapterError) {
-    return new ModelAdapterError(error.kind, error.message, { durationMs, attempted: attempted || error.attempted });
+    return new ModelAdapterError(error.kind, error.message, { ...options, attempted: attempted || error.attempted, usage: usage ?? error.usage, modelId: modelId ?? error.modelId });
   }
   if (error instanceof ModelQuotaError) {
-    return new ModelAdapterError("model_budget", error.message, { durationMs, attempted });
+    return new ModelAdapterError("model_budget", error.message, options);
   }
-  return new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model request failed.", { durationMs, attempted });
+  return new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model request failed.", options);
 }
 
 function parseModelClaims(value: unknown) {
@@ -220,7 +226,6 @@ async function readModelText(response: Response) {
     offset += chunk.byteLength;
   }
   const text = new TextDecoder().decode(bytes);
-  if (!response.ok) throw new Error(`Model endpoint returned HTTP ${response.status}`);
   try {
     return JSON.parse(text) as unknown;
   } catch {
@@ -231,7 +236,23 @@ async function readModelText(response: Response) {
 function extractContent(response: unknown, protocol: ModelConfig["protocol"]) {
   const root = record(response);
   if (protocol === "openai_responses") {
-    return stringValue(root.output_text);
+    if (root.status !== "completed") throw new Error("Model response did not complete successfully");
+    if (!Array.isArray(root.output)) throw new Error("Model response had no output items");
+    const text: string[] = [];
+    for (const output of root.output) {
+      const item = record(output);
+      if (item.type !== "message") continue;
+      if (item.status !== "completed" || item.role !== "assistant" || !Array.isArray(item.content)) {
+        throw new Error("Model output message was incomplete or invalid");
+      }
+      for (const content of item.content) {
+        const part = record(content);
+        if (part.type === "refusal") throw new Error("Model declined the claim assessment");
+        if (part.type === "output_text") text.push(stringValue(part.text));
+      }
+    }
+    if (!text.length) throw new Error("Model response had no output text");
+    return text.join("");
   }
   const choices = root.choices;
   if (!Array.isArray(choices) || !choices.length) throw new Error("Model response had no choices");
@@ -246,10 +267,19 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
   let reservation: Awaited<ReturnType<typeof reserveModelBudget>> = null;
   let result: { parsed: unknown; response: unknown; usage: ModelUsage | null } | null = null;
   let failure: ModelAdapterError | null = null;
+  let usage: ModelUsage | null = null;
+  let modelId: string | null = null;
   try {
+    // Local 5/10min + daily guard runs before the durable production reservation.
+    try {
+      checkLocalModelRateLimit(context.visitorKey);
+    } catch (error) {
+      throw new ModelAdapterError("model_budget", error instanceof Error ? error.message : "Model budget denied.");
+    }
     releaseSlot = acquireModelSlot();
     reservation = await reserveModelBudget(context);
     providerStarted = true;
+    modelId = config.model;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
     try {
@@ -284,9 +314,13 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
         signal: controller.signal,
       });
       const parsed = await readModelText(response);
+      usage = usageFromResponse(parsed);
+      const responseRoot = record(parsed);
+      if (typeof responseRoot.model === "string") modelId = responseRoot.model;
+      if (!response.ok) throw new Error(`Model endpoint returned HTTP ${response.status}`);
       const content = extractContent(parsed, config.protocol);
       try {
-        result = { parsed: JSON.parse(content) as unknown, response: parsed, usage: usageFromResponse(parsed) };
+        result = { parsed: JSON.parse(content) as unknown, response: parsed, usage };
       } catch {
         throw new Error("Model content was not strict JSON");
       }
@@ -300,7 +334,7 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
       clearTimeout(timeout);
     }
   } catch (error) {
-    failure = modelError(error, Date.now() - startedAt, providerStarted);
+    failure = modelError(error, Date.now() - startedAt, providerStarted, usage, modelId);
   } finally {
     releaseSlot?.();
   }
@@ -309,12 +343,12 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
     try {
       await settleModelBudget({
         reservationId: reservation.reservationId,
-        actualCostUsd: result?.usage?.costUsd === null || result?.usage?.costUsd === undefined
+        actualCostUsd: usage?.costUsd === null || usage?.costUsd === undefined
           ? reservation.reservedCostUsd ?? maxModelCallCostUsd()
-          : Number(result.usage.costUsd),
+          : Number(usage.costUsd),
       });
     } catch (error) {
-      failure = modelError(error, Date.now() - startedAt, providerStarted);
+      failure = modelError(error, Date.now() - startedAt, providerStarted, usage, modelId);
     }
   }
 
@@ -325,7 +359,7 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
       attempted: providerStarted,
     });
   }
-  return { ...result, durationMs: Date.now() - startedAt };
+  return { ...result, modelId, durationMs: Date.now() - startedAt };
 }
 
 function validateCitations(claim: ModelClaim, sources: SourceDocument[]) {
@@ -378,6 +412,8 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
     throw new ModelAdapterError("model_invalid_output", error instanceof Error ? error.message : "The model output did not match the required schema.", {
       durationMs: result.durationMs,
       attempted: true,
+      usage: result.usage,
+      modelId: result.modelId,
     });
   }
 
@@ -392,23 +428,26 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
     throw new ModelAdapterError(
       "model_invalid_output",
       error instanceof Error ? error.message : "The model citations did not match the supplied sources.",
-      { durationMs: result.durationMs, attempted: true },
+      { durationMs: result.durationMs, attempted: true, usage: result.usage, modelId: result.modelId },
     );
   }
-  const evidence = EvidenceResultSchema.parse({
-    status: "assessed",
-    assessmentOrigin: "runtime_model",
-    verdict: overallVerdict(claims),
-    scope: "by the supplied evidence",
-    mostConsequentialUnknown: parsed.mostConsequentialUnknown,
-    summary: parsed.summary,
-  });
-  const responseRoot = record(result.response);
-  const responseModel = typeof responseRoot.model === "string" ? responseRoot.model : config.model;
+  let evidence: EvidenceResult;
+  try {
+    evidence = EvidenceResultSchema.parse({
+      status: "assessed",
+      assessmentOrigin: "runtime_model",
+      verdict: overallVerdict(claims),
+      scope: "by the supplied evidence",
+      mostConsequentialUnknown: parsed.mostConsequentialUnknown,
+      summary: parsed.summary,
+    });
+  } catch (error) {
+    throw modelError(error, result.durationMs, true, result.usage, result.modelId);
+  }
   return {
     evidence,
     claims,
-    modelId: responseModel,
+    modelId: result.modelId ?? config.model,
     performance: {
       modelDurationMs: result.durationMs,
       modelUsage: result.usage,

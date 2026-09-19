@@ -250,13 +250,13 @@ export async function fetchLiveMarket(asset: Asset) {
     if (instrumentResult.status !== "fulfilled") throw instrumentResult.reason;
     if (bookResult.status !== "fulfilled") throw bookResult.reason;
     const instrument = instrumentFromResponse(asset, instrumentResult.value.payload);
-    const tickerPayload = tickerResult.status === "fulfilled" ? tickerResult.value.payload : null;
     let tickerWarning = tickerResult.status === "rejected";
-    if (tickerPayload) {
-      const tickerRoot = record(tickerPayload);
-      const tickerData = Array.isArray(tickerRoot.data) ? tickerRoot.data[0] : null;
+    if (tickerResult.status === "fulfilled") {
       try {
-        if (!tickerData || stringValue(record(tickerData).symbol) !== symbol) throw new Error("Ticker identity did not match the fixed allowlist");
+        const tickerRoot = record(tickerResult.value.payload);
+        if (responseCode(tickerRoot) !== "00000") throw new Error("Ticker response was not successful");
+        if (!Array.isArray(tickerRoot.data) || tickerRoot.data.length !== 1) throw new Error("Ticker response had no unique record");
+        if (stringValue(record(tickerRoot.data[0]).symbol) !== symbol) throw new Error("Ticker identity did not match the fixed allowlist");
       } catch {
         tickerWarning = true;
       }
@@ -273,7 +273,10 @@ export async function fetchLiveMarket(asset: Asset) {
     return { instrument, snapshot: MarketSnapshotSchema.parse({ ...snapshot, validationWarnings: skewWarnings }) };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Bitget market data was unavailable.";
-    throw new MarketAdapterError("market_unavailable", message);
+    // Preserve invalid vs unavailable: identity/code/schema failures are data errors, not transport.
+    const invalidHints = ["identity", "not successful", "no unique record", "malformed", "missing", "precision", "timestamp", "successful"];
+    const isInvalid = invalidHints.some((hint) => message.toLowerCase().includes(hint.toLowerCase()));
+    throw new MarketAdapterError(isInvalid ? "market_invalid" : "market_unavailable", message);
   }
 }
 

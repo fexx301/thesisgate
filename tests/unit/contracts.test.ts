@@ -43,4 +43,25 @@ describe("contract boundary validation", () => {
   it("rejects a scenario at or below a total-loss boundary", () => {
     expect(PlanSchema.safeParse({ ...basePlan, scenario: { bidPriceShift: "-1", assumptionOrigin: "user" } }).success).toBe(false);
   });
+
+  it("returns issues instead of throwing for an emptied numeric field", () => {
+    expect(() => PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "" })).not.toThrow();
+    const emptiedNotional = PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "" });
+    expect(emptiedNotional.success).toBe(false);
+  });
+
+  it("returns issues instead of throwing for malformed numeric text", () => {
+    const malformed = ["", "  ", "1..2", "abc", "1e", "-", "."];
+    for (const value of malformed) {
+      expect(() => PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: value })).not.toThrow();
+      expect(() => PlanSchema.safeParse({ ...basePlan, feeIn: value, feeOut: value })).not.toThrow();
+      expect(() => PlanSchema.safeParse({ ...basePlan, scenario: { bidPriceShift: value, assumptionOrigin: "user" } })).not.toThrow();
+      expect(() => ExitAssumptionsSchema.safeParse({ ...basePlan.exitAssumptions, depthMultiplier: value, priceHaircut: value })).not.toThrow();
+    }
+  });
+
+  it("preserves range messages for complete but out-of-range numbers", () => {
+    const belowRange = PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "0" });
+    expect(belowRange.success).toBe(false);
+  });
 });

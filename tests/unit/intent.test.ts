@@ -27,15 +27,49 @@ describe("deterministic follow-up intent", () => {
     expect(result.changed).toEqual(["purchase notional halved"]);
   });
 
+  it("binds budget and depth to distinct fields", () => {
+    const amount = parseIntent("Halve the budget", basePlan);
+    expect(amount.plan.purchaseNotionalExcludingFee).toBe("5000");
+    expect(amount.plan.exitAssumptions.depthMultiplier).toBe("1");
+    const depth = parseIntent("Halve the exit depth", basePlan);
+    expect(depth.plan.exitAssumptions.depthMultiplier).toBe("0.5");
+    expect(depth.plan.purchaseNotionalExcludingFee).toBe("10000");
+  });
+
   it("asks which reference a bare percentage changes", () => {
     const result = parseIntent("It should rise 2%", basePlan);
     expect(result.clarification).toContain("captured bid prices");
     expect(result.plan).toEqual(basePlan);
   });
 
-  it("sets a bid scenario only when the reference is named", () => {
-    const result = parseIntent("Assume sell bids rise 1%", basePlan);
-    expect(result.plan.scenario?.bidPriceShift).toBe("0.01");
-    expect(result.changed).toContain("bid-price scenario set to 1%");
+  it("sets a bid scenario for rise and fall direction", () => {
+    const rise = parseIntent("Assume sell bids rise 1%", basePlan);
+    expect(rise.plan.scenario?.bidPriceShift).toBe("0.01");
+    expect(rise.changed).toContain("bid-price scenario set to 1%");
+    const fall = parseIntent("Assume sell bids fall 1%", basePlan);
+    expect(fall.plan.scenario?.bidPriceShift).toBe("-0.01");
+    expect(fall.changed).toContain("bid-price scenario set to -1%");
+  });
+
+  it("applies at most one field-bound command", () => {
+    const combined = parseIntent("Halve the amount and set target 2% return", basePlan);
+    expect(combined.plan).toEqual(basePlan);
+    expect(combined.changed).toEqual([]);
+    expect(combined.clarification).toContain("USDT");
+  });
+
+  it("does not convert a percent goal or return into USDT", () => {
+    for (const message of ["Target 2% profit", "target 2% return"]) {
+      const result = parseIntent(message, basePlan);
+      expect(result.plan).toEqual(basePlan);
+      expect(result.changed).toEqual([]);
+      expect(result.clarification).toContain("USDT");
+    }
+  });
+
+  it("rejects a scenario shift without a direction word", () => {
+    const result = parseIntent("Assume sell bids -1%", basePlan);
+    expect(result.plan).toEqual(basePlan);
+    expect(result.changed).toEqual([]);
   });
 });

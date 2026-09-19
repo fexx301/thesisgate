@@ -8,80 +8,63 @@ export type IntentPatch = {
   refreshMarket: boolean;
 };
 
-function amountFromMessage(message: string) {
-  const match = message.match(/(?:want|target|profit(?:\s+of)?)\s+([0-9][0-9,]*(?:\.\d+)?)\s*(?:usdt)?/i);
-  if (!match) return null;
-  return match[1].replace(/,/g, "");
-}
-
-function shiftFromMessage(message: string) {
-  const match = message.match(/(\d+(?:\.\d+)?)\s*%/);
-  return match ? new Decimal(match[1]).div(100).toString() : null;
-}
-
 export function parseIntent(message: string, plan: Plan): IntentPatch {
-  const normalized = message.trim().toLowerCase();
-  let nextPlan = plan;
-  const changed: string[] = [];
-  let clarification: string | null = null;
-  let refreshMarket = false;
+  const normalized = message.trim().toLowerCase().replace(/[.!?]+$/, "").replace(/^please\s+/, "");
+  const unchanged: IntentPatch = { plan, changed: [], clarification: null, refreshMarket: false };
 
-  if (/halve|half|cut\s+(?:the\s+)?amount/.test(normalized)) {
-    nextPlan = {
-      ...nextPlan,
-      purchaseNotionalExcludingFee: new Decimal(plan.purchaseNotionalExcludingFee).div(2).toString(),
+  // Accept one complete, field-bound command. Never partially apply ambiguous prose.
+  if (/^(?:halve|half)\s+(?:the\s+)?(?:available\s+)?exit\s+(?:depth|liquidity)$/.test(normalized)
+    || /^cut\s+(?:the\s+)?(?:available\s+)?exit\s+(?:depth|liquidity)\s+(?:in\s+half|by\s+half)$/.test(normalized)) {
+    return {
+      ...unchanged,
+      plan: { ...plan, exitAssumptions: { ...plan.exitAssumptions, depthMultiplier: new Decimal(plan.exitAssumptions.depthMultiplier).div(2).toString(), depthOrigin: "user" } },
+      changed: ["available exit depth halved"],
     };
-    changed.push("purchase notional halved");
   }
-
-  const profitAmount = amountFromMessage(normalized);
-  if (profitAmount && /profit|goal|target/.test(normalized)) {
-    nextPlan = {
-      ...nextPlan,
-      goal: { kind: "profit_usdt", amount: profitAmount },
+  if (/^(?:halve|half)\s+(?:the\s+)?(?:purchase\s+)?(?:amount|notional|budget)$/.test(normalized)
+    || /^cut\s+(?:the\s+)?(?:purchase\s+)?(?:amount|notional|budget)\s+(?:in\s+half|by\s+half)$/.test(normalized)) {
+    return {
+      ...unchanged,
+      plan: { ...plan, purchaseNotionalExcludingFee: new Decimal(plan.purchaseNotionalExcludingFee).div(2).toString() },
+      changed: ["purchase notional halved"],
     };
-    changed.push(`profit goal set to ${profitAmount} USDT`);
   }
 
-  const shift = shiftFromMessage(normalized);
-  if (shift && /(sell|bid|exit).*(rise|up|increase|higher)|(?:rise|up|increase|higher).*(sell|bid|exit)/.test(normalized)) {
-    nextPlan = {
-      ...nextPlan,
-      scenario: { bidPriceShift: shift, assumptionOrigin: "user" },
+  const profit = normalized.match(/^(?:(?:i\s+)?want|target|(?:set\s+)?(?:profit(?:\s+goal)?|goal)(?:\s+(?:of|to))?)\s+((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s+usdt(?:\s+(?:net\s+)?profit)?$/);
+  if (profit) {
+    const amount = new Decimal(profit[1].replaceAll(",", "")).toString();
+    return { ...unchanged, plan: { ...plan, goal: { kind: "profit_usdt", amount } }, changed: [`profit goal set to ${amount} USDT`] };
+  }
+  if (/%/.test(normalized) && /\b(return|profit|goal|target)\b/.test(normalized)) {
+    return { ...unchanged, clarification: "Specify a profit goal in USDT, or use the net-return objective control for a percentage of entry cash." };
+  }
+
+  const scenario = normalized.match(/^(?:assume\s+)?(?:sell\s+)?(?:bids?|exit\s+(?:bids?|prices?)|sell\s+prices?)\s+(rise|up|increase|higher|fall|down|decrease|lower)\s+(?:by\s+)?([+-]?\d+(?:\.\d+)?)\s*%$/);
+  if (scenario) {
+    let percent = new Decimal(scenario[2]);
+    const falling = ["fall", "down", "decrease", "lower"].includes(scenario[1]);
+    if (percent.isNegative()) {
+      return { ...unchanged, clarification: "Use a positive percentage with rise or fall to make the scenario direction unambiguous." };
+    }
+    if (falling) percent = percent.negated();
+    const shift = percent.div(100);
+    if (shift.lte(-1)) return { ...unchanged, clarification: "The bid-price shift must be above -100%." };
+    return {
+      ...unchanged,
+      plan: { ...plan, scenario: { bidPriceShift: shift.toString(), assumptionOrigin: "user" } },
+      changed: [`bid-price scenario set to ${percent.toString()}%`],
     };
-    changed.push(`bid-price scenario set to ${new Decimal(shift).mul(100).toString()}%`);
-  } else if (shift && /(rise|up|increase|higher)/.test(normalized)) {
-    clarification = "Should the percentage apply to captured bid prices, the entry VWAP, or another reference?";
+  }
+  if (/%/.test(normalized)) {
+    return { ...unchanged, clarification: "Should the percentage apply to captured bid prices, the entry VWAP, or another reference? State one change at a time." };
   }
 
-  if (/exit\s+depth|available\s+exit\s+depth/.test(normalized) && /halve|half|cut/.test(normalized)) {
-    nextPlan = {
-      ...nextPlan,
-      exitAssumptions: {
-        ...nextPlan.exitAssumptions,
-        depthMultiplier: new Decimal(nextPlan.exitAssumptions.depthMultiplier).div(2).toString(),
-        depthOrigin: "user",
-      },
-    };
-    changed.push("available exit depth halved");
+  if (/^(?:(?:the\s+)?source\s+(?:describes|shows)\s+)?planned\s+deployment,?\s+not\s+current\s+revenue$/.test(normalized)
+    || normalized === "not current revenue") {
+    return { ...unchanged, plan: { ...plan, thesis: "The source describes planned deployment, not current realized revenue." }, changed: ["thesis changed to planned deployment versus current revenue"] };
   }
-
-  if (/planned\s+deployment.*not.*current\s+revenue|not\s+current\s+revenue/.test(normalized)) {
-    nextPlan = {
-      ...nextPlan,
-      thesis: "The source describes planned deployment, not current realized revenue.",
-    };
-    changed.push("thesis changed to planned deployment versus current revenue");
+  if (/^(?:refresh\s+(?:the\s+)?(?:market|prices|snapshot|book)(?:\s+data)?|new\s+book)$/.test(normalized)) {
+    return { ...unchanged, refreshMarket: true, changed: ["market refresh requested"] };
   }
-
-  if (/refresh\s+market|refresh\s+prices|new\s+book/.test(normalized)) {
-    refreshMarket = true;
-    changed.push("market refresh requested");
-  }
-
-  if (!changed.length && !clarification) {
-    clarification = "I can halve the amount, set a USDT profit goal, change a bid-price scenario, halve exit depth, update the deployment claim, or refresh market data.";
-  }
-
-  return { plan: nextPlan, changed, clarification, refreshMarket };
+  return { ...unchanged, clarification: "State one change: halve the amount, set a profit goal in USDT, assume sell bids rise or fall by a percentage, halve exit depth, update the deployment claim, or refresh market data." };
 }
