@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 import Decimal from "decimal.js";
+import { z } from "zod";
+import { withMarketModeLimitations } from "@/domain/limitations";
 import {
   ArrowClockwise,
+  ArrowDownRight,
   CaretDown,
   ChartLineUp,
   CheckCircle,
@@ -29,14 +32,49 @@ const DRAFT_STORAGE_KEY = "thesisgate.draft.v1";
 const TELEMETRY_CONSENT_KEY = "thesisgate.telemetry-consent.v1";
 const APPROVED_SOURCE_HOSTS = new Set(["nvidianews.nvidia.com", "investor.nvidia.com", "ir.tesla.com"]);
 
-type DraftPayload = {
-  version: 1;
-  savedAt: string;
-  plan: Plan;
-  sourceText: string;
-  sourceUrl: string;
-  marketMode: MarketMode;
-};
+const RawNumberSchema = z.string().max(100);
+const PercentInputsSchema = z.object({
+  goal: RawNumberSchema.optional(), scenario: RawNumberSchema.optional(),
+  feeIn: RawNumberSchema.optional(), feeOut: RawNumberSchema.optional(),
+  depth: RawNumberSchema.optional(), haircut: RawNumberSchema.optional(),
+}).strict();
+type PercentInputs = z.infer<typeof PercentInputsSchema>;
+const DraftPlanSchema = PlanSchema.extend({
+  thesis: z.string().max(4000),
+  purchaseNotionalExcludingFee: RawNumberSchema,
+  horizon: PlanSchema.shape.horizon.extend({ originalText: z.string().max(240), timezone: z.string().max(80).nullable() }),
+  invalidation: z.string().max(800).nullable(),
+  goal: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("break_even") }).strict(),
+    z.object({ kind: z.literal("profit_usdt"), amount: RawNumberSchema }).strict(),
+    z.object({ kind: z.literal("net_return"), fractionOfEntryCash: RawNumberSchema }).strict(),
+  ]).nullable(),
+  scenario: z.object({ bidPriceShift: RawNumberSchema, assumptionOrigin: z.enum(["user", "illustrative_preset"]) }).strict().nullable(),
+  exitAssumptions: z.object({ depthMultiplier: RawNumberSchema, priceHaircut: RawNumberSchema, depthOrigin: z.enum(["user", "illustrative_preset"]), haircutOrigin: z.enum(["user", "illustrative_preset"]) }).strict(),
+  feeIn: RawNumberSchema,
+  feeOut: RawNumberSchema,
+});
+const DraftSchema = z.object({
+  version: z.literal(1), savedAt: z.string().datetime(), plan: DraftPlanSchema,
+  sourceText: z.string().max(60_000), sourceUrl: z.string().max(2_000),
+  marketMode: z.enum(["captured_real", "live"]),
+  percentInputs: PercentInputsSchema.optional(),
+}).strict();
+type DraftPayload = z.infer<typeof DraftSchema>;
+const IntentResponseSchema = z.object({
+  plan: PlanSchema, changed: z.array(z.string().max(500)).max(20),
+  clarification: z.string().max(2000).nullable(), refreshMarket: z.boolean(),
+}).strict();
+
+function percentToFraction(raw: string) {
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)) return raw;
+  try { return new Decimal(raw).div(100).toString(); } catch { return raw; }
+}
+
+function fractionToPercent(raw: string) {
+  if (!raw.trim()) return raw;
+  try { return new Decimal(raw).mul(100).toString(); } catch { return raw; }
+}
 
 function initialPlan(): Plan {
   return {
@@ -68,6 +106,7 @@ function initialState(): WorkbenchState {
     sourceText: CAPTURED_SOURCE_TEXT,
     sourceUrl: CAPTURED_SOURCE_URL,
     marketMode: "captured_real",
+    reportMarketMode: null,
     planRevision: 1,
     thesisRevision: 1,
     scenarioRevision: 1,
@@ -201,7 +240,10 @@ function normalizeSourceText(value: string) {
   return canonical.slice(0, MAX_SOURCE_CHARS);
 }
 
-function evidenceInputsMatch(report: ResearchResult, plan: Plan, sourceText: string) {
+function evidenceInputsMatch(report: ResearchResult, plan: Plan, sourceText: string, retryEvidence: boolean) {
+  // A failed claim assessment must not be silently reused: re-running with unchanged inputs
+  // has to reach /api/research again so the model adapter gets an explicit retry.
+  if (retryEvidence) return false;
   const reportPlan = report.confirmedPlan;
   const samePlan = JSON.stringify({
     asset: reportPlan.asset,
@@ -216,25 +258,16 @@ function evidenceInputsMatch(report: ResearchResult, plan: Plan, sourceText: str
   });
   const normalizedSource = normalizeSourceText(sourceText);
   const reportSource = report.sources[0]?.cleanedText ?? "";
-  return samePlan && reportSource === normalizedSource && Boolean(report.instrument && report.snapshot);
+  const reportProvenance = report.sources[0]?.provenance ?? null;
+  // Pasted text is always user_pasted_unverified; provenance + hash guard prompt/model rotation reuse.
+  const sameProvenance = reportProvenance === "user_pasted_unverified";
+  const samePrompt = report.promptVersion === "claims-v4";
+  return samePlan && reportSource === normalizedSource && sameProvenance && samePrompt && Boolean(report.instrument && report.snapshot);
 }
 
 function parseDraft(value: unknown): DraftPayload | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const candidate = value as Record<string, unknown>;
-  const parsedPlan = PlanSchema.safeParse(candidate.plan);
-  if (!parsedPlan.success) return null;
-  if (candidate.version !== 1 || typeof candidate.savedAt !== "string" || typeof candidate.sourceText !== "string" || typeof candidate.sourceUrl !== "string") return null;
-  if (candidate.sourceText.length > 60_000 || candidate.sourceUrl.length > 2_000) return null;
-  if (candidate.marketMode !== "captured_real" && candidate.marketMode !== "live") return null;
-  return {
-    version: 1,
-    savedAt: candidate.savedAt,
-    plan: parsedPlan.data,
-    sourceText: candidate.sourceText,
-    sourceUrl: candidate.sourceUrl,
-    marketMode: candidate.marketMode,
-  };
+  const parsed = DraftSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 function modeLabel(mode: MarketMode | "synthetic") {
@@ -247,14 +280,6 @@ function humanize(value: string) {
   return value.replaceAll("_", " ");
 }
 
-function safeScenarioPercent(plan: Plan) {
-  if (!plan.scenario) return "";
-  try {
-    return new Decimal(plan.scenario.bidPriceShift).mul(100).toString();
-  } catch {
-    return "";
-  }
-}
 
 function IconText({ children, icon }: { children: ReactNode; icon: ReactNode }) {
   return <span className="icon-text"><span aria-hidden="true">{icon}</span>{children}</span>;
@@ -308,16 +333,18 @@ function EmptyReport({ onReplay }: { onReplay: () => void }) {
       <div className="empty-report-content">
         <div className="empty-icon" aria-hidden="true"><MagnifyingGlass size={26} weight="regular" /></div>
         <h2>Your brief will appear here</h2>
-        <p>Submit a thesis to compare its source evidence with the price move required by your objective.</p>
+        <p>Submit a thesis to compare its source evidence with the price move required by your objective. You get a claim verdict, a cost threshold, and the conditions that would change them.</p>
       </div>
-      <div className="empty-report-grid" aria-label="Brief output preview">
-        <div className="empty-preview-item"><span>Evidence verdict</span><strong>—</strong><small>Source-grounded</small></div>
-        <div className="empty-preview-item"><span>Break-even shift</span><strong>—</strong><small>After visible costs</small></div>
-        <div className="empty-preview-item"><span>Goal threshold</span><strong>—</strong><small>Explicit scenario</small></div>
+      <div className="empty-report-grid" aria-label="Sample brief preview">
+        <div className="empty-preview-item"><span>Evidence verdict</span><strong>Mixed</strong><small>Sample · source-grounded</small></div>
+        <div className="empty-preview-item"><span>Break-even shift</span><strong>0.43%</strong><small>Sample · after visible costs</small></div>
+        <div className="empty-preview-item"><span>Goal threshold</span><strong>1.43%</strong><small>Sample · explicit scenario</small></div>
       </div>
       <button className="button button-secondary" type="button" onClick={onReplay}>
         <IconText icon={<ArrowClockwise size={17} weight="bold" />}>Replay captured example</IconText>
       </button>
+      <a className="button button-quiet" href="/finished-brief/nvda-captured.md">View finished brief (historical replay, not_assessed)</a>
+      <p className="field-help">Static example with hashes and provenance, no recompute token. Live replay stays one click above.</p>
     </div>
   );
 }
@@ -369,23 +396,27 @@ function EvidencePanel({ report }: { report: ResearchResult }) {
   );
 }
 
-function EconomicsPanel({ report, now, onRefresh, isRefreshing }: { report: ResearchResult; now: number; onRefresh: () => void; isRefreshing: boolean }) {
+function EconomicsPanel({ report, requestedMode, now, onRefresh, isRefreshing }: { report: ResearchResult; requestedMode: MarketMode; now: number; onRefresh: () => void; isRefreshing: boolean }) {
   const result = report.economics;
+  const plan = report.confirmedPlan;
   const comparisonTone = result.goalComparison === "meets" ? "good" : result.goalComparison === "below" ? "bad" : "warn";
   const computationTone = result.computationStatus === "calculated" ? "good" : result.computationStatus === "threshold_only" ? "warn" : "bad";
-  const priceReference = report.snapshot?.mode === "live" ? "Live bid prices, shifted by the scenario" : "Captured bid prices, shifted by the scenario";
+  const priceReference = !report.snapshot ? "No order-book snapshot available" : report.snapshot.mode === "live" ? "Live bid prices, shifted by the scenario" : report.snapshot.mode === "captured_real" ? "Captured bid prices, shifted by the scenario" : "Synthetic test bid prices, shifted by the scenario";
   return (
     <section className="report-card economics-card" aria-labelledby="economics-heading">
       <div className="card-topline">
         <SectionHeading id="economics-heading" title="Economics under your assumptions" detail="A conditional sweep of the displayed bid and ask books." icon={<ChartLineUp size={22} weight="regular" />} />
         <StatusTag tone={computationTone}>{humanize(result.computationStatus)}</StatusTag>
       </div>
+      <div className="confirmation-strip" role="note" aria-label="Interpreted plan">
+        <span>r{plan.asset} · {plan.purchaseNotionalExcludingFee} USDT excl. fee · {plan.horizon.originalText || "no horizon (partial)"} · {plan.goal ? (plan.goal.kind === "break_even" ? "break-even" : plan.goal.kind === "profit_usdt" ? `+${plan.goal.amount} USDT` : `${new Decimal(plan.goal.fractionOfEntryCash).mul(100).toString()}% on entry cash`) : "no objective"} · {plan.scenario ? `${new Decimal(plan.scenario.bidPriceShift).mul(100).toString()}% bid shift` : "threshold only"}</span>
+      </div>
       <div className="economics-reference">
         <div><span>Price reference</span><strong>{priceReference}</strong></div>
-        <div><span>Snapshot</span><strong>{modeLabel(report.snapshot?.mode ?? "synthetic")} at {formatTimestamp(report.snapshot?.exchangeTimestamp)}</strong></div>
+        <div><span>Snapshot</span><strong>{report.snapshot ? `${modeLabel(report.snapshot.mode)} at ${formatTimestamp(report.snapshot.exchangeTimestamp)}` : `Not available · requested ${modeLabel(requestedMode)}`}</strong></div>
         <div className="snapshot-age">
           <span>{report.snapshot?.mode === "live" ? "Exchange data age" : "Captured at"}</span>
-          <strong className={report.snapshot?.mode === "live" && (ageSeconds(report.snapshot.exchangeTimestamp, now) ?? 0) > 30 ? "snapshot-age-warning" : undefined}>{report.snapshot?.mode === "live" ? `${formatAge(report.snapshot.exchangeTimestamp, now)} · received ${formatTimestamp(report.snapshot.receivedAt)}` : `${formatTimestamp(report.snapshot?.receivedAt)} · historical replay`}</strong>
+          <strong className={report.snapshot?.mode === "live" && (ageSeconds(report.snapshot.exchangeTimestamp, now) ?? 0) > 30 ? "snapshot-age-warning" : undefined}>{!report.snapshot ? "No book was returned; no fallback was substituted." : report.snapshot.mode === "live" ? `${formatAge(report.snapshot.exchangeTimestamp, now)} · received ${formatTimestamp(report.snapshot.receivedAt)}` : `${formatTimestamp(report.snapshot.receivedAt)} · ${report.snapshot.mode === "captured_real" ? "historical replay" : "synthetic test"}`}</strong>
           {report.snapshot?.mode === "live" ? <button className="button button-quiet refresh-button" type="button" onClick={onRefresh} disabled={isRefreshing}><IconText icon={<ArrowClockwise size={15} className={isRefreshing ? "spin" : undefined} aria-hidden="true" />}>{isRefreshing ? "Refreshing" : "Refresh live snapshot"}</IconText></button> : null}
         </div>
       </div>
@@ -402,6 +433,10 @@ function EconomicsPanel({ report, now, onRefresh, isRefreshing }: { report: Rese
         <p>{result.netPnl === null ? "Choose an explicit scenario to compare it with the objective." : `The selected scenario produces ${formatMoney(result.netPnl)} net PnL on entry cash.`}</p>
       </div>
       {result.effectivePriceShift && result.exitPriceHaircut !== "0" ? <p className="helper-note">Effective stressed price shift after the {formatPercent(result.exitPriceHaircut)} haircut: {formatPercent(result.effectivePriceShift)}.</p> : null}
+      <div className="assumptions-visible" role="note" aria-label="Assumptions in this report">
+        <span>Fees {new Decimal(plan.feeIn).mul(100).toString()}% in / {new Decimal(plan.feeOut).mul(100).toString()}% out ({plan.feeOrigin === "published_standard_assumption" ? "published standard, not your tier" : "you supplied"}) · Depth {new Decimal(plan.exitAssumptions.depthMultiplier).mul(100).toString()}% ({plan.exitAssumptions.depthOrigin}) · Haircut {new Decimal(plan.exitAssumptions.priceHaircut).mul(100).toString()}% ({plan.exitAssumptions.haircutOrigin}) · Invalidation: {plan.invalidation ?? "not supplied"}</span>
+      </div>
+      {report.instrument ? <div className="instrument-details" role="note" aria-label="Instrument rules"><span>{report.instrument.symbol} · {report.instrument.status} · step {report.instrument.quantityStep} · tick {report.instrument.priceTick} · min {report.instrument.minOrderQty}/{report.instrument.minOrderNotional} USDT</span></div> : null}
       {result.warnings.length ? <div className="warning-list">{result.warnings.slice(-3).map((warning) => <p key={warning}><WarningCircle size={15} weight="bold" aria-hidden="true" />{warning}</p>)}</div> : null}
     </section>
   );
@@ -452,6 +487,7 @@ function SourcesPanel({ report }: { report: ResearchResult }) {
               <p><span>Text hash</span><code>{source.textHash.slice(0, 16)}...</code></p>
               {source.originalUrl ? <a href={source.originalUrl} target="_blank" rel="noreferrer">Open supplied URL</a> : null}
               <p className="source-note">Pasted text is retained as unverified source material. An official-looking URL does not authenticate it.</p>
+              {source.truncated ? <p className="source-note" role="note">Source text was truncated to {MAX_SOURCE_CHARS.toLocaleString("en")} characters before assessment. Content beyond this boundary was not assessed.</p> : null}
             </div>
           </details>
         )) : <p className="muted-copy">No source document was supplied.</p>}
@@ -479,14 +515,21 @@ function RunDetails({ report }: { report: ResearchResult }) {
 }
 
 function ChangePanel({ report }: { report: ResearchResult }) {
+  const firstClaim = report.claims[0];
+  const evidenceCondition = firstClaim
+    ? `A validated passage addressing "${firstClaim.exactText.slice(0, 140)}" (currently ${firstClaim.status}) could change the ${report.evidence.verdict} verdict.`
+    : "A validated source passage confirming or contradicting the exact causal or forecast claim could change the verdict.";
+  const numericalCondition = report.economics.requiredGoalShift
+    ? `A snapshot where the required ${formatPercent(report.economics.requiredGoalShift)} bid shift is met, or exit depth above ${new Decimal(report.economics.exitDepthMultiplier).mul(100).toString()}% of snapshot ${report.economics.snapshotId ?? "unknown"}, could change the ${report.economics.goalComparison} outcome.`
+    : "A new order-book snapshot or a different explicit exit-depth assumption could change the threshold.";
   return (
     <section className="change-panel" aria-labelledby="change-heading">
       <div className="change-icon" aria-hidden="true"><Target size={21} weight="regular" /></div>
       <div>
         <h2 id="change-heading">What could change this assessment?</h2>
         <div className="change-grid">
-          <div><span>Evidence condition</span><p>A validated passage could confirm or contradict the exact causal or forecast claim.</p></div>
-          <div><span>Numerical condition</span><p>A new order-book snapshot or different exit-depth assumption could change the threshold.</p></div>
+          <div><span>Evidence condition</span><p>{evidenceCondition}</p></div>
+          <div><span>Numerical condition</span><p>{numericalCondition} These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.</p></div>
         </div>
         {report.limitations.length ? <details className="limitations"><summary>Limits of this brief <CaretDown size={17} aria-hidden="true" /></summary><ul>{report.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></details> : null}
       </div>
@@ -497,6 +540,8 @@ function ChangePanel({ report }: { report: ResearchResult }) {
 export default function Workbench() {
   const [state, dispatch] = useReducer(revisionReducer, undefined, initialState);
   const [followUpDraft, setFollowUpDraft] = useState("");
+  const [percentInputs, setPercentInputs] = useState<PercentInputs>({});
+  const [followUpPending, setFollowUpPending] = useState(false);
   const [clock, setClock] = useState(() => Date.now());
   const [savedDraft, setSavedDraft] = useState<DraftPayload | null>(null);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
@@ -506,6 +551,13 @@ export default function Workbench() {
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartedRef = useRef(false);
   const telemetryConsentRef = useRef(false);
+  const lastFailedOperationRef = useRef<null | { requestId: number; kind: "research" | "refresh"; forceMarketRefresh: boolean }>(null);
+  const reportHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const lastReportIdRef = useRef<string | null>(null);
+  const inputGenerationRef = useRef(0);
+  const followUpGenerationRef = useRef(0);
+  const followUpControllerRef = useRef<AbortController | null>(null);
+  const currentInputsRef = useRef({ revision: state.planRevision, mode: state.marketMode, sourceText: state.sourceText, sourceUrl: state.sourceUrl });
 
   const track = useCallback((event: TelemetryEvent["event"], details: Omit<Partial<TelemetryEvent>, "event" | "sessionId" | "occurredAt"> = {}) => {
     if (process.env.NEXT_PUBLIC_TELEMETRY_ENABLED !== "true" || !telemetryConsentRef.current) return;
@@ -534,12 +586,19 @@ export default function Workbench() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => () => {
+    requestCounterRef.current += 1;
+    followUpGenerationRef.current += 1;
+    controllerRef.current?.abort();
+    followUpControllerRef.current?.abort();
+  }, []);
+
   useEffect(() => {
     let active = true;
     const timer = window.setTimeout(() => {
       try {
         const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-        if (active && raw) setSavedDraft(parseDraft(JSON.parse(raw) as unknown));
+        if (active && raw) setSavedDraft(raw.length <= 100_000 ? parseDraft(JSON.parse(raw) as unknown) : null);
         const consent = window.localStorage.getItem(TELEMETRY_CONSENT_KEY) === "yes";
         telemetryConsentRef.current = consent;
         if (active) setTelemetryConsent(consent);
@@ -560,16 +619,33 @@ export default function Workbench() {
   }, [track, state.marketMode]);
 
   useEffect(() => {
-    /* Keep the previous cleanup separate from browser draft hydration. */
-    return () => controllerRef.current?.abort();
-  }, []);
+    // Announce new briefs to screen readers and move focus to the report heading once per report.
+    if (state.report && state.report.reportId !== lastReportIdRef.current) {
+      lastReportIdRef.current = state.report.reportId;
+      if (state.report.inputRevision === state.planRevision && state.reportMarketMode === state.marketMode) reportHeadingRef.current?.focus();
+    }
+  }, [state.report, state.planRevision, state.marketMode, state.reportMarketMode]);
+
+  useEffect(() => {
+    currentInputsRef.current = { revision: state.planRevision, mode: state.marketMode, sourceText: state.sourceText, sourceUrl: state.sourceUrl };
+  }, [state.planRevision, state.marketMode, state.sourceText, state.sourceUrl]);
 
   const planErrors = useMemo(() => {
     const parsed = PlanSchema.safeParse(state.plan);
+    const unitMessages: Record<string, string> = {
+      purchaseNotionalExcludingFee: "Enter a purchase notional greater than 0 USDT.",
+      "goal.amount": "Enter a net profit objective of 0 USDT or more.",
+      "goal.fractionOfEntryCash": "Enter a net return objective of 0% or more of entry cash.",
+      "scenario.bidPriceShift": "Enter a finite bid-price shift above -100%, or clear it for threshold only.",
+      feeIn: "Enter an entry fee from 0% to less than 100%.",
+      feeOut: "Enter an exit fee from 0% to less than 100%.",
+      "exitAssumptions.depthMultiplier": "Enter available exit depth from 0% to 100%.",
+      "exitAssumptions.priceHaircut": "Enter an exit haircut from 0% to less than 100%.",
+    };
     if (parsed.success) return {} as Record<string, string>;
     return parsed.error.issues.reduce<Record<string, string>>((errors, issue) => {
       const path = issue.path.join(".");
-      if (path && !errors[path]) errors[path] = issue.message;
+      if (path && !errors[path]) errors[path] = unitMessages[path] ?? issue.message;
       return errors;
     }, {});
   }, [state.plan]);
@@ -578,15 +654,37 @@ export default function Workbench() {
     return planErrors[errorPath] ? `${helpId} ${errorPath.replaceAll(".", "-")}-error` : helpId;
   }
 
+
   const reportIsCurrent = Boolean(
     state.report
-      && state.report.inputRevision === state.planRevision
-      && state.report.snapshot?.mode === state.marketMode,
+    && state.report.inputRevision === state.planRevision
+    && state.reportMarketMode === state.marketMode,
   );
-  const scenarioPercent = useMemo(() => safeScenarioPercent(state.plan), [state.plan]);
+  const scenarioPercent = percentInputs.scenario ?? (state.plan.scenario ? fractionToPercent(state.plan.scenario.bidPriceShift) : "");
   const isBusy = state.requestState === "submitting" || state.requestState === "refreshing";
 
+  function invalidateFollowUp() {
+    inputGenerationRef.current += 1;
+    followUpGenerationRef.current += 1;
+    followUpControllerRef.current?.abort();
+    followUpControllerRef.current = null;
+    setFollowUpPending(false);
+  }
+
+  function validatePlan(plan: Plan) {
+    const parsed = PlanSchema.safeParse(plan);
+    if (parsed.success) return true;
+    const path = parsed.error.issues[0]?.path.join(".") ?? "";
+    const controls: Record<string, string> = { thesis: "thesis", purchaseNotionalExcludingFee: "notional", "horizon.originalText": "horizon", invalidation: "invalidation", "goal.amount": "goal-amount", "goal.fractionOfEntryCash": "goal-return", "scenario.bidPriceShift": "scenario", feeIn: "fee-in", feeOut: "fee-out", "exitAssumptions.depthMultiplier": "depth", "exitAssumptions.priceHaircut": "haircut" };
+    const control = document.getElementById(controls[path] ?? "thesis");
+    const disclosure = control?.closest("details");
+    if (disclosure) disclosure.open = true;
+    control?.focus();
+    dispatch({ type: "request-error", requestId: state.activeRequestId, message: planErrors[path] ?? "Check the highlighted plan fields and their units." });
+    return false;
+  }
   function commitPlan(nextPlan: Plan, message: string, evidenceChanged: boolean) {
+    invalidateFollowUp();
     dispatch({ type: "set-plan", plan: nextPlan, changedMessage: message, evidenceChanged });
   }
 
@@ -595,19 +693,22 @@ export default function Workbench() {
   }
 
   function beginRequest(nextMode: MarketMode) {
+    invalidateFollowUp();
+    lastFailedOperationRef.current = null;
     const requestId = Math.max(requestCounterRef.current, state.activeRequestId) + 1;
     requestCounterRef.current = requestId;
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
     dispatch({ type: "begin-request", requestId, requestState: nextMode === "live" ? "refreshing" : "submitting" });
-    return { requestId, controller, startedAt: performance.now() };
+    return { requestId, controller, startedAt: performance.now(), inputGeneration: inputGenerationRef.current };
   }
 
   async function responsePayload(response: Response, fallback: string) {
-    const payload = await response.json() as Record<string, unknown>;
-    if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : fallback);
-    return payload;
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error(fallback);
+    if (!response.ok) throw new Error("error" in payload && typeof payload.error === "string" ? payload.error : fallback);
+    return payload as Record<string, unknown>;
   }
 
   function submitEconomics(nextPlan: Plan, nextMode: MarketMode, inputRevision: number, refreshMarket: boolean, nextSourceUrl: string) {
@@ -647,7 +748,7 @@ export default function Workbench() {
           signal: request.controller.signal,
         });
         const recompute = RecomputeResultSchema.parse(await responsePayload(recomputeResponse, "The economics could not be recomputed."));
-        const partialErrors: ResearchResult["partialErrors"] = baseReport.partialErrors.filter((item) => !["insufficient_depth", "market_unavailable", "market_invalid", "source_unavailable"].includes(item.kind));
+        const partialErrors: ResearchResult["partialErrors"] = baseReport.partialErrors.filter((item) => !["insufficient_depth", "market_unavailable", "market_invalid"].includes(item.kind) && (item.kind !== "source_unavailable" || (baseReport.sources.some((source) => source.truncated) && item.message.includes("truncated"))));
         const urlIssue = sourceUrlIssue(nextSourceUrl, baseReport.sources.length > 0);
         if (urlIssue) partialErrors.push({ kind: "source_unavailable", ...urlIssue });
         if (recompute.economics.computationStatus === "insufficient_depth") {
@@ -682,9 +783,12 @@ export default function Workbench() {
             reusedEvidence: true,
           },
           partialErrors,
+          limitations: withMarketModeLimitations(baseReport.limitations, nextMode),
           generatedAt: recompute.generatedAt,
         };
-        dispatch({ type: "request-success", requestId: request.requestId, report });
+        if (request.controller.signal.aborted || request.requestId !== requestCounterRef.current) return;
+        lastFailedOperationRef.current = null;
+        dispatch({ type: "request-success", requestId: request.requestId, report, requestedMarketMode: nextMode });
         track("brief_completed", {
           marketMode: nextMode,
           durationMs: report.performance.totalDurationMs,
@@ -694,7 +798,12 @@ export default function Workbench() {
           modelConfigured: Boolean(report.modelId),
         });
       } catch (error: unknown) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (request.controller.signal.aborted || request.requestId !== requestCounterRef.current) return;
+        if (request.inputGeneration !== inputGenerationRef.current) {
+          dispatch({ type: "request-error", requestId: request.requestId, message: "The previous inputs could not be processed. Submit the current inputs to try again." });
+          return;
+        }
+        lastFailedOperationRef.current = { requestId: request.requestId, kind: "refresh", forceMarketRefresh: refreshMarket };
         const message = error instanceof Error ? error.message : "The economics could not be recomputed.";
         dispatch({ type: "request-error", requestId: request.requestId, message });
         track("brief_failed", { marketMode: nextMode, durationMs: Math.max(0, Math.round(performance.now() - request.startedAt)), reusedEvidence: true, errorKind: "network" });
@@ -702,13 +811,14 @@ export default function Workbench() {
     })();
   }
 
-  function submitResearch(overrides?: { plan?: Plan; sourceText?: string; sourceUrl?: string; marketMode?: MarketMode; inputRevision?: number; forceMarketRefresh?: boolean }) {
+  function submitResearch(overrides?: { plan?: Plan; sourceText?: string; sourceUrl?: string; marketMode?: MarketMode; inputRevision?: number; forceMarketRefresh?: boolean; retryEvidence?: boolean }) {
     const nextPlan = overrides?.plan ?? state.plan;
+    if (!validatePlan(nextPlan)) return;
     const nextSource = overrides?.sourceText ?? state.sourceText;
     const nextUrl = overrides?.sourceUrl ?? state.sourceUrl;
     const nextMode = overrides?.marketMode ?? state.marketMode;
     const inputRevision = overrides?.inputRevision ?? state.planRevision;
-    const canReuseEvidence = Boolean(state.report && state.report.recomputeToken && evidenceInputsMatch(state.report, nextPlan, nextSource));
+    const canReuseEvidence = Boolean(state.report && state.report.recomputeToken && evidenceInputsMatch(state.report, nextPlan, nextSource, Boolean(overrides?.retryEvidence)));
     if (canReuseEvidence) {
       submitEconomics(nextPlan, nextMode, inputRevision, Boolean(overrides?.forceMarketRefresh) || state.report?.snapshot?.mode !== nextMode, nextUrl);
       return;
@@ -730,8 +840,11 @@ export default function Workbench() {
     })
       .then((response) => responsePayload(response, "The research request could not be completed."))
       .then((payload) => {
+        if (request.controller.signal.aborted || request.requestId !== requestCounterRef.current) return;
         const report = ResearchResultSchema.parse(payload);
-        dispatch({ type: "request-success", requestId: request.requestId, report });
+        if (report.inputRevision !== inputRevision) throw new Error("The research response has an unexpected input revision.");
+        lastFailedOperationRef.current = null;
+        dispatch({ type: "request-success", requestId: request.requestId, report, requestedMarketMode: nextMode });
         track("brief_completed", {
           marketMode: nextMode,
           durationMs: report.performance?.totalDurationMs ?? Math.max(0, Math.round(performance.now() - request.startedAt)),
@@ -742,11 +855,25 @@ export default function Workbench() {
         });
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (request.controller.signal.aborted || request.requestId !== requestCounterRef.current) return;
+        if (request.inputGeneration !== inputGenerationRef.current) {
+          dispatch({ type: "request-error", requestId: request.requestId, message: "The previous inputs could not be processed. Submit the current inputs to try again." });
+          return;
+        }
+        lastFailedOperationRef.current = { requestId: request.requestId, kind: "research", forceMarketRefresh: Boolean(overrides?.forceMarketRefresh) };
         const message = error instanceof Error ? error.message : "The research request could not be completed.";
         dispatch({ type: "request-error", requestId: request.requestId, message });
         track("brief_failed", { marketMode: nextMode, durationMs: Math.max(0, Math.round(performance.now() - request.startedAt)), reusedEvidence: false, errorKind: "network" });
       });
+  }
+
+  function retryLastFailedOperation() {
+    const failed = lastFailedOperationRef.current;
+    if (isBusy) return;
+    submitResearch({
+      forceMarketRefresh: failed?.requestId === requestCounterRef.current && failed.forceMarketRefresh,
+      retryEvidence: failed?.requestId === requestCounterRef.current && failed.kind === "research",
+    });
   }
 
   function saveDraft() {
@@ -757,8 +884,13 @@ export default function Workbench() {
       sourceText: state.sourceText,
       sourceUrl: state.sourceUrl,
       marketMode: state.marketMode,
+      percentInputs,
     };
     try {
+      if (!parseDraft(draft)) {
+        setDraftStatus("Draft could not be saved: shorten fields to their displayed limits.");
+        return;
+      }
       window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
       setSavedDraft(draft);
       setDraftStatus("Draft saved in this browser only.");
@@ -781,6 +913,10 @@ export default function Workbench() {
 
   function restoreDraft() {
     if (!savedDraft) return;
+    invalidateFollowUp();
+    requestCounterRef.current = Math.max(requestCounterRef.current, state.activeRequestId) + 1;
+    lastFailedOperationRef.current = null;
+    setPercentInputs(savedDraft.percentInputs ?? {});
     controllerRef.current?.abort();
     dispatch({
       type: "restore-draft",
@@ -807,15 +943,15 @@ export default function Workbench() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const parsed = PlanSchema.safeParse(state.plan);
-    if (!parsed.success) {
-      dispatch({ type: "request-error", requestId: state.activeRequestId, message: parsed.error.issues[0]?.message ?? "Check the highlighted plan fields." });
-      return;
-    }
-    submitResearch({ plan: parsed.data });
+    if (isBusy) return;
+    invalidateFollowUp();
+    const unchangedFailedEvidence = state.report?.evidence.status !== "assessed" && reportIsCurrent;
+    submitResearch({ retryEvidence: unchangedFailedEvidence });
   }
 
   function replayCapturedExample() {
+    invalidateFollowUp();
+    setPercentInputs({});
     const replayPlan = initialPlan();
     dispatch({ type: "set-plan", plan: replayPlan, changedMessage: "Captured example loaded. The market snapshot is historical replay data.", evidenceChanged: true });
     dispatch({ type: "set-source-text", sourceText: CAPTURED_SOURCE_TEXT });
@@ -827,31 +963,57 @@ export default function Workbench() {
   async function applyFollowUp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = followUpDraft.trim();
-    if (!message) return;
-    setFollowUpDraft("");
+    if (!message || isBusy || followUpControllerRef.current || !validatePlan(state.plan)) return;
+    const controller = new AbortController();
+    followUpControllerRef.current = controller;
+    const generation = ++followUpGenerationRef.current;
+    const inputGeneration = inputGenerationRef.current;
+    const requestGeneration = requestCounterRef.current;
+    const baseInputs = { revision: state.planRevision, mode: state.marketMode, sourceText: state.sourceText, sourceUrl: state.sourceUrl };
+    const isCurrent = () => {
+      const current = currentInputsRef.current;
+      return !controller.signal.aborted && generation === followUpGenerationRef.current
+        && inputGeneration === inputGenerationRef.current && requestGeneration === requestCounterRef.current
+        && current.revision === baseInputs.revision && current.mode === baseInputs.mode
+        && current.sourceText === baseInputs.sourceText && current.sourceUrl === baseInputs.sourceUrl;
+    };
+    setFollowUpPending(true);
     try {
       const response = await fetch("/api/intent", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message, plan: state.plan }),
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message, plan: state.plan }), signal: controller.signal,
       });
-      const result = await response.json() as { plan?: Plan; changed?: string[]; clarification?: string | null; refreshMarket?: boolean; error?: string };
-      if (!response.ok || !result.plan) throw new Error(result.error ?? "The follow-up could not be parsed.");
-      track("follow_up_applied", { marketMode: result.refreshMarket ? "live" : state.marketMode, reusedEvidence: Boolean(state.report && !result.changed?.some((item) => item.includes("thesis"))) });
-      if (result.changed?.length) {
+      const result = IntentResponseSchema.parse(await responsePayload(response, "The follow-up could not be parsed."));
+      if (!isCurrent()) return;
+      if (result.changed.length || result.refreshMarket) {
         const nextPlan = result.plan;
-        const evidenceChanged = result.changed.some((item) => item.includes("thesis"));
-        commitPlan(nextPlan, `Changed: ${result.changed.join(", ")}.`, evidenceChanged);
-        if (result.refreshMarket) {
-          dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Changed: live market refresh requested." });
-          submitResearch({ plan: nextPlan, marketMode: "live", inputRevision: state.planRevision + 1, forceMarketRefresh: true });
-        } else if (state.report && result.changed.some((item) => item.includes("notional") || item.includes("goal") || item.includes("scenario") || item.includes("depth"))) {
-          submitResearch({ plan: nextPlan, inputRevision: state.planRevision + 1 });
+        const planChanged = JSON.stringify(nextPlan) !== JSON.stringify(state.plan);
+        const evidenceChanged = nextPlan.asset !== state.plan.asset || nextPlan.thesis !== state.plan.thesis
+          || JSON.stringify(nextPlan.horizon) !== JSON.stringify(state.plan.horizon) || nextPlan.invalidation !== state.plan.invalidation;
+        if (planChanged) {
+          setPercentInputs({});
+          commitPlan(nextPlan, `Changed: ${result.changed.join(", ")}.`, evidenceChanged);
         }
+        if (result.refreshMarket) {
+          invalidateFollowUp();
+          dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Changed: live market refresh requested." });
+        }
+        const inputRevision = baseInputs.revision + (planChanged ? 1 : 0);
+        track("follow_up_applied", { marketMode: result.refreshMarket ? "live" : state.marketMode, reusedEvidence: Boolean(state.report && !evidenceChanged) });
+        if (result.refreshMarket || evidenceChanged || (state.report && planChanged)) {
+          submitResearch({ plan: nextPlan, marketMode: result.refreshMarket ? "live" : state.marketMode, inputRevision, forceMarketRefresh: result.refreshMarket });
+        }
+        setFollowUpDraft("");
       }
       if (result.clarification) dispatch({ type: "set-changed-message", changedMessage: result.clarification });
     } catch (error) {
+      if (!isCurrent()) return;
       dispatch({ type: "set-changed-message", changedMessage: error instanceof Error ? error.message : "The follow-up could not be parsed." });
+    } finally {
+      if (generation === followUpGenerationRef.current) {
+        followUpControllerRef.current = null;
+        setFollowUpPending(false);
+      }
     }
   }
 
@@ -880,7 +1042,7 @@ export default function Workbench() {
         </div>
         <div className="header-right">
           <nav className="header-nav" aria-label="Primary navigation">
-            <a className="header-cta" href="#workbench">Open workbench <span aria-hidden="true">↘</span></a>
+            <a className="header-cta" href="#workbench">Open workbench <ArrowDownRight size={15} weight="bold" aria-hidden="true" /></a>
           </nav>
           <div className="header-status">
             <span className="status-led" aria-hidden="true" />
@@ -904,9 +1066,10 @@ export default function Workbench() {
         <form id="plan" className="plan-panel" onSubmit={handleSubmit} noValidate>
           <div className="panel-heading">
             <div><span className="panel-kicker">Your plan</span><h2>Make the claim precise.</h2></div>
-            <span className="panel-index">01</span>
+            <span className="panel-index" aria-hidden="true">01</span>
           </div>
           <p className="panel-intro">Start with the exact statement you want to test. Paste the relevant source passage below.</p>
+          <p className="example-label" role="note"><Info size={14} weight="bold" aria-hidden="true" /> Example — prefilled NVIDIA/AWS thesis below. Edit to test your own idea.</p>
           <div className="draft-toolbar">
             <div><strong>Local draft</strong><span>Stored in this browser only.</span></div>
             <div className="draft-actions">
@@ -927,11 +1090,11 @@ export default function Workbench() {
             <FieldError id="thesis-error" message={planErrors.thesis} />
 
             <label htmlFor="source-text">Source text <span className="required">required for evidence</span></label>
-            <textarea id="source-text" value={state.sourceText} onChange={(event) => dispatch({ type: "set-source-text", sourceText: event.target.value })} rows={6} maxLength={60000} aria-describedby="source-text-help" />
+            <textarea id="source-text" value={state.sourceText} onChange={(event) => { invalidateFollowUp(); dispatch({ type: "set-source-text", sourceText: event.target.value }); }} rows={6} maxLength={60000} aria-describedby="source-text-help" />
             <span id="source-text-help" className="field-help">Paste a bounded passage. URL retrieval is disabled until its SSRF gate is complete.</span>
 
             <label htmlFor="source-url">Source URL <span className="optional">optional reference</span></label>
-            <input id="source-url" type="url" value={state.sourceUrl} onChange={(event) => dispatch({ type: "set-source-url", sourceUrl: event.target.value })} placeholder="https://official-source.example/article" />
+            <input id="source-url" type="url" value={state.sourceUrl} onChange={(event) => { invalidateFollowUp(); dispatch({ type: "set-source-url", sourceUrl: event.target.value }); }} placeholder="https://official-source.example/article" />
           </fieldset>
 
           <fieldset>
@@ -945,22 +1108,27 @@ export default function Workbench() {
                 </select>
                 <span className="field-help">Reality SPOT token</span>
               </div>
-              <div className="field-block">
+              <div className="field-block field-span">
                 <label htmlFor="notional">Purchase notional excluding fee</label>
-                <div className="unit-input"><input id="notional" type="number" min="0" step="0.01" inputMode="decimal" value={state.plan.purchaseNotionalExcludingFee} onChange={(event) => commitPlan({ ...state.plan, purchaseNotionalExcludingFee: event.target.value }, "Purchase notional changed. Economics will be recomputed.", false)} aria-invalid={Boolean(planErrors.purchaseNotionalExcludingFee)} aria-describedby={fieldDescribedBy("notional-help", "purchaseNotionalExcludingFee")} /><span>USDT</span></div>
+                <div className="unit-input"><input id="notional" type="text" maxLength={100} inputMode="decimal" value={state.plan.purchaseNotionalExcludingFee} onChange={(event) => commitPlan({ ...state.plan, purchaseNotionalExcludingFee: event.target.value }, "Purchase notional changed. Economics will be recomputed.", false)} aria-invalid={Boolean(planErrors.purchaseNotionalExcludingFee)} aria-describedby={fieldDescribedBy("notional-help", "purchaseNotionalExcludingFee")} /><span aria-hidden="true">USDT</span></div>
                 <span id="notional-help" className="field-help">The entry fee is additional cash.</span>
                 <FieldError id="purchaseNotionalExcludingFee-error" message={planErrors.purchaseNotionalExcludingFee} />
               </div>
             </div>
             <label htmlFor="horizon">Holding horizon</label>
             <input id="horizon" type="text" value={state.plan.horizon.originalText} onChange={(event) => commitPlan({ ...state.plan, horizon: { ...state.plan.horizon, originalText: event.target.value } }, "Horizon changed. Evidence will be reassessed.", true)} placeholder="Until tomorrow evening" aria-invalid={Boolean(planErrors["horizon.originalText"])} aria-describedby={fieldDescribedBy("horizon-help", "horizon.originalText")} />
-            <span id="horizon-help" className="field-help">Context only. The static book does not model time dynamics.</span>
+            <span id="horizon-help" className="field-help">Context only. The static book does not model time dynamics. Leave blank to show partial calculations.</span>
             <FieldError id="horizon-originalText-error" message={planErrors["horizon.originalText"]} />
+
+            <label htmlFor="invalidation">Invalidation <span className="optional">optional, shown when missing</span></label>
+            <input id="invalidation" type="text" value={state.plan.invalidation ?? ""} onChange={(event) => commitPlan({ ...state.plan, invalidation: event.target.value.trim() ? event.target.value : null }, "Invalidation changed. Evidence will be reassessed.", true)} placeholder="e.g. Thesis fails if source shows no planned deployment" maxLength={800} aria-describedby="invalidation-help" />
+            <span id="invalidation-help" className="field-help">{state.plan.invalidation ? "Invalidation recorded." : "No invalidation supplied — shown as omitted, no stop-loss invented."}</span>
 
             <label htmlFor="goal-kind">Objective</label>
             <select id="goal-kind" value={goalKind} onChange={(event) => {
               const kind = event.target.value;
               const goal = kind === "break_even" ? { kind: "break_even" as const } : kind === "profit_usdt" ? { kind: "profit_usdt" as const, amount: "100" } : kind === "net_return" ? { kind: "net_return" as const, fractionOfEntryCash: "0.01" } : null;
+              setPercentInputs((values) => ({ ...values, goal: undefined }));
               commitPlan({ ...state.plan, goal }, "Objective changed. Evidence is unchanged.", false);
             }}>
               <option value="none">No stated objective</option>
@@ -968,36 +1136,34 @@ export default function Workbench() {
               <option value="profit_usdt">Net profit in USDT</option>
               <option value="net_return">Net return on entry cash</option>
             </select>
-            {state.plan.goal?.kind === "profit_usdt" ? <div className="unit-input"><input aria-label="Profit objective amount" type="number" min="0" step="0.01" inputMode="decimal" value={state.plan.goal.amount} onChange={(event) => commitPlan({ ...state.plan, goal: { kind: "profit_usdt", amount: event.target.value } }, "Profit objective changed. Evidence is unchanged.", false)} /><span>USDT profit</span></div> : null}
-            {state.plan.goal?.kind === "net_return" ? <div className="unit-input"><input aria-label="Net return objective percentage" type="number" min="0" step="0.01" inputMode="decimal" value={new Decimal(state.plan.goal.fractionOfEntryCash || "0").mul(100).toString()} onChange={(event) => commitPlan({ ...state.plan, goal: { kind: "net_return", fractionOfEntryCash: new Decimal(event.target.value || "0").div(100).toString() } }, "Return objective changed. Evidence is unchanged.", false)} /><span>% of entry cash</span></div> : null}
+            {state.plan.goal?.kind === "profit_usdt" ? <><div className="unit-input"><input id="goal-amount" aria-label="Profit objective amount" type="text" maxLength={100} inputMode="decimal" value={state.plan.goal.amount} aria-invalid={Boolean(planErrors["goal.amount"])} aria-describedby="goal-amount-error" onChange={(event) => commitPlan({ ...state.plan, goal: { kind: "profit_usdt", amount: event.target.value } }, "Profit objective changed. Evidence is unchanged.", false)} /><span aria-hidden="true">USDT</span></div><FieldError id="goal-amount-error" message={planErrors["goal.amount"]} /></> : null}
+            {state.plan.goal?.kind === "net_return" ? <><div className="unit-input"><input id="goal-return" aria-label="Net return objective percentage" type="text" maxLength={100} inputMode="decimal" aria-invalid={Boolean(planErrors["goal.fractionOfEntryCash"])} aria-describedby="goal-fractionOfEntryCash-error" value={percentInputs.goal ?? fractionToPercent(state.plan.goal.fractionOfEntryCash)} onChange={(event) => { setPercentInputs((values) => ({ ...values, goal: event.target.value })); commitPlan({ ...state.plan, goal: { kind: "net_return", fractionOfEntryCash: percentToFraction(event.target.value) } }, "Return objective changed. Evidence is unchanged.", false); }} /><span aria-hidden="true">% cash</span></div><FieldError id="goal-fractionOfEntryCash-error" message={planErrors["goal.fractionOfEntryCash"]} /></> : null}
           </fieldset>
 
           <fieldset>
             <legend>Price scenario</legend>
             <label htmlFor="scenario">Bid-price shift on exit</label>
-            <div className="unit-input"><input id="scenario" type="number" step="0.1" inputMode="decimal" value={scenarioPercent} onChange={(event) => {
+            <div className="unit-input"><input id="scenario" type="text" maxLength={100} inputMode="decimal" value={scenarioPercent} placeholder="Leave blank for threshold only" aria-invalid={Boolean(planErrors["scenario.bidPriceShift"])} aria-describedby={fieldDescribedBy("scenario-help", "scenario.bidPriceShift")} onChange={(event) => {
               const raw = event.target.value;
-              try {
-                const shift = new Decimal(raw || "0").div(100).toString();
-                commitPlan({ ...state.plan, scenario: { bidPriceShift: shift, assumptionOrigin: "user" } }, "Scenario changed. Evidence is unchanged.", false);
-              } catch {
-                commitPlan({ ...state.plan, scenario: null }, "Enter a valid percentage scenario.", false);
-              }
-            }} /><span>% vs selected bids</span></div>
+              setPercentInputs((values) => ({ ...values, scenario: raw }));
+              commitPlan({ ...state.plan, scenario: raw === "" ? null : { bidPriceShift: percentToFraction(raw), assumptionOrigin: "user" } }, raw === "" ? "Scenario cleared. Threshold-only result will be shown." : "Scenario changed. Evidence is unchanged.", false);
+            }} /><span aria-hidden="true">% shift</span></div>
             <div className="preset-row" aria-label="Scenario presets">
-              {["-3", "0", "0.3", "1", "3"].map((preset) => <button key={preset} type="button" className={`preset ${scenarioPercent === preset ? "preset-active" : ""}`} onClick={() => commitPlan({ ...state.plan, scenario: { bidPriceShift: new Decimal(preset).div(100).toString(), assumptionOrigin: "illustrative_preset" } }, `${preset}% bid-price scenario selected. Evidence is unchanged.`, false)}>{Number(preset) > 0 ? "+" : ""}{preset}%</button>)}
+              {["-3", "0", "0.3", "1", "3"].map((preset) => <button key={preset} type="button" aria-pressed={scenarioPercent === preset} className={`preset ${scenarioPercent === preset ? "preset-active" : ""}`} onClick={() => { setPercentInputs((values) => ({ ...values, scenario: undefined })); commitPlan({ ...state.plan, scenario: { bidPriceShift: new Decimal(preset).div(100).toString(), assumptionOrigin: "illustrative_preset" } }, `${preset}% bid-price scenario selected. Evidence is unchanged.`, false); }}>{Number(preset) > 0 ? "+" : ""}{preset}%</button>)}
+              <button type="button" aria-pressed={!state.plan.scenario} className={`preset ${!state.plan.scenario ? "preset-active" : ""}`} onClick={() => { setPercentInputs((values) => ({ ...values, scenario: undefined })); commitPlan({ ...state.plan, scenario: null }, "Threshold-only selected. No scenario comparison will be made.", false); }}>Threshold only</button>
             </div>
-            <span className="field-help">This is not a native equity return or a price prediction.</span>
+            <span id="scenario-help" className="field-help">This is not a native equity return or a price prediction. Clear for threshold-only.</span>
+            <FieldError id="scenario-bidPriceShift-error" message={planErrors["scenario.bidPriceShift"]} />
           </fieldset>
 
           <details className="assumptions-disclosure">
             <summary><span>Fees and exit assumptions</span><CaretDown size={17} aria-hidden="true" /></summary>
             <div className="assumptions-body">
               <div className="field-grid field-grid-two">
-                <div className="field-block"><label htmlFor="fee-in">Entry fee</label><div className="unit-input"><input id="fee-in" type="number" min="0" step="0.01" value={new Decimal(state.plan.feeIn || "0").mul(100).toString()} onChange={(event) => commitPlan({ ...state.plan, feeIn: new Decimal(event.target.value || "0").div(100).toString(), feeOrigin: "user_supplied" }, "Entry fee changed. Evidence is unchanged.", false)} /><span>%</span></div></div>
-                <div className="field-block"><label htmlFor="fee-out">Exit fee</label><div className="unit-input"><input id="fee-out" type="number" min="0" step="0.01" value={new Decimal(state.plan.feeOut || "0").mul(100).toString()} onChange={(event) => commitPlan({ ...state.plan, feeOut: new Decimal(event.target.value || "0").div(100).toString(), feeOrigin: "user_supplied" }, "Exit fee changed. Evidence is unchanged.", false)} /><span>%</span></div></div>
-                <div className="field-block"><label htmlFor="depth">Available exit depth</label><div className="unit-input"><input id="depth" type="number" min="0" max="100" step="1" value={new Decimal(state.plan.exitAssumptions.depthMultiplier || "0").mul(100).toString()} onChange={(event) => commitPlan({ ...state.plan, exitAssumptions: { ...state.plan.exitAssumptions, depthMultiplier: new Decimal(event.target.value || "0").div(100).toString(), depthOrigin: "user" } }, "Exit depth changed. Evidence is unchanged.", false)} /><span>%</span></div></div>
-                <div className="field-block"><label htmlFor="haircut">Additional exit haircut</label><div className="unit-input"><input id="haircut" type="number" min="0" max="99.99" step="0.1" value={new Decimal(state.plan.exitAssumptions.priceHaircut || "0").mul(100).toString()} onChange={(event) => commitPlan({ ...state.plan, exitAssumptions: { ...state.plan.exitAssumptions, priceHaircut: new Decimal(event.target.value || "0").div(100).toString(), haircutOrigin: "user" } }, "Exit haircut changed. Evidence is unchanged.", false)} /><span>%</span></div></div>
+                <div className="field-block"><label htmlFor="fee-in">Entry fee</label><div className="unit-input"><input id="fee-in" type="text" maxLength={100} inputMode="decimal" aria-invalid={Boolean(planErrors.feeIn)} aria-describedby="feeIn-error" value={percentInputs.feeIn ?? fractionToPercent(state.plan.feeIn)} onChange={(event) => { setPercentInputs((values) => ({ ...values, feeIn: event.target.value })); commitPlan({ ...state.plan, feeIn: percentToFraction(event.target.value), feeOrigin: "user_supplied" }, "Entry fee changed. Evidence is unchanged.", false); }} /><span aria-hidden="true">%</span></div><FieldError id="feeIn-error" message={planErrors.feeIn} /></div>
+                <div className="field-block"><label htmlFor="fee-out">Exit fee</label><div className="unit-input"><input id="fee-out" type="text" maxLength={100} inputMode="decimal" aria-invalid={Boolean(planErrors.feeOut)} aria-describedby="feeOut-error" value={percentInputs.feeOut ?? fractionToPercent(state.plan.feeOut)} onChange={(event) => { setPercentInputs((values) => ({ ...values, feeOut: event.target.value })); commitPlan({ ...state.plan, feeOut: percentToFraction(event.target.value), feeOrigin: "user_supplied" }, "Exit fee changed. Evidence is unchanged.", false); }} /><span aria-hidden="true">%</span></div><FieldError id="feeOut-error" message={planErrors.feeOut} /></div>
+                <div className="field-block"><label htmlFor="depth">Available exit depth</label><div className="unit-input"><input id="depth" type="text" maxLength={100} inputMode="decimal" aria-invalid={Boolean(planErrors["exitAssumptions.depthMultiplier"])} aria-describedby="exitAssumptions-depthMultiplier-error" value={percentInputs.depth ?? fractionToPercent(state.plan.exitAssumptions.depthMultiplier)} onChange={(event) => { setPercentInputs((values) => ({ ...values, depth: event.target.value })); commitPlan({ ...state.plan, exitAssumptions: { ...state.plan.exitAssumptions, depthMultiplier: percentToFraction(event.target.value), depthOrigin: "user" } }, "Exit depth changed. Evidence is unchanged.", false); }} /><span aria-hidden="true">%</span></div><FieldError id="exitAssumptions-depthMultiplier-error" message={planErrors["exitAssumptions.depthMultiplier"]} /></div>
+                <div className="field-block"><label htmlFor="haircut">Additional exit haircut</label><div className="unit-input"><input id="haircut" type="text" maxLength={100} inputMode="decimal" aria-invalid={Boolean(planErrors["exitAssumptions.priceHaircut"])} aria-describedby="exitAssumptions-priceHaircut-error" value={percentInputs.haircut ?? fractionToPercent(state.plan.exitAssumptions.priceHaircut)} onChange={(event) => { setPercentInputs((values) => ({ ...values, haircut: event.target.value })); commitPlan({ ...state.plan, exitAssumptions: { ...state.plan.exitAssumptions, priceHaircut: percentToFraction(event.target.value), haircutOrigin: "user" } }, "Exit haircut changed. Evidence is unchanged.", false); }} /><span aria-hidden="true">%</span></div><FieldError id="exitAssumptions-priceHaircut-error" message={planErrors["exitAssumptions.priceHaircut"]} /></div>
               </div>
               <p className="assumption-note">Default fees are a published standard scenario, not an account-tier lookup. Exit depth scales quantities while retaining the original bought position.</p>
             </div>
@@ -1006,8 +1172,8 @@ export default function Workbench() {
           <fieldset className="mode-fieldset">
             <legend>Market data mode</legend>
             <div className="mode-options">
-              <label className={`mode-option ${state.marketMode === "captured_real" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "captured_real"} onChange={() => dispatch({ type: "set-market-mode", marketMode: "captured_real", changedMessage: "Captured example selected. It is historical replay data." })} /><span><strong>Captured example</strong><small>Sep 8 selection snapshot</small></span></label>
-              <label className={`mode-option ${state.marketMode === "live" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "live"} onChange={() => dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market data selected. Failed refreshes will not fall back to fixtures." })} /><span><strong>Attempt live data</strong><small>Public Bitget market endpoints</small></span></label>
+              <label className={`mode-option ${state.marketMode === "captured_real" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "captured_real"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "captured_real", changedMessage: "Captured example selected. It is historical replay data." }); }} /><span><strong>Captured example</strong><small>Sep 8 selection snapshot</small></span></label>
+              <label className={`mode-option ${state.marketMode === "live" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "live"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market data selected. Failed refreshes will not fall back to fixtures." }); }} /><span><strong>Attempt live data</strong><small>Public Bitget market endpoints</small></span></label>
             </div>
           </fieldset>
 
@@ -1017,20 +1183,22 @@ export default function Workbench() {
           <p className="button-note"><Info size={14} weight="bold" aria-hidden="true" /> No order placement. No price forecast.</p>
         </form>
 
-        <section id="report" className="report-column" aria-live="off" aria-busy={isBusy}>
+        <section id="report" className="report-column" aria-live="polite" aria-busy={isBusy}>
           <div className="report-header">
-            <div><span className="panel-kicker">Research brief</span><h2>Keep the conclusions distinct.</h2></div>
+            <div><span className="panel-kicker">Research brief</span><h2 ref={reportHeadingRef} tabIndex={-1}>Keep the conclusions distinct.</h2></div>
+            <span className="panel-index" aria-hidden="true">02</span>
             <div className="report-actions">
               <button className="button button-quiet" type="button" onClick={() => download("markdown")} disabled={!state.report || !reportIsCurrent}><IconText icon={<DownloadSimple size={16} aria-hidden="true" />}>Markdown</IconText></button>
               <button className="button button-quiet" type="button" onClick={() => download("json")} disabled={!state.report || !reportIsCurrent}><IconText icon={<DownloadSimple size={16} aria-hidden="true" />}>JSON</IconText></button>
             </div>
           </div>
           {state.changedMessage ? <div className="change-banner" role="status"><Info size={16} weight="bold" aria-hidden="true" /><span>{state.changedMessage}</span></div> : null}
-          {state.errorMessage ? <div className="error-banner" role="alert"><WarningCircle size={17} weight="bold" aria-hidden="true" /><div><strong>Could not update the brief</strong><p>{state.errorMessage}</p><button className="text-button" type="button" onClick={() => submitResearch()}>Retry</button></div></div> : null}
+          {state.errorMessage ? <div className="error-banner" role="alert"><WarningCircle size={17} weight="bold" aria-hidden="true" /><div><strong>Could not update the brief</strong><p>{state.errorMessage}</p><button className="text-button" type="button" onClick={retryLastFailedOperation}>Retry</button></div></div> : null}
           {isBusy && !state.report ? <ReportSkeleton /> : state.report ? (
             <>
               {!reportIsCurrent ? <div className="stale-banner" role="status"><Info size={16} weight="bold" aria-hidden="true" /><span>This report is from an earlier plan or market mode. Submit again before exporting.</span></div> : null}
-              <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} now={clock} onRefresh={() => { track("live_refresh_requested", { marketMode: "live" }); submitResearch({ marketMode: "live", forceMarketRefresh: true }); }} isRefreshing={state.requestState === "refreshing"} /></div>
+              {state.report.evidence.status !== "assessed" ? <button className="button button-secondary" type="button" disabled={isBusy} onClick={() => submitResearch({ retryEvidence: true })}>Retry evidence assessment</button> : null}
+              <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} requestedMode={state.reportMarketMode ?? state.marketMode} now={clock} onRefresh={() => { if (!validatePlan(state.plan)) return; invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market refresh requested." }); track("live_refresh_requested", { marketMode: "live" }); submitResearch({ marketMode: "live", forceMarketRefresh: true }); }} isRefreshing={isBusy} /></div>
               <ScenarioTable report={state.report} />
               <SourcesPanel report={state.report} />
               <RunDetails report={state.report} />
@@ -1041,7 +1209,7 @@ export default function Workbench() {
 
           <form className="follow-up" onSubmit={applyFollowUp}>
             <label htmlFor="follow-up">Follow-up edit</label>
-            <div className="follow-up-row"><input id="follow-up" value={followUpDraft} onChange={(event) => setFollowUpDraft(event.target.value)} placeholder="Try: Halve the amount" /><button className="button button-secondary" type="submit" disabled={isBusy}><IconText icon={<ArrowClockwise size={16} weight="bold" />}>Apply edit</IconText></button></div>
+            <div className="follow-up-row"><input id="follow-up" maxLength={2000} value={followUpDraft} onChange={(event) => { invalidateFollowUp(); setFollowUpDraft(event.target.value); }} placeholder="Try: Halve the amount" /><button className="button button-secondary" type="submit" disabled={isBusy || followUpPending || !followUpDraft.trim()}><IconText icon={<ArrowClockwise size={16} weight="bold" />}>{followUpPending ? "Applying edit" : "Apply edit"}</IconText></button></div>
             <span className="field-help">Supported edits update only the fields they name. Ambiguous percentage references ask for clarification.</span>
           </form>
         </section>
