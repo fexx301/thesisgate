@@ -37,9 +37,15 @@ yarn-error.log*
 .env*
 !/.env.example
 
+# durable quota-service data stays on its mounted volume, never in Git
+/quota-service/data/
+/quota-service/*.sqlite
+/quota-service/*.sqlite-*
+
 # documentation (keep project docs and evaluation records)
 *.md
 !/README.md
+!/quota-service/README.md
 !/evals/practitioner-validation-sheet.md
 !/evals/scoring-rubric.md
 !/public/finished-brief/nvda-captured.md
