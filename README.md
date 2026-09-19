@@ -17,7 +17,7 @@ You make the decision. ThesisGate does not place orders, predict prices, treat a
 
 ### Run the app locally
 
-The Next app minimum is Node `>=20.9.0`. For the complete developer verification workflow, use Node `>=24`.
+Use Node `>=24` for the app and contributor workflow. The repository's `.nvmrc` pins Node `24.14.0`; with nvm installed, run `nvm install && nvm use` before installing dependencies.
 
 From a cloned or downloaded copy of the repository, open a terminal in the project root and run:
 
@@ -35,11 +35,11 @@ For the first successful run:
 3. Change one input, such as the budget, objective, or price scenario.
 4. Click **Stress-test my thesis** again.
 
-After the first brief, edits to the budget, objective, fees, depth, haircut, or scenario recompute the economics without another model call. A source-URL reference edit updates provenance without reassessing the pasted text. A market-mode change or live refresh requests a new market snapshot. A thesis, horizon, or source-text change requires a new evidence assessment.
+After the first brief, edits to the budget, objective, fees, depth, haircut, or scenario recompute the economics without another model call, including when evidence was not assessed. A source-URL reference edit updates provenance without reassessing the pasted text. A market-mode change or live refresh requests a new market snapshot. A thesis, horizon, or source-text change requires a new evidence assessment.
 
 The captured example is historical replay data. It is included so the economics can be demonstrated without a live network request or an AI provider key.
 
-The replay always gives you an economics result. The evidence section may show `not_assessed` unless the optional local claim model is configured. That status means no claim assessment was run; it is not a negative verdict.
+The captured example calculates conditional economics without a model key. The evidence section may show `not_assessed` when the optional local claim model is disabled, unavailable, or fails to return a valid assessment. That status means no usable claim assessment is available; it is not a negative verdict.
 
 ### Test your own idea
 
@@ -60,7 +60,9 @@ The app reads the text you paste. It does not fetch the URL or treat an official
 
 This section asks whether the supplied words support the exact claim. It does not decide whether the trade will make money.
 
-If the status is `not_assessed`, the claim model did not run. That is not the same as “unsupported” or “contradicted.” The text remains visible, and the economics can still be calculated.
+If the status is `not_assessed`, no usable claim assessment is available: the model may be disabled, unavailable, or have failed. That is not the same as “unsupported” or “contradicted.” The text remains visible, and the economics can still be calculated.
+
+To explicitly try failed or unavailable evidence again, choose **Retry evidence assessment**, or submit an unchanged plan with **Stress-test my thesis**. Economics-only edits do not silently retry the model. With the model disabled, a retry still reports `not_assessed`; it does not invent an assessment.
 
 ### Economics under your assumptions
 
@@ -132,17 +134,18 @@ Requests a public Bitget market snapshot at run time for the fixed `RNVDAUSDT` o
 - Live Bitget instrument, ticker, and order-book requests with a fixed symbol allowlist.
 - Input validation, bounded source text, provenance labels, timestamps, warnings, and hashes.
 - Decimal.js arithmetic for fees, quantity steps, entry sweeps, exit sweeps, depth, and haircuts.
-- Deterministic Markdown and JSON exports from the validated report.
+- Deterministic Markdown and JSON exports from the current validated report, including partial reports with missing market data; unavailable economics and the requested market mode remain explicit.
 - A math-only recomputation path that avoids repeat claim-model calls for economics changes.
 - Visible run details for model name, market and model duration, model-call count, evidence reuse, and provider-reported cost.
-- Browser-local draft save and restore controls. Draft text is not sent anywhere by the draft feature.
+- Browser-local draft save and restore controls, including incomplete numeric input while editing. Draft text is not sent anywhere by the draft feature; restore does not validate or run the draft automatically.
 - Optional privacy-preserving success telemetry for submit, completion, failure, follow-up, refresh, export, and draft events.
 - Unit, integration, browser, and evaluation-gate test coverage.
+- Current local verification: typecheck, lint, 117 unit/integration tests, production build, and 24 Chromium/mobile browser journeys pass. The dry-run evaluator covers all 12 benchmark cases with 22 planned provider calls and makes zero provider calls.
 
 ### Not ready for public AI use
 
-- Independent trader validation is still an open gate.
-- Runtime claim assessment stays disabled in production until durable per-visitor limits, concurrency controls, atomic budget reservations, and a provider hard limit are configured.
+- **UNVERIFIED — real trader validation:** No five-trader study has been completed. The [practitioner validation sheet](evals/practitioner-validation-sheet.md) is a protocol, not results; code, automated tests, and developer review do not satisfy it.
+- **UNVERIFIED — production model spending controls:** Runtime claim assessment stays disabled until an external durable quota service, atomic budget reservations, concurrency limits, and a real provider/account hard cap have been configured and independently exercised. The code's adapter and passing tests cannot prove these external controls are active.
 - URL retrieval stays disabled until its server-side request-forgery protections are complete.
 - A public deployment is not implied by this repository. The local app and public source repository are separate from a hosted service.
 
@@ -156,17 +159,22 @@ npx playwright install chromium
 npm run typecheck
 npm run lint
 npm test
+npm run eval:packets
+npm run eval:runner
+node evals/verify-evidence.mjs
 npm run build
 npm run test:e2e
 ~~~
 
-`npm run test:e2e` starts a dev server on port `3101` when one is not already running. To point the browser tests at an existing server:
+`npm run test:e2e` starts a production Next server on port `3101` when one is not already running. To point the browser tests at an existing server:
 
 ~~~bash
 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3101 npm run test:e2e
 ~~~
 
-The evaluation runner uses Node's native TypeScript stripping and requires Node `>=24`. Vitest 5 and the full verification workflow also require a Node 22.12 or 24-class runtime, so Node `>=24` is the simplest recommendation for contributors.
+Node `>=24` is the supported contributor engine for this repository, including Vitest 5 and the evaluation runner's native TypeScript stripping. Use `.nvmrc` to keep local and CI runtimes aligned.
+
+The full local verification sequence also includes `npm run eval:packets`, `npm run eval:runner`, and `node evals/verify-evidence.mjs`. Historical evidence integrity is verified, but the archived builder-scored performance result is not a current research-gate pass: it is bound to an older implementation and the current evaluator rejects that stale binding. No independent practitioner validation is claimed.
 
 ### Optional local claim model
 
@@ -195,7 +203,7 @@ Keep the key in `.env.local`, never in source, browser state, logs, or exported 
 
 Before deployment, set `THESIS_PUBLIC_ORIGINS` to the exact HTTPS origin or comma-separated origins that serve the app. Production POST routes fail closed when the allowlist is missing or the request origin is not listed. Localhost and test runs do not require this deployment setting.
 
-Production claim-model calls also fail closed until the durable quota adapter is configured. The adapter is an integration boundary, not an in-memory counter. Set these server-only variables:
+These settings apply **only to production model calls**, not to the model-disabled replay demo. Production claim-model calls fail closed until the durable quota adapter is configured. The adapter is an integration boundary, not an implemented hosted service or an in-memory counter. Set these server-only variables only as part of a separately verified model rollout:
 
 ~~~dotenv
 THESIS_LLM_QUOTA_URL=https://your-quota-service.example/reservations
@@ -206,20 +214,31 @@ THESIS_LLM_PER_VISITOR_BUDGET_USD=0.10
 THESIS_LLM_MAX_CONCURRENT=2
 THESIS_LLM_PROVIDER_HARD_LIMIT_USD=1
 THESIS_VISITOR_HASH_SECRET=long-random-server-secret
-THESIS_RECOMPUTE_SIGNING_SECRET=another-long-random-server-secret
 ~~~
 
-The quota service must atomically handle a `reserve` request before the provider call and a `settle` request after it. The reserve body includes a request ID, one-way visitor bucket, maximum per-call reservation, daily and per-visitor caps, provider hard limit, concurrency cap, and a 60-second reservation expiry. It must return `{ "allowed": true, "reservationId": "..." }` or `{ "allowed": false, "reason": "..." }`. Settlement receives the reservation ID and actual provider-reported cost, or the reserved maximum when the provider reports no cost. The app never sends the raw visitor address to the model provider.
+The quota service must atomically handle a `reserve` request before the provider call and a `settle` request after it. The reserve body includes a request ID, one-way visitor bucket, maximum per-call reservation, daily and per-visitor caps, provider hard limit, concurrency cap, and `expiresInSeconds: 60`. That expiry is a **concurrency lease only**: it must not automatically refund the spend reservation. Unknown provider outcomes and failed settlements must retain the reserved maximum spend until durable reconciliation. The service must return `{ "allowed": true, "reservationId": "..." }` or `{ "allowed": false, "reason": "..." }`. Settlement receives the reservation ID and actual provider-reported cost, or the reserved maximum when the provider reports no cost. Before enabling AI, prove idempotent reserve/settle, persistent reservation accounting, and atomic multi-instance daily, per-visitor, and concurrency caps. The app never sends the raw visitor address to the model provider.
 
-The provider hard limit must also be enforced by the quota service or provider account. Environment variables alone are not evidence that a spending cap is active. Keep `THESIS_LLM_ENABLED` false until the reservation service has been tested under concurrent requests.
+The provider hard limit must be enforced by the provider account or an effective external control, not merely declared in an environment variable. Durable reservations and the provider/account hard cap are **external UNVERIFIED gates**: no live concurrency or spending-limit verification is claimed. Keep `THESIS_LLM_ENABLED=false` until they are verified.
 
-Economics-only recomputations require `THESIS_RECOMPUTE_SIGNING_SECRET` in production. Each research and market response includes a server-signed receipt for its validated instrument and snapshot; `/api/recompute` rejects browser-substituted market data. The receipt authenticates origin, not freshness. Use the visible exchange age and refresh control when current data matters.
+`THESIS_RECOMPUTE_SIGNING_SECRET` is a separate production requirement even when the model is disabled and all quota variables are unset. Research and market responses carry a server-signed receipt for their validated instrument and snapshot; `/api/recompute` rejects browser-substituted market data. The receipt authenticates origin, not freshness. Use the visible exchange age and refresh control when current data matters. Keep one strong secret consistent across serving instances; rotating it invalidates previously issued receipts and requires a fresh research or market request.
 
-For local development, the quota service is not required. The optional `THESIS_LLM_LOCAL_MAX_CONCURRENT` variable limits simultaneous local model calls in the running process.
+For local development, the quota service is not required. The optional `THESIS_LLM_LOCAL_MAX_CONCURRENT` variable limits simultaneous local model calls in the running process. All POST routes also enforce a single-process per-visitor guard (30 requests/minute per route; model analyses 5 per visitor per 10 minutes with a 200/day global cap). This is defense in depth only: multi-instance production enforcement remains the durable `THESIS_LLM_QUOTA_URL` reservation service.
+
+### Deploying a production replay demo
+
+This checklist deploys a **model-disabled captured-replay walkthrough**. It does not enable paid AI or certify a hosted service. The app still exposes **Attempt live data**; `THESIS_LLM_ENABLED=false` disables model calls, not public market requests. Use **Captured example** for the no-provider, no-live-market walkthrough.
+
+1. Import this repository into a Next.js-capable host. For Vercel, select the directory containing `package.json` as the project root, the Next.js framework preset, Node 24, install command `npm ci`, and build command `npm run build`. The included `vercel.json` sets API `Cache-Control: no-store` and function durations. On a Node host, build with `npm ci && npm run build`, then serve with `npm run start` behind HTTPS.
+2. Assign the intended HTTPS domain before exposing the app. Set `THESIS_PUBLIC_ORIGINS` in that deployment's server environment to its **exact origin**, such as `https://demo.example` (illustrative only), or a comma-separated list of exact origins. Include a preview origin only if that deployment must accept it. Do not include paths, trailing slashes, wildcard hosts, or the example domain. Missing or mismatched origins make production POST requests fail closed.
+3. Generate a unique secret with `openssl rand -hex 32` and store its output in the host's secret store as `THESIS_RECOMPUTE_SIGNING_SECRET`. It is **mandatory for production replay and economics reuse**, independently of model quota settings. Do not commit it or expose it through a `NEXT_PUBLIC_` variable.
+4. Set `THESIS_LLM_ENABLED=false`, `NEXT_PUBLIC_TELEMETRY_ENABLED=false`, and `THESIS_TELEMETRY_ENABLED=false`. Leave the model key, endpoint, model, and model-only quota variables unset. `.env.example` separates these groups; local development does not require the production origin or signing-secret settings.
+5. Build and deploy with those environment values. `NEXT_PUBLIC_` settings are baked into the browser bundle, so changing telemetry requires rebuilding. Do not enable model assessment merely because deployment succeeds.
+6. In a logged-out browser on the actual allowed HTTPS origin, select **Replay captured example**. Confirm historical captured provenance, visible `not_assessed` evidence, and conditional economics. Change the budget or scenario and submit; confirm economics recompute while evidence is reused. Export Markdown and JSON and check unavailable fields remain unavailable. Save an incomplete draft, restore it, and confirm its text survives without an automatic request.
+7. Record the real deployed URL and the observed smoke-test outcome before sharing it. No hosted link or successful production smoke test is claimed in this README. A replay demo does not resolve the external model-budget gates or real five-trader validation.
 
 ### Drafts and validation telemetry
 
-**Save draft** stores the current plan, source passage, URL reference, and market mode in this browser's `localStorage`. It is not encrypted and is not synchronized across devices. Do not save confidential material unless local browser storage is acceptable for it.
+**Save draft** stores the current plan, source passage, URL reference, and market mode in this browser's `localStorage`, including incomplete numeric strings while editing. **Restore saved** restores those inputs without submitting them; **Clear** removes the saved draft. Storage is not encrypted or synchronized across devices. Do not save confidential material unless local browser storage is acceptable for it. Markdown and JSON exports also support current partial reports: a market failure is preserved as missing data rather than replaced with a previous report's market data.
 
 Telemetry is disabled by default. To enable the client events and server sink, set `NEXT_PUBLIC_TELEMETRY_ENABLED=true` at build time and `THESIS_TELEMETRY_ENABLED=true` on the server. The workbench then shows an unchecked **Share anonymous validation events** control; events are sent only after a tester opts in. Without `THESIS_TELEMETRY_ENDPOINT`, events are written as sanitized server log records for the host's log collector. With an endpoint, the server forwards only the validated event envelope. Events contain no thesis, source text, URL, API key, IP address, or provider response. The event set is designed to answer whether a tester submitted, completed, recovered from an error, used a follow-up, refreshed live data, exported a brief, or restored a draft.
 
@@ -238,6 +257,8 @@ Browser workbench
 ~~~
 
 The pure domain modules do not read the network, environment, clock, or UI state. Revisions and request IDs prevent late responses from replacing a newer plan. Evidence hashes exclude notional, fees, goals, and scenarios. Economics hashes include normalized numeric inputs, the snapshot hash, and the formula version.
+
+The visual source of truth is `src/app/hallmark.css` plus `tokens.css`; the legacy `globals.css` and `page.module.css` files are intentionally removed.
 
 ### Economics model
 
@@ -271,7 +292,7 @@ THESISGATE_EVAL_MAX_CALLS=2 \
 npm run eval:runner
 ~~~
 
-The runner still produces an **unscored** report and artifacts. A final research-gate report is a separate step. `npm run eval` intentionally exits non-zero until `THESISGATE_EVAL_REPORT` points to a genuinely scored 12-case report with status `scored-final`.
+The runner still produces an **unscored** report and artifacts. A final research-gate report is a separate step. `npm run eval` intentionally exits non-zero until `THESISGATE_EVAL_REPORT` points to a genuinely scored 12-case report with status `scored-final` that matches the **current implementation** and satisfies the gate. A stored historical score is not a current pass.
 
 The final report validator requires:
 
@@ -284,6 +305,25 @@ The final report validator requires:
 - structured grader fields and a declared grader.
 
 The paid-run controls are `THESISGATE_EVAL_MODE`, `THESISGATE_EVAL_CASES`, `THESISGATE_ALLOW_PAID_EVAL`, and `THESISGATE_EVAL_MAX_CALLS`. The public benchmark inputs and schema are [evals/cases.json](evals/cases.json), [evals/benchmark-manifest.json](evals/benchmark-manifest.json), and [evals/report.template.json](evals/report.template.json). Do not replace case evidence with aggregate counters or placeholder artifacts.
+
+#### Historical artifacts are not the current gate
+
+The stored benchmark records describe a frozen historical implementation. The original builder grading reported 11/12 completeness, but that is neither independent grading nor proof of the current code. Paired review removed the four unsupported unique-omission credits (E01, E04, E05, E10), leaving **zero supported unique omissions**; the historical performance threshold is not met. No independent benchmark success or completed trader study is claimed.
+
+Use the offline paths for their distinct purposes:
+
+~~~bash
+# Integrity only: stored bytes, hashes, and artifact bindings; no performance claim.
+node evals/verify-evidence.mjs
+
+# Historical performance scoring: expected non-zero for the failed historical gate.
+node evals/verify-evidence.mjs --performance
+
+# Current implementation gate: the old report must not pass after implementation changes.
+THESISGATE_EVAL_REPORT=evidence/benchmark-gate-final/report.scored.json npm run eval
+~~~
+
+The historical verifier exits `0` for valid artifact integrity, or `2` for invalid evidence. With `--performance`, it exits `1` when valid evidence fails the historical thresholds (`0` only when those thresholds pass). The current eval command rejects stale implementation bindings; it requires a new, genuinely scored report bound to the current code before any current performance claim can be made. None of these commands calls a provider or substitutes for the five-trader study.
 
 ## Public evidence and fixtures
 
