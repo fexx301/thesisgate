@@ -280,6 +280,66 @@ function humanize(value: string) {
   return value.replaceAll("_", " ");
 }
 
+function readableStatus(value: string) {
+  const labels: Record<string, string> = {
+    assessed: "Assessed",
+    not_assessed: "Assessment unavailable",
+    unavailable: "Unavailable",
+    supported: "Supported",
+    contradicted: "Contradicted",
+    insufficient: "Insufficient evidence",
+    mixed: "Mixed",
+    source_unavailable: "Source unavailable",
+    calculated: "Calculated",
+    threshold_only: "Threshold only",
+    missing_inputs: "Incomplete inputs",
+    invalid_instrument: "Instrument unavailable",
+    invalid_book: "Market snapshot unavailable",
+    insufficient_depth: "Insufficient depth",
+    meets: "Meets objective",
+    below: "Below objective",
+  };
+  return labels[value] ?? humanize(value);
+}
+
+function evidenceStatusLabel(status: ResearchResult["evidence"]["status"], verdict: ResearchResult["evidence"]["verdict"]) {
+  return status === "assessed" ? readableStatus(verdict) : readableStatus(status);
+}
+
+function assumptionOriginLabel(origin: string) {
+  return origin === "illustrative_preset" ? "example preset" : origin === "user" ? "you supplied" : humanize(origin);
+}
+
+function feeOriginLabel(origin: string) {
+  return origin === "published_standard_assumption" ? "published standard" : "you supplied";
+}
+
+function sourceProvenanceLabel(provenance: string) {
+  const labels: Record<string, string> = {
+    retrieved_official: "Retrieved from an approved source",
+    user_pasted_unverified: "Pasted by you; not independently verified",
+    captured_official_excerpt: "Captured official excerpt",
+    synthetic_test: "Synthetic test source",
+  };
+  return labels[provenance] ?? humanize(provenance);
+}
+
+function partialKindLabel(kind: string) {
+  const labels: Record<string, string> = {
+    source_missing: "Source text missing",
+    source_unavailable: "Source unavailable",
+    ambiguous_input: "Input needs clarification",
+    market_unavailable: "Market data unavailable",
+    market_invalid: "Market data could not be validated",
+    insufficient_depth: "Insufficient market depth",
+    model_unconfigured: "Evidence assessment unavailable",
+    model_timeout: "Evidence assessment timed out",
+    model_invalid_output: "Evidence assessment failed",
+    model_budget: "Evidence assessment limit reached",
+  };
+  return labels[kind] ?? humanize(kind);
+}
+
 
 function IconText({ children, icon }: { children: ReactNode; icon: ReactNode }) {
   return <span className="icon-text"><span aria-hidden="true">{icon}</span>{children}</span>;
@@ -343,9 +403,21 @@ function EmptyReport({ onReplay }: { onReplay: () => void }) {
       <button className="button button-secondary" type="button" onClick={onReplay}>
         <IconText icon={<ArrowClockwise size={17} weight="bold" />}>Replay captured example</IconText>
       </button>
-      <a className="button button-quiet" href="/finished-brief/nvda-captured.md">View finished brief (historical replay, not_assessed)</a>
-      <p className="field-help">Static example with hashes and provenance, no recompute token. Live replay stays one click above.</p>
+      <a className="button button-quiet" href="/finished-brief/nvda-captured.md">Read finished example</a>
+      <p className="field-help">Replay rebuilds the example here. The finished example is a static historical brief with its provenance preserved.</p>
     </div>
+  );
+}
+
+function ClaimCard({ claim }: { claim: ResearchResult["claims"][number] }) {
+  return (
+    <article className="claim" key={claim.claimId}>
+      <div className="claim-meta"><span>{claim.distinction}</span><StatusTag tone={claim.status === "supported" ? "good" : claim.status === "contradicted" ? "bad" : "warn"}>{readableStatus(claim.status)}</StatusTag></div>
+      <h3>{claim.exactText}</h3>
+      <p>{claim.explanation}</p>
+      {claim.citations.map((citation) => <blockquote key={`${citation.sourceId}-${citation.startOffset}`}>{citation.excerpt}</blockquote>)}
+      {claim.missingEvidence ? <small>Missing: {claim.missingEvidence}</small> : null}
+    </article>
   );
 }
 
@@ -361,7 +433,7 @@ function EvidencePanel({ report }: { report: ResearchResult }) {
     <section className="report-card evidence-card" aria-labelledby="evidence-heading">
       <div className="card-topline">
         <SectionHeading id="evidence-heading" title="Evidence behind your thesis" detail="Claim review stays separate from the price scenario." icon={<FileText size={22} weight="regular" />} />
-        <StatusTag tone={tone}>{humanize(report.evidence.status === "assessed" ? report.evidence.verdict : "not_assessed")}</StatusTag>
+        <StatusTag tone={tone}>{evidenceStatusLabel(report.evidence.status, report.evidence.verdict)}</StatusTag>
       </div>
       <div className="scope-note"><Info size={15} weight="bold" aria-hidden="true" />Scope: by the supplied evidence</div>
       <p className="panel-summary">{report.evidence.summary}</p>
@@ -373,22 +445,22 @@ function EvidencePanel({ report }: { report: ResearchResult }) {
       ) : null}
       {report.claims.length ? (
         <div className="claim-list">
-          {report.claims.map((claim) => (
-            <article className="claim" key={claim.claimId}>
-              <div className="claim-meta"><span>{claim.distinction}</span><StatusTag tone={claim.status === "supported" ? "good" : claim.status === "contradicted" ? "bad" : "warn"}>{claim.status}</StatusTag></div>
-              <h3>{claim.exactText}</h3>
-              <p>{claim.explanation}</p>
-              {claim.citations.map((citation) => <blockquote key={`${citation.sourceId}-${citation.startOffset}`}>{citation.excerpt}</blockquote>)}
-              {claim.missingEvidence ? <small>Missing: {claim.missingEvidence}</small> : null}
-            </article>
-          ))}
+          <ClaimCard claim={report.claims[0]} />
+          {report.claims.length > 1 ? (
+            <details className="claim-details">
+              <summary><span>View {report.claims.length - 1} supporting claim{report.claims.length === 2 ? "" : "s"}</span><CaretDown size={17} aria-hidden="true" /></summary>
+              <div className="claim-list claim-list-secondary">
+                {report.claims.slice(1).map((claim) => <ClaimCard key={claim.claimId} claim={claim} />)}
+              </div>
+            </details>
+          ) : null}
         </div>
       ) : (
         <div className="not-assessed">
           <WarningCircle size={20} weight="regular" aria-hidden="true" />
           <div>
-            <strong>Claims were not assessed</strong>
-            <p>No claim verdict was invented. When enabled, the server-only model can assess the exact claim against the supplied text.</p>
+            <strong>Evidence assessment unavailable</strong>
+            <p>The supplied source remains visible, but no claim verdict was recorded. The economics below is calculated independently.</p>
           </div>
         </div>
       )}
@@ -406,7 +478,7 @@ function EconomicsPanel({ report, requestedMode, now, onRefresh, isRefreshing }:
     <section className="report-card economics-card" aria-labelledby="economics-heading">
       <div className="card-topline">
         <SectionHeading id="economics-heading" title="Economics under your assumptions" detail="A conditional sweep of the displayed bid and ask books." icon={<ChartLineUp size={22} weight="regular" />} />
-        <StatusTag tone={computationTone}>{humanize(result.computationStatus)}</StatusTag>
+        <StatusTag tone={computationTone}>{readableStatus(result.computationStatus)}</StatusTag>
       </div>
       <div className="confirmation-strip" role="note" aria-label="Interpreted plan">
         <span>r{plan.asset} · {plan.purchaseNotionalExcludingFee} USDT excl. fee · {plan.horizon.originalText || "no horizon (partial)"} · {plan.goal ? (plan.goal.kind === "break_even" ? "break-even" : plan.goal.kind === "profit_usdt" ? `+${plan.goal.amount} USDT` : `${new Decimal(plan.goal.fractionOfEntryCash).mul(100).toString()}% on entry cash`) : "no objective"} · {plan.scenario ? `${new Decimal(plan.scenario.bidPriceShift).mul(100).toString()}% bid shift` : "threshold only"}</span>
@@ -429,14 +501,19 @@ function EconomicsPanel({ report, requestedMode, now, onRefresh, isRefreshing }:
         <Metric label="Selected scenario" value={formatMoney(result.netPnl)} note={result.scenarioBidPriceShift ? `${formatPercent(result.scenarioBidPriceShift)} bid shift` : "No scenario selected"} />
       </dl>
       <div className={`goal-result goal-${comparisonTone}`}>
-        <div><span>Objective check</span><strong>{humanize(result.goalComparison)}</strong></div>
+        <div><span>Objective check</span><strong>{readableStatus(result.goalComparison)}</strong></div>
         <p>{result.netPnl === null ? "Choose an explicit scenario to compare it with the objective." : `The selected scenario produces ${formatMoney(result.netPnl)} net PnL on entry cash.`}</p>
       </div>
-      {result.effectivePriceShift && result.exitPriceHaircut !== "0" ? <p className="helper-note">Effective stressed price shift after the {formatPercent(result.exitPriceHaircut)} haircut: {formatPercent(result.effectivePriceShift)}.</p> : null}
-      <div className="assumptions-visible" role="note" aria-label="Assumptions in this report">
-        <span>Fees {new Decimal(plan.feeIn).mul(100).toString()}% in / {new Decimal(plan.feeOut).mul(100).toString()}% out ({plan.feeOrigin === "published_standard_assumption" ? "published standard, not your tier" : "you supplied"}) · Depth {new Decimal(plan.exitAssumptions.depthMultiplier).mul(100).toString()}% ({plan.exitAssumptions.depthOrigin}) · Haircut {new Decimal(plan.exitAssumptions.priceHaircut).mul(100).toString()}% ({plan.exitAssumptions.haircutOrigin}) · Invalidation: {plan.invalidation ?? "not supplied"}</span>
-      </div>
-      {report.instrument ? <div className="instrument-details" role="note" aria-label="Instrument rules"><span>{report.instrument.symbol} · {report.instrument.status} · step {report.instrument.quantityStep} · tick {report.instrument.priceTick} · min {report.instrument.minOrderQty}/{report.instrument.minOrderNotional} USDT</span></div> : null}
+      <details className="economics-details">
+        <summary><span>Assumptions and venue rules</span><CaretDown size={17} aria-hidden="true" /></summary>
+        <div className="economics-details-body">
+          {result.effectivePriceShift && result.exitPriceHaircut !== "0" ? <p className="helper-note">Effective stressed price shift after the {formatPercent(result.exitPriceHaircut)} haircut: {formatPercent(result.effectivePriceShift)}.</p> : null}
+          <div className="assumptions-visible" role="note" aria-label="Assumptions in this report">
+            <span>Fees {new Decimal(plan.feeIn).mul(100).toString()}% in / {new Decimal(plan.feeOut).mul(100).toString()}% out ({feeOriginLabel(plan.feeOrigin)}) · Exit depth {new Decimal(plan.exitAssumptions.depthMultiplier).mul(100).toString()}% ({assumptionOriginLabel(plan.exitAssumptions.depthOrigin)}) · Price haircut {new Decimal(plan.exitAssumptions.priceHaircut).mul(100).toString()}% ({assumptionOriginLabel(plan.exitAssumptions.haircutOrigin)}) · Invalidation: {plan.invalidation ?? "not supplied"}</span>
+          </div>
+          {report.instrument ? <div className="instrument-details" role="note" aria-label="Instrument rules"><span>{report.instrument.symbol} · {readableStatus(report.instrument.status)} · quantity step {report.instrument.quantityStep} · price tick {report.instrument.priceTick} · minimum order {report.instrument.minOrderQty}/{report.instrument.minOrderNotional} USDT</span></div> : null}
+        </div>
+      </details>
       {result.warnings.length ? <div className="warning-list">{result.warnings.slice(-3).map((warning) => <p key={warning}><WarningCircle size={15} weight="bold" aria-hidden="true" />{warning}</p>)}</div> : null}
     </section>
   );
@@ -444,10 +521,11 @@ function EconomicsPanel({ report, requestedMode, now, onRefresh, isRefreshing }:
 
 function ScenarioTable({ report }: { report: ResearchResult }) {
   return (
-    <section className="report-card scenario-card" aria-labelledby="scenario-heading">
-      <div className="card-topline">
+    <details className="report-card scenario-card">
+      <summary className="card-topline scenario-summary">
         <SectionHeading id="scenario-heading" title="Scenario comparison" detail="Presets are explicit stresses, not forecasts." icon={<Lightning size={22} weight="regular" />} />
-      </div>
+        <CaretDown size={17} aria-hidden="true" />
+      </summary>
       <div className="scenario-table-wrap">
         <table>
           <caption className="sr-only">Scenario comparison for the current order-book snapshot</caption>
@@ -458,13 +536,13 @@ function ScenarioTable({ report }: { report: ResearchResult }) {
                 <th scope="row">{row.label}</th>
                 <td>{formatPercent(row.bidPriceShift)}</td>
                 <td>{formatMoney(row.netPnl)}</td>
-                <td><span className={`table-status table-${row.goalComparison}`}>{humanize(row.goalComparison)}</span></td>
+                <td><span className={`table-status table-${row.goalComparison}`}>{readableStatus(row.goalComparison)}</span></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </section>
+    </details>
   );
 }
 
@@ -476,13 +554,13 @@ function SourcesPanel({ report }: { report: ResearchResult }) {
       </div>
       <div className="source-list">
         {report.sources.length ? report.sources.map((source) => (
-          <details key={source.id} className="source-item" open>
+          <details key={source.id} className="source-item">
             <summary><span>{source.title}</span><CaretDown size={18} aria-hidden="true" /></summary>
             <div className="source-details">
               <p><span>Supplied URL domain</span>{suppliedUrlDomain(source.originalUrl)}</p>
               <p><span>Publication date</span>{source.publicationDate ?? "Unknown"}</p>
               <p><span>Event date</span>{source.eventDate ?? "Unknown"}</p>
-              <p><span>Provenance</span>{source.provenance.replaceAll("_", " ")}</p>
+              <p><span>Provenance</span>{sourceProvenanceLabel(source.provenance)}</p>
               <p><span>Text received</span>{formatTimestamp(source.fetchedAt)}</p>
               <p><span>Text hash</span><code>{source.textHash.slice(0, 16)}...</code></p>
               {source.originalUrl ? <a href={source.originalUrl} target="_blank" rel="noreferrer">Open supplied URL</a> : null}
@@ -517,10 +595,10 @@ function RunDetails({ report }: { report: ResearchResult }) {
 function ChangePanel({ report }: { report: ResearchResult }) {
   const firstClaim = report.claims[0];
   const evidenceCondition = firstClaim
-    ? `A validated passage addressing "${firstClaim.exactText.slice(0, 140)}" (currently ${firstClaim.status}) could change the ${report.evidence.verdict} verdict.`
+    ? `A validated passage addressing "${firstClaim.exactText.slice(0, 140)}" (currently ${readableStatus(firstClaim.status)}) could change the ${readableStatus(report.evidence.verdict)} verdict.`
     : "A validated source passage confirming or contradicting the exact causal or forecast claim could change the verdict.";
   const numericalCondition = report.economics.requiredGoalShift
-    ? `A snapshot where the required ${formatPercent(report.economics.requiredGoalShift)} bid shift is met, or exit depth above ${new Decimal(report.economics.exitDepthMultiplier).mul(100).toString()}% of snapshot ${report.economics.snapshotId ?? "unknown"}, could change the ${report.economics.goalComparison} outcome.`
+    ? `A snapshot where the required ${formatPercent(report.economics.requiredGoalShift)} bid shift is met, or exit depth above ${new Decimal(report.economics.exitDepthMultiplier).mul(100).toString()}% of this order-book snapshot, could change the ${readableStatus(report.economics.goalComparison)} outcome.`
     : "A new order-book snapshot or a different explicit exit-depth assumption could change the threshold.";
   return (
     <section className="change-panel" aria-labelledby="change-heading">
@@ -546,6 +624,7 @@ export default function Workbench() {
   const [savedDraft, setSavedDraft] = useState<DraftPayload | null>(null);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
   const [telemetryConsent, setTelemetryConsent] = useState(false);
+  const [planExpanded, setPlanExpanded] = useState(true);
   const controllerRef = useRef<AbortController | null>(null);
   const requestCounterRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
@@ -622,6 +701,7 @@ export default function Workbench() {
     // Announce new briefs to screen readers and move focus to the report heading once per report.
     if (state.report && state.report.reportId !== lastReportIdRef.current) {
       lastReportIdRef.current = state.report.reportId;
+      setPlanExpanded(false);
       if (state.report.inputRevision === state.planRevision && state.reportMarketMode === state.marketMode) reportHeadingRef.current?.focus();
     }
   }, [state.report, state.planRevision, state.marketMode, state.reportMarketMode]);
@@ -679,7 +759,8 @@ export default function Workbench() {
     const control = document.getElementById(controls[path] ?? "thesis");
     const disclosure = control?.closest("details");
     if (disclosure) disclosure.open = true;
-    control?.focus();
+    setPlanExpanded(true);
+    window.requestAnimationFrame(() => control?.focus());
     dispatch({ type: "request-error", requestId: state.activeRequestId, message: planErrors[path] ?? "Check the highlighted plan fields and their units." });
     return false;
   }
@@ -913,6 +994,7 @@ export default function Workbench() {
 
   function restoreDraft() {
     if (!savedDraft) return;
+    setPlanExpanded(true);
     invalidateFollowUp();
     requestCounterRef.current = Math.max(requestCounterRef.current, state.activeRequestId) + 1;
     lastFailedOperationRef.current = null;
@@ -1066,23 +1148,30 @@ export default function Workbench() {
         <form id="plan" className="plan-panel" onSubmit={handleSubmit} noValidate>
           <div className="panel-heading">
             <div><span className="panel-kicker">Your plan</span><h2>Make the claim precise.</h2></div>
-            <span className="panel-index" aria-hidden="true">01</span>
-          </div>
-          <p className="panel-intro">Start with the exact statement you want to test. Paste the relevant source passage below.</p>
-          <p className="example-label" role="note"><Info size={14} weight="bold" aria-hidden="true" /> Example — prefilled NVIDIA/AWS thesis below. Edit to test your own idea.</p>
-          <div className="draft-toolbar">
-            <div><strong>Local draft</strong><span>Stored in this browser only.</span></div>
-            <div className="draft-actions">
-              <button className="button button-quiet" type="button" onClick={saveDraft}>Save draft</button>
-              {savedDraft ? <button className="button button-quiet" type="button" onClick={restoreDraft}>Restore saved</button> : null}
-              {savedDraft ? <button className="text-button" type="button" onClick={clearDraft}>Clear</button> : null}
+            <div className="plan-heading-actions">
+              <span className="panel-index" aria-hidden="true">01</span>
+              <button className="plan-toggle" type="button" aria-controls="plan-fields" aria-expanded={planExpanded} onClick={() => setPlanExpanded((expanded) => !expanded)}>
+                <span>{planExpanded ? "Collapse plan" : "Edit plan"}</span><CaretDown size={16} aria-hidden="true" />
+              </button>
+              {state.report ? <a className="plan-report-link" href="#report">View report</a> : null}
             </div>
           </div>
-          {savedDraft ? <p className="draft-available">Saved draft from {formatTimestamp(savedDraft.savedAt)} UTC is available.</p> : null}
-          {draftStatus ? <p className="draft-status" role="status">{draftStatus}</p> : null}
-          {process.env.NEXT_PUBLIC_TELEMETRY_ENABLED === "true" ? <label className="telemetry-control"><input type="checkbox" checked={telemetryConsent} onChange={(event) => changeTelemetryConsent(event.target.checked)} /><span><strong>Share anonymous validation events</strong><small>Optional. No thesis, source text, URL, or report content is sent.</small></span></label> : null}
+          <div id="plan-fields" className={`plan-fields ${planExpanded ? "" : "plan-fields-collapsed"}`}>
+            <p className="panel-intro">Start with the exact statement you want to test. Paste the relevant source passage below.</p>
+            <p className="example-label" role="note"><Info size={14} weight="bold" aria-hidden="true" /> Example — prefilled NVIDIA/AWS thesis below. Edit to test your own idea.</p>
+            <div className="draft-toolbar">
+              <div><strong>Local draft</strong><span>Stored in this browser only.</span></div>
+              <div className="draft-actions">
+                <button className="button button-quiet" type="button" onClick={saveDraft}>Save draft</button>
+                {savedDraft ? <button className="button button-quiet" type="button" onClick={restoreDraft}>Restore saved</button> : null}
+                {savedDraft ? <button className="text-button" type="button" onClick={clearDraft}>Clear</button> : null}
+              </div>
+            </div>
+            {savedDraft ? <p className="draft-available">Saved draft from {formatTimestamp(savedDraft.savedAt)} UTC is available.</p> : null}
+            {draftStatus ? <p className="draft-status" role="status">{draftStatus}</p> : null}
+            {process.env.NEXT_PUBLIC_TELEMETRY_ENABLED === "true" ? <label className="telemetry-control"><input type="checkbox" checked={telemetryConsent} onChange={(event) => changeTelemetryConsent(event.target.checked)} /><span><strong>Share anonymous validation events</strong><small>Optional. No thesis, source text, URL, or report content is sent.</small></span></label> : null}
 
-          <fieldset>
+            <fieldset>
             <legend>Thesis and source</legend>
             <label htmlFor="thesis">What do you think will happen?</label>
             <textarea id="thesis" value={state.plan.thesis} onChange={(event) => commitPlan({ ...state.plan, thesis: event.target.value }, "Thesis changed. The prior evidence result is now previous context.", true)} rows={5} maxLength={4000} aria-invalid={Boolean(planErrors.thesis)} aria-describedby={fieldDescribedBy("thesis-help", "thesis")} />
@@ -1091,13 +1180,13 @@ export default function Workbench() {
 
             <label htmlFor="source-text">Source text <span className="required">required for evidence</span></label>
             <textarea id="source-text" value={state.sourceText} onChange={(event) => { invalidateFollowUp(); dispatch({ type: "set-source-text", sourceText: event.target.value }); }} rows={6} maxLength={60000} aria-describedby="source-text-help" />
-            <span id="source-text-help" className="field-help">Paste a bounded passage. URL retrieval is disabled until its SSRF gate is complete.</span>
+            <span id="source-text-help" className="field-help">Paste the relevant passage. URL fetching is currently off while source safety checks are being completed.</span>
 
             <label htmlFor="source-url">Source URL <span className="optional">optional reference</span></label>
             <input id="source-url" type="url" value={state.sourceUrl} onChange={(event) => { invalidateFollowUp(); dispatch({ type: "set-source-url", sourceUrl: event.target.value }); }} placeholder="https://official-source.example/article" />
-          </fieldset>
+            </fieldset>
 
-          <fieldset>
+            <fieldset>
             <legend>Trade inputs</legend>
             <div className="field-grid field-grid-two">
               <div className="field-block">
@@ -1138,9 +1227,9 @@ export default function Workbench() {
             </select>
             {state.plan.goal?.kind === "profit_usdt" ? <><div className="unit-input"><input id="goal-amount" aria-label="Profit objective amount" type="text" maxLength={100} inputMode="decimal" value={state.plan.goal.amount} aria-invalid={Boolean(planErrors["goal.amount"])} aria-describedby="goal-amount-error" onChange={(event) => commitPlan({ ...state.plan, goal: { kind: "profit_usdt", amount: event.target.value } }, "Profit objective changed. Evidence is unchanged.", false)} /><span aria-hidden="true">USDT</span></div><FieldError id="goal-amount-error" message={planErrors["goal.amount"]} /></> : null}
             {state.plan.goal?.kind === "net_return" ? <><div className="unit-input"><input id="goal-return" aria-label="Net return objective percentage" type="text" maxLength={100} inputMode="decimal" aria-invalid={Boolean(planErrors["goal.fractionOfEntryCash"])} aria-describedby="goal-fractionOfEntryCash-error" value={percentInputs.goal ?? fractionToPercent(state.plan.goal.fractionOfEntryCash)} onChange={(event) => { setPercentInputs((values) => ({ ...values, goal: event.target.value })); commitPlan({ ...state.plan, goal: { kind: "net_return", fractionOfEntryCash: percentToFraction(event.target.value) } }, "Return objective changed. Evidence is unchanged.", false); }} /><span aria-hidden="true">% cash</span></div><FieldError id="goal-fractionOfEntryCash-error" message={planErrors["goal.fractionOfEntryCash"]} /></> : null}
-          </fieldset>
+            </fieldset>
 
-          <fieldset>
+            <fieldset>
             <legend>Price scenario</legend>
             <label htmlFor="scenario">Bid-price shift on exit</label>
             <div className="unit-input"><input id="scenario" type="text" maxLength={100} inputMode="decimal" value={scenarioPercent} placeholder="Leave blank for threshold only" aria-invalid={Boolean(planErrors["scenario.bidPriceShift"])} aria-describedby={fieldDescribedBy("scenario-help", "scenario.bidPriceShift")} onChange={(event) => {
@@ -1154,9 +1243,9 @@ export default function Workbench() {
             </div>
             <span id="scenario-help" className="field-help">This is not a native equity return or a price prediction. Clear for threshold-only.</span>
             <FieldError id="scenario-bidPriceShift-error" message={planErrors["scenario.bidPriceShift"]} />
-          </fieldset>
+            </fieldset>
 
-          <details className="assumptions-disclosure">
+            <details className="assumptions-disclosure">
             <summary><span>Fees and exit assumptions</span><CaretDown size={17} aria-hidden="true" /></summary>
             <div className="assumptions-body">
               <div className="field-grid field-grid-two">
@@ -1167,20 +1256,21 @@ export default function Workbench() {
               </div>
               <p className="assumption-note">Default fees are a published standard scenario, not an account-tier lookup. Exit depth scales quantities while retaining the original bought position.</p>
             </div>
-          </details>
+            </details>
 
-          <fieldset className="mode-fieldset">
+            <fieldset className="mode-fieldset">
             <legend>Market data mode</legend>
             <div className="mode-options">
               <label className={`mode-option ${state.marketMode === "captured_real" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "captured_real"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "captured_real", changedMessage: "Captured example selected. It is historical replay data." }); }} /><span><strong>Captured example</strong><small>Sep 8 selection snapshot</small></span></label>
               <label className={`mode-option ${state.marketMode === "live" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "live"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market data selected. Failed refreshes will not fall back to fixtures." }); }} /><span><strong>Attempt live data</strong><small>Public Bitget market endpoints</small></span></label>
             </div>
-          </fieldset>
+            </fieldset>
 
-          <button className="button button-primary submit-button" type="submit" disabled={isBusy}>
-            {isBusy ? <IconText icon={<CircleNotch size={18} className="spin" aria-hidden="true" />}>Building brief</IconText> : <IconText icon={<Target size={18} weight="bold" />}>Stress-test my thesis</IconText>}
-          </button>
-          <p className="button-note"><Info size={14} weight="bold" aria-hidden="true" /> No order placement. No price forecast.</p>
+            <button className="button button-primary submit-button" type="submit" disabled={isBusy}>
+              {isBusy ? <IconText icon={<CircleNotch size={18} className="spin" aria-hidden="true" />}>Building brief</IconText> : <IconText icon={<Target size={18} weight="bold" />}>Stress-test my thesis</IconText>}
+            </button>
+            <p className="button-note"><Info size={14} weight="bold" aria-hidden="true" /> No order placement. No price forecast.</p>
+          </div>
         </form>
 
         <section id="report" className="report-column" aria-live="polite" aria-busy={isBusy}>
@@ -1188,6 +1278,7 @@ export default function Workbench() {
             <div><span className="panel-kicker">Research brief</span><h2 ref={reportHeadingRef} tabIndex={-1}>Keep the conclusions distinct.</h2></div>
             <span className="panel-index" aria-hidden="true">02</span>
             <div className="report-actions">
+              <a className="report-plan-link" href="#plan" onClick={() => setPlanExpanded(true)}>Edit plan</a>
               <button className="button button-quiet" type="button" onClick={() => download("markdown")} disabled={!state.report || !reportIsCurrent}><IconText icon={<DownloadSimple size={16} aria-hidden="true" />}>Markdown</IconText></button>
               <button className="button button-quiet" type="button" onClick={() => download("json")} disabled={!state.report || !reportIsCurrent}><IconText icon={<DownloadSimple size={16} aria-hidden="true" />}>JSON</IconText></button>
             </div>
@@ -1203,7 +1294,7 @@ export default function Workbench() {
               <SourcesPanel report={state.report} />
               <RunDetails report={state.report} />
               <ChangePanel report={state.report} />
-              {state.report.partialErrors.length ? <details className="partial-details"><summary>Partial outcomes and recovery <CaretDown size={17} aria-hidden="true" /></summary><ul>{state.report.partialErrors.map((item) => <li key={`${item.kind}-${item.message}`}><strong>{humanize(item.kind)}</strong><span>{item.message}</span><small>Recovery: {item.recovery}</small></li>)}</ul></details> : null}
+              {state.report.partialErrors.length ? <details className="partial-details"><summary>Partial outcomes and recovery <CaretDown size={17} aria-hidden="true" /></summary><ul>{state.report.partialErrors.map((item) => <li key={`${item.kind}-${item.message}`}><strong>{partialKindLabel(item.kind)}</strong><span>{item.message}</span><small>Next step: {item.recovery}</small></li>)}</ul></details> : null}
             </>
           ) : <EmptyReport onReplay={replayCapturedExample} />}
 

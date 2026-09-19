@@ -381,10 +381,57 @@ h1 {
   align-items: flex-start;
 }
 
+.plan-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .panel-index {
   color: var(--color-on-graphite-subtle);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
+}
+
+.plan-toggle,
+.plan-report-link,
+.report-plan-link {
+  min-height: 40px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--rule-thin) solid var(--color-rule-strong);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-accent-strong);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.plan-toggle {
+  display: none;
+}
+
+.plan-toggle svg {
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.plan-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.plan-fields {
+  min-width: 0;
+}
+
+.plan-report-link,
+.report-plan-link {
+  display: none;
 }
 
 .panel-heading h2,
@@ -585,12 +632,12 @@ select[aria-invalid="true"] {
 
 .field-help {
   display: block;
-  min-height: 1.5em;
-  margin: var(--space-2) 0 var(--space-5);
+  min-height: 0;
+  margin: var(--space-1) 0 var(--space-4);
   color: var(--color-subtle);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   letter-spacing: 0.02em;
-  line-height: 1.5;
+  line-height: 1.45;
   text-transform: none;
 }
 
@@ -711,6 +758,7 @@ select[aria-invalid="true"] {
 .source-item summary svg,
 .limitations summary svg,
 .partial-details summary svg {
+  flex: 0 0 auto;
   color: var(--color-subtle);
   transition: transform var(--dur-short) var(--ease-out);
 }
@@ -879,6 +927,7 @@ select[aria-invalid="true"] {
 .report-grid {
   display: grid;
   gap: var(--space-4);
+  align-items: start;
 }
 
 .report-card,
@@ -1107,6 +1156,49 @@ select[aria-invalid="true"] {
   margin-top: var(--space-5);
 }
 
+.claim-details {
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.claim-details summary,
+.economics-details summary,
+.scenario-summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-ink);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  list-style: none;
+}
+
+.claim-details summary::-webkit-details-marker,
+.economics-details summary::-webkit-details-marker,
+.scenario-summary::-webkit-details-marker {
+  display: none;
+}
+
+.claim-details summary svg,
+.economics-details summary svg,
+.scenario-summary > svg {
+  flex: 0 0 auto;
+  color: var(--color-subtle);
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.claim-details[open] summary svg,
+.economics-details[open] summary svg,
+.scenario-card[open] .scenario-summary > svg {
+  transform: rotate(180deg);
+}
+
+.claim-list-secondary {
+  margin-top: 0;
+}
+
 .claim {
   padding-top: var(--space-4);
   border-top: var(--rule-thin) solid var(--color-rule);
@@ -1284,6 +1376,24 @@ blockquote {
   background: var(--color-warning-wash);
 }
 
+.economics-details {
+  margin-top: var(--space-4);
+  border-top: var(--rule-thin) solid var(--color-graphite-rule);
+  border-bottom: var(--rule-thin) solid var(--color-graphite-rule);
+}
+
+.economics-card .economics-details summary {
+  color: var(--color-on-graphite);
+}
+
+.economics-card .economics-details summary svg {
+  color: var(--color-on-graphite-subtle);
+}
+
+.economics-details-body {
+  padding-bottom: var(--space-3);
+}
+
 .helper-note {
   margin-top: var(--space-3);
   color: var(--color-muted);
@@ -1318,6 +1428,14 @@ blockquote {
 .partial-details,
 .follow-up {
   margin-top: var(--space-4);
+}
+
+.scenario-summary {
+  margin-bottom: 0;
+}
+
+.scenario-card[open] .scenario-summary {
+  margin-bottom: var(--space-4);
 }
 
 .follow-up {
@@ -1515,6 +1633,11 @@ tbody td:last-child {
   background: var(--color-paper-3);
 }
 
+.change-panel > div,
+.change-grid > div {
+  min-width: 0;
+}
+
 .change-icon {
   display: grid;
   width: 1.75rem;
@@ -1541,6 +1664,7 @@ tbody td:last-child {
   color: var(--color-muted);
   font-size: var(--text-sm);
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .limitations {
@@ -1686,12 +1810,16 @@ tbody td:last-child {
 
 .empty-report-content {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   justify-items: center;
   gap: var(--space-3);
 }
 
 .empty-report-grid {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   width: min(100%, 42rem);
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
@@ -1744,7 +1872,8 @@ tbody td:last-child {
 }
 
 .empty-report p {
-  max-width: 45ch;
+  min-width: 0;
+  max-width: min(100%, 45ch);
   color: var(--color-muted);
   font-size: var(--text-sm);
   line-height: 1.55;
@@ -1947,18 +2076,45 @@ select:focus {
     gap: var(--space-12);
   }
 
-  .report-grid {
-    grid-template-columns: minmax(0, 1.08fr) minmax(19rem, 0.92fr);
-  }
-
   .metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 75rem) {
+  .report-grid {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  }
+
+  .report-grid .card-topline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .report-grid .card-topline > .section-heading {
+    width: 100%;
+  }
+
+  .report-grid .card-topline > .status-tag {
+    align-self: flex-start;
   }
 }
 
 @media (max-width: 59.99rem) {
   .plan-panel {
     position: static;
+  }
+}
+
+@media (max-width: 74.99rem) {
+  .plan-toggle,
+  .plan-report-link,
+  .report-plan-link {
+    display: inline-flex;
+  }
+
+  .plan-fields.plan-fields-collapsed {
+    display: none;
   }
 }
 
@@ -1991,8 +2147,31 @@ select:focus {
     padding: var(--space-5);
   }
 
+  .empty-report {
+    padding-inline: var(--space-5);
+  }
+
+  .plan-heading-actions {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .plan-heading-actions .plan-report-link {
+    flex: 1 0 100%;
+    justify-content: center;
+  }
+
   .card-topline {
     flex-direction: column;
+  }
+
+  .scenario-summary {
+    flex-direction: row;
+  }
+
+  .scenario-summary .section-heading {
+    flex: 1;
   }
 
   .draft-toolbar {

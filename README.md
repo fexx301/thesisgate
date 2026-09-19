@@ -35,11 +35,13 @@ For the first successful run:
 3. Change one input, such as the budget, objective, or price scenario.
 4. Click **Stress-test my thesis** again.
 
+On narrower screens, a completed plan collapses after the brief is built. Use **Edit plan** to reopen the inputs and **View report** to return to the conclusions.
+
 After the first brief, edits to the budget, objective, fees, depth, haircut, or scenario recompute the economics without another model call, including when evidence was not assessed. A source-URL reference edit updates provenance without reassessing the pasted text. A market-mode change or live refresh requests a new market snapshot. A thesis, horizon, or source-text change requires a new evidence assessment.
 
 The captured example is historical replay data. It is included so the economics can be demonstrated without a live network request or an AI provider key.
 
-The captured example calculates conditional economics without a model key. The evidence section may show `not_assessed` when the optional local claim model is disabled, unavailable, or fails to return a valid assessment. That status means no usable claim assessment is available; it is not a negative verdict.
+The captured example calculates conditional economics without a model key. The evidence section may show **Assessment unavailable** when the optional local claim model is disabled, unavailable, or fails to return a valid assessment. In exported data, this state is retained as `not_assessed` for auditability. It means no usable claim assessment is available; it is not a negative verdict.
 
 ### Test your own idea
 
@@ -60,9 +62,9 @@ The app reads the text you paste. It does not fetch the URL or treat an official
 
 This section asks whether the supplied words support the exact claim. It does not decide whether the trade will make money.
 
-If the status is `not_assessed`, no usable claim assessment is available: the model may be disabled, unavailable, or have failed. That is not the same as “unsupported” or “contradicted.” The text remains visible, and the economics can still be calculated.
+If the status reads **Assessment unavailable** (`not_assessed` in exported data), no usable claim assessment is available: the model may be disabled, unavailable, or have failed. That is not the same as “unsupported” or “contradicted.” The text remains visible, and the economics can still be calculated.
 
-To explicitly try failed or unavailable evidence again, choose **Retry evidence assessment**, or submit an unchanged plan with **Stress-test my thesis**. Economics-only edits do not silently retry the model. With the model disabled, a retry still reports `not_assessed`; it does not invent an assessment.
+To explicitly try failed or unavailable evidence again, choose **Retry evidence assessment**, or submit an unchanged plan with **Stress-test my thesis**. Economics-only edits do not silently retry the model. With the model disabled, a retry still reports **Assessment unavailable** (`not_assessed` in exported data); it does not invent an assessment.
 
 ### Economics under your assumptions
 
@@ -118,7 +120,7 @@ Requests a public Bitget market snapshot at run time for the fixed `RNVDAUSDT` o
 - **Evidence:** Pasted text is labeled `user_pasted_unverified`. A source verdict is not independent fact-checking.
 - **Market data:** Numbers describe one captured or request-time book. They can become stale immediately.
 - **Scenario:** A bid-price shift is an explicit assumption, not a price target or forecast.
-- **AI:** Claim assessment is optional, server-side, and visibly marked `not_assessed` when it is unavailable.
+- **AI:** Claim assessment is optional, server-side, and visibly marked **Assessment unavailable** when it is unavailable. Exports retain the `not_assessed` status for auditability.
 - **Trade scope:** The supported plan is long-only SPOT, meaning buy the token and later model selling it. Leverage, short positions, derivatives, and portfolio behavior are out of scope.
 - **Defaults:** The starting fee assumption is 0.1% on entry and 0.1% on exit. It is a published standard assumption, not an account-tier lookup. Exit depth starts at 100% and the extra price haircut starts at 0%; both can be changed.
 - **Horizon:** The holding-horizon text provides context only. The static order book does not model how price, depth, or returns change over time.
@@ -236,7 +238,7 @@ This checklist deploys a **model-disabled captured-replay walkthrough**. It does
 3. Generate a unique secret with `openssl rand -hex 32` and store its output in the host's secret store as `THESIS_RECOMPUTE_SIGNING_SECRET`. It is **mandatory for production replay and economics reuse**, independently of model quota settings. Do not commit it or expose it through a `NEXT_PUBLIC_` variable.
 4. Set `THESIS_LLM_ENABLED=false`, `NEXT_PUBLIC_TELEMETRY_ENABLED=false`, and `THESIS_TELEMETRY_ENABLED=false`. Leave the model key, endpoint, model, and model-only quota variables unset. `.env.example` separates these groups; local development does not require the production origin or signing-secret settings.
 5. Build and deploy with those environment values. `NEXT_PUBLIC_` settings are baked into the browser bundle, so changing telemetry requires rebuilding. Do not enable model assessment merely because deployment succeeds.
-6. In a logged-out browser on the actual allowed HTTPS origin, select **Replay captured example**. Confirm historical captured provenance, visible `not_assessed` evidence, and conditional economics. Change the budget or scenario and submit; confirm economics recompute while evidence is reused. Export Markdown and JSON and check unavailable fields remain unavailable. Save an incomplete draft, restore it, and confirm its text survives without an automatic request.
+6. In a logged-out browser on the actual allowed HTTPS origin, select **Replay captured example**. Confirm historical captured provenance, visible **Assessment unavailable** evidence, and conditional economics. Change the budget or scenario and submit; confirm economics recompute while evidence is reused. Export Markdown and JSON and check unavailable fields remain unavailable. Save an incomplete draft, restore it, and confirm its text survives without an automatic request.
 7. Record the real deployed URL and the observed smoke-test outcome before sharing it. No hosted link or successful production smoke test is claimed in this README. A replay demo does not resolve the external model-budget gates or real five-trader validation.
 
 ### Drafts and validation telemetry

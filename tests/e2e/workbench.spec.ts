@@ -1,7 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { parseIntent } from "../../src/domain/intent";
 import type { Plan } from "../../src/domain/contracts";
+
+async function openPlanForEditing(page: Page) {
+  const editPlan = page.getByRole("link", { name: "Edit plan" });
+  if (await editPlan.isVisible()) await editPlan.click();
+}
 
 test("captured research flow keeps evidence and economics distinct", async ({ page }) => {
   const researchRequests: string[] = [];
@@ -22,6 +27,7 @@ test("captured research flow keeps evidence and economics distinct", async ({ pa
   await expect(page.getByText("Goal threshold")).toBeVisible();
   expect(researchRequests).toHaveLength(1);
 
+  await openPlanForEditing(page);
   await page.getByRole("button", { name: "+1%" }).click();
   await expect(page.getByText("This report is from an earlier plan or market mode.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Markdown" })).toBeDisabled();
@@ -39,6 +45,7 @@ test("goal change preserves evidence and recomputes threshold", async ({ page })
   await page.getByRole("button", { name: "Stress-test my thesis" }).click();
   await expect(page.getByRole("heading", { name: "Evidence behind your thesis" })).toBeVisible({ timeout: 30_000 });
 
+  await openPlanForEditing(page);
   await page.getByLabel("Objective", { exact: true }).selectOption("break_even");
   await expect(page.getByText("This report is from an earlier plan or market mode.")).toBeVisible();
   await page.getByRole("button", { name: "Stress-test my thesis" }).click();
@@ -53,10 +60,11 @@ test("depth exhaustion shows insufficient without a whole-position profit", asyn
   await page.getByRole("button", { name: "Stress-test my thesis" }).click();
   await expect(page.getByRole("heading", { name: "Economics under your assumptions" })).toBeVisible({ timeout: 30_000 });
 
+  await openPlanForEditing(page);
   await page.locator("details.assumptions-disclosure summary").click();
   await page.getByLabel("Available exit depth").fill("0");
   await page.getByRole("button", { name: "Stress-test my thesis" }).click();
-  await expect(page.getByText("insufficient depth", { exact: false }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/insufficient depth/i).first()).toBeVisible({ timeout: 30_000 });
 });
 
 test("threshold-only mode is reachable and labeled", async ({ page }) => {
@@ -85,15 +93,25 @@ test("keyboard-only flow reaches submit and export controls", async ({ page }) =
   // Report heading receives focus for screen-reader announcement.
   await expect(page.getByRole("heading", { name: "Keep the conclusions distinct." })).toBeFocused();
   await page.keyboard.press("Tab");
+  const editPlan = page.getByRole("link", { name: "Edit plan" });
+  if (await editPlan.isVisible()) {
+    await expect(editPlan).toBeFocused();
+    await page.keyboard.press("Tab");
+  }
   await expect(page.getByRole("button", { name: "Markdown", exact: true })).toBeFocused();
 });
 
-test("mobile layout does not overflow horizontally", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Stress-test my thesis" }).click();
-  await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
-  const width = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
-  expect(width).toBe(true);
+test("mobile and tablet layouts do not overflow horizontally", async ({ page }) => {
+  for (const viewportWidth of [320, 375, 414, 768]) {
+    await page.setViewportSize({ width: viewportWidth, height: 812 });
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "Read finished example" })).toBeVisible();
+    await page.getByRole("button", { name: "Replay captured example" }).click();
+    await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
+    await expect(page.getByRole("link", { name: "Edit plan" })).toBeVisible();
+    const fitsViewport = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+    expect(fitsViewport, `viewport ${viewportWidth}px should not scroll horizontally`).toBe(true);
+  }
 });
 
 test("a follow-up applied after a newer edit does not overwrite the newer plan", async ({ page }) => {
