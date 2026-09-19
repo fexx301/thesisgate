@@ -140,12 +140,12 @@ Requests a public Bitget market snapshot at run time for the fixed `RNVDAUSDT` o
 - Browser-local draft save and restore controls, including incomplete numeric input while editing. Draft text is not sent anywhere by the draft feature; restore does not validate or run the draft automatically.
 - Optional privacy-preserving success telemetry for submit, completion, failure, follow-up, refresh, export, and draft events.
 - Unit, integration, browser, and evaluation-gate test coverage.
-- Current local verification: typecheck, lint, 117 unit/integration tests, production build, and 24 Chromium/mobile browser journeys pass. The dry-run evaluator covers all 12 benchmark cases with 22 planned provider calls and makes zero provider calls.
+- Current local verification: typecheck, lint, 124 unit/integration tests across 17 files, production build, and 24 Chromium/mobile browser journeys pass. The durable quota ledger's unit and authenticated HTTP contract tests are included. The dry-run evaluator covers all 12 benchmark cases with 22 planned provider calls and makes zero provider calls.
 
 ### Not ready for public AI use
 
 - **UNVERIFIED — real trader validation:** No five-trader study has been completed. The [practitioner validation sheet](evals/practitioner-validation-sheet.md) is a protocol, not results; code, automated tests, and developer review do not satisfy it.
-- **UNVERIFIED — production model spending controls:** Runtime claim assessment stays disabled until an external durable quota service, atomic budget reservations, concurrency limits, and a real provider/account hard cap have been configured and independently exercised. The code's adapter and passing tests cannot prove these external controls are active.
+- **UNVERIFIED — production model spending controls:** A reference durable quota service now exists in `quota-service/`, with transactional ledger tests, but runtime claim assessment stays disabled until that service is actually deployed with a persistent volume, backup/restore, TLS, concurrent multi-instance checks, and a real provider/account hard cap. Local code and passing tests cannot prove those external controls are active.
 - URL retrieval stays disabled until its server-side request-forgery protections are complete.
 - A public deployment is not implied by this repository. The local app and public source repository are separate from a hosted service.
 
@@ -162,6 +162,7 @@ npm test
 npm run eval:packets
 npm run eval:runner
 node evals/verify-evidence.mjs
+npm test -- --run tests/unit/quota-service.test.ts tests/integration/quota-service.test.ts
 npm run build
 npm run test:e2e
 ~~~
@@ -203,10 +204,10 @@ Keep the key in `.env.local`, never in source, browser state, logs, or exported 
 
 Before deployment, set `THESIS_PUBLIC_ORIGINS` to the exact HTTPS origin or comma-separated origins that serve the app. Production POST routes fail closed when the allowlist is missing or the request origin is not listed. Localhost and test runs do not require this deployment setting.
 
-These settings apply **only to production model calls**, not to the model-disabled replay demo. Production claim-model calls fail closed until the durable quota adapter is configured. The adapter is an integration boundary, not an implemented hosted service or an in-memory counter. Set these server-only variables only as part of a separately verified model rollout:
+These settings apply **only to production model calls**, not to the model-disabled replay demo. Production claim-model calls fail closed until the durable quota service is deployed and verified. The app-side adapter calls the reference service in [`quota-service/`](quota-service/), but that service is a separate process and is not automatically deployed with the Next.js app. Set these server-only variables only as part of a separately verified model rollout:
 
 ~~~dotenv
-THESIS_LLM_QUOTA_URL=https://your-quota-service.example/reservations
+THESIS_LLM_QUOTA_URL=https://your-quota-service.example/v1/reservations
 THESIS_LLM_QUOTA_TOKEN=your-quota-service-token
 THESIS_LLM_MAX_CALL_COST_USD=0.02
 THESIS_LLM_DAILY_BUDGET_USD=1
@@ -216,9 +217,11 @@ THESIS_LLM_PROVIDER_HARD_LIMIT_USD=1
 THESIS_VISITOR_HASH_SECRET=long-random-server-secret
 ~~~
 
-The quota service must atomically handle a `reserve` request before the provider call and a `settle` request after it. The reserve body includes a request ID, one-way visitor bucket, maximum per-call reservation, daily and per-visitor caps, provider hard limit, concurrency cap, and `expiresInSeconds: 60`. That expiry is a **concurrency lease only**: it must not automatically refund the spend reservation. Unknown provider outcomes and failed settlements must retain the reserved maximum spend until durable reconciliation. The service must return `{ "allowed": true, "reservationId": "..." }` or `{ "allowed": false, "reason": "..." }`. Settlement receives the reservation ID and actual provider-reported cost, or the reserved maximum when the provider reports no cost. Before enabling AI, prove idempotent reserve/settle, persistent reservation accounting, and atomic multi-instance daily, per-visitor, and concurrency caps. The app never sends the raw visitor address to the model provider.
+The reference service is a Node 24 process using SQLite WAL, `synchronous=FULL`, and `BEGIN IMMEDIATE` transactions. Run it as one writer with a persistent volume and backups; do not put its database on an ephemeral serverless filesystem or run independent uncoordinated instances. It atomically handles a `reserve` request before the provider call and a `settle` request after it. The reserve body includes a request ID, one-way visitor bucket, maximum per-call reservation, daily and per-visitor caps, provider hard limit, concurrency cap, and `expiresInSeconds: 60`. That expiry is a **concurrency lease only**: it must not automatically refund the spend reservation. Unknown provider outcomes and failed settlements retain the reserved maximum spend and appear through the authenticated reconciliation endpoint. The service returns `{ "allowed": true, "reservationId": "..." }` or `{ "allowed": false, "reason": "..." }`; duplicate reserve and settle requests return the original decision. Settlement receives the reservation ID and actual provider-reported cost, or the reserved maximum when the provider reports no cost. The app never sends the raw visitor address to the model provider.
 
-The provider hard limit must be enforced by the provider account or an effective external control, not merely declared in an environment variable. Durable reservations and the provider/account hard cap are **external UNVERIFIED gates**: no live concurrency or spending-limit verification is claimed. Keep `THESIS_LLM_ENABLED=false` until they are verified.
+Run the reference service locally with `npm run quota:start` after setting the `THESIS_QUOTA_*` values in [`.env.example`](.env.example); its detailed volume, container, reconciliation, and restore instructions are in [`quota-service/README.md`](quota-service/README.md). The service rejects limit mismatches between its environment and the calling app rather than silently choosing one.
+
+The provider hard limit must still be enforced by the provider account or an effective external control, not merely declared in an environment variable. The service-side provider ceiling is an additional UTC-day reservation cap; it is not proof of the provider's billing cap. The durable service's local unit/HTTP tests pass, but its persistent deployment, backup/restore, multi-instance load behavior, TLS path, and provider/account hard cap are **external UNVERIFIED gates**. Keep `THESIS_LLM_ENABLED=false` until those actual deployment checks are recorded.
 
 `THESIS_RECOMPUTE_SIGNING_SECRET` is a separate production requirement even when the model is disabled and all quota variables are unset. Research and market responses carry a server-signed receipt for their validated instrument and snapshot; `/api/recompute` rejects browser-substituted market data. The receipt authenticates origin, not freshness. Use the visible exchange age and refresh control when current data matters. Keep one strong secret consistent across serving instances; rotating it invalidates previously issued receipts and requires a fresh research or market request.
 
@@ -251,6 +254,7 @@ Browser workbench
       -> server-only Bitget adapter or explicit captured replay
       -> pure Decimal.js economics
       -> optional server-only claim adapter
+          -> durable quota-service reserve/settle when production AI is enabled
       -> validated canonical ResearchResult (`research-v2`)
   -> /api/recompute for economics-only changes
   -> deterministic Markdown or JSON export
