@@ -1,0 +1,93 @@
+{
+  "caseId": "E01",
+  "packetHash": "26406a0048442beda38453cc9518ba449a1aa83fafe0f443e1b5e0c1f342fa3b",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:47:40.358Z",
+  "latencyMs": 7649,
+  "attempts": 1,
+  "effectiveInputHash": "8fe2a17a844b39fabc1e039352f85c0ca71da1a8e80ef6a426dea96d18968550",
+  "inputProjectionHash": "59e7f280860389bbc721291ea93cf08def6c4e8f87234166b75330376ef72d50",
+  "sourceHash": "cf73bba60deee57f6dd8af22e8c64726cca97341f6b6bbe07473a0052e60b3d5",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E01_general_baseline_ba9efbff",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source supports that the announcement describes planned NVIDIA GPU deployments, including further systems planned for 2027 to 2028. It does not establish that rNVDA will rise by tomorrow evening or that the trade will generate 100 USDT net profit.",
+      "mostConsequentialUnknown": "Whether rNVDA will rise sufficiently by tomorrow evening, and whether the user's position size and entry costs would make that rise produce 100 USDT net profit.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The announcement supports planned deployment",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "supported",
+          "explanation": "The source explicitly describes planned NVIDIA GPU deployments across AWS data centers and further systems planned for 2027 to 2028.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "The announcement describes planned NVIDIA GPU deployments across AWS data centers, with further systems planned for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "rNVDA will rise enough by tomorrow evening",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source provides no price forecast, timing analysis, or evidence that rNVDA will rise by the stated deadline.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "It does not provide a price forecast."
+            }
+          ],
+          "missingEvidence": "A time-specific rNVDA price forecast, current price, expected volatility, and evidence linking the announcement to the forecasted move."
+        },
+        {
+          "claimId": "c3",
+          "exactText": "The announcement supports the forecast that rNVDA will rise",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source confirms planned deployments but does not establish a causal relationship between the announcement and an increase in rNVDA's price.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "The announcement describes planned NVIDIA GPU deployments across AWS data centers, with further systems planned for 2027 to 2028. It does not provide a price forecast."
+            }
+          ],
+          "missingEvidence": "Evidence of market interpretation, expected financial impact, and a demonstrated causal link between the announcement and rNVDA's price."
+        },
+        {
+          "claimId": "c4",
+          "exactText": "The rise will make 100 USDT net profit",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source contains no information about the user's position size, entry price, fees, or the price move required to produce 100 USDT net profit.",
+          "citations": [],
+          "missingEvidence": "Position size, entry and exit prices, fees, leverage if applicable, and a price forecast sufficient to calculate 100 USDT net profit."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "5523e25b1c152dfc36b328d300d92a13bd491c69a96d9f8f640f244d6bab73a0",
+  "usage": {
+    "promptTokens": 274,
+    "completionTokens": 833,
+    "totalTokens": 1107,
+    "costUsd": 0.0010544
+  },
+  "error": null
+}

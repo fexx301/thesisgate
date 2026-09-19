@@ -1,0 +1,53 @@
+{
+  "caseId": "E10",
+  "packetHash": "b46d0944332db1d470be2428758756e3e56716cbfb79edf08e358fef95180d03",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:49:18.117Z",
+  "latencyMs": 3571,
+  "attempts": 1,
+  "effectiveInputHash": "8db7c2fb9a70f28d9ef8a3cb5e34b03024ed935e81341d61baaf57fca1335a65",
+  "inputProjectionHash": "b018606a82b13d3726026471ec1a81dc84772f1d246aa380f99c9834620e7a7e",
+  "sourceHash": "b59990bdfe6b872ec996e056ce769b5466d9711dd94160ac6bc62ade7f7c7ba0",
+  "marketHash": "68420d2adfb8a773d3c625bab9c7bb34a3ad36619528f5d7b368facf546a6508",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E10_candidate_9d71916c",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied source does not establish an rTSLA result or a stressed exit depth.",
+      "mostConsequentialUnknown": "The rTSLA result and the applicable stressed exit depth are not provided in the source.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "Show the rTSLA result when no stressed exit depth is available.",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source neither defines rTSLA nor provides a result conditional on the absence of stressed exit depth. It only states that it is irrelevant to the liquidity check.",
+          "citations": [
+            {
+              "sourceId": "src_e10",
+              "excerpt": "The source is irrelevant to the liquidity check."
+            }
+          ],
+          "missingEvidence": "A definition of rTSLA and the relevant result or calculation when no stressed exit depth is available."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "ba1f0d155a1d2740983e09165fa93e70276e10ea5475cad5a67484306a6df54b",
+  "usage": {
+    "promptTokens": 445,
+    "completionTokens": 347,
+    "totalTokens": 792,
+    "costUsd": 0.0005054
+  },
+  "error": null
+}

@@ -1,0 +1,18 @@
+ThesisGate validity post (UNPUBLISHED DRAFT; links and deployment unverified)
+
+POST 1 (product description, not a validated-performance claim):
+Stress-test the trade behind the headline. ThesisGate separates source evidence from conditional trade math for rNVDA/rTSLA Reality SPOT: what the source supports, the cost threshold, and what could change each conclusion. Captured replay uses historical data. Historical builder scores did not establish an improvement over the baseline. #BitgetHackathon @Bitget_AI
+Demo: no verified hosted URL supplied; do not publish a placeholder as a link.
+Repo: no verified public repository URL supplied.
+Retweet: no verified URL supplied; submission requirement remains unchecked.
+
+POST 2 (recruitment, reply or next day):
+Looking for 5 crypto-native retail traders (1k-10k USDT discretionary long spot, can read an order book) for a 10-min task: explain 2 conclusions in 90s, pick a card, name one boundary. No credentials, no thesis text by default, code + consented result only. DM if in. TG/X.
+
+CADENCE CHECKLIST:
+- [ ] Publish only after a real hosted replay and repository URL are verified.
+- [ ] Verify any hosted replay is replay-only (THESIS_LLM_ENABLED=false); local functionality does not establish hosted behavior.
+- [ ] Supply an actual qualifying retweet URL before claiming submission validity.
+- [ ] Re-check prize eligibility and deadline rules against the actual handbook before submission; this draft is not eligibility evidence.
+- [ ] Allowed evidence claim: original builder-scored 11/12 historical completeness, corrected to zero supported unique omission improvements; historical performance gate FAILS. No current-code performance certification, independent grading, or completed trader study.
+- [ ] Claims not supported: passed research gate, live LLM on hosted demo, a current test count, user preference %, volume/AUM/retention, or completed five-trader validation. Recruitment and consented sessions remain external blockers.

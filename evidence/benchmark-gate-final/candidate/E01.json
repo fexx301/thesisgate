@@ -1,0 +1,83 @@
+{
+  "caseId": "E01",
+  "packetHash": "26406a0048442beda38453cc9518ba449a1aa83fafe0f443e1b5e0c1f342fa3b",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:47:40.357Z",
+  "latencyMs": 6052,
+  "attempts": 1,
+  "effectiveInputHash": "8fe2a17a844b39fabc1e039352f85c0ca71da1a8e80ef6a426dea96d18968550",
+  "inputProjectionHash": "59e7f280860389bbc721291ea93cf08def6c4e8f87234166b75330376ef72d50",
+  "sourceHash": "cf73bba60deee57f6dd8af22e8c64726cca97341f6b6bbe07473a0052e60b3d5",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E01_candidate_8b8368a7",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source supports that the announcement describes planned NVIDIA GPU deployments, but it does not establish that rNVDA will rise or generate 100 USDT net profit by tomorrow evening.",
+      "mostConsequentialUnknown": "Whether rNVDA will rise sufficiently by tomorrow evening to produce 100 USDT net profit is not established by the supplied source.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The announcement supports planned deployment",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "supported",
+          "explanation": "The source describes planned NVIDIA GPU deployments across AWS data centers and further systems planned for 2027 to 2028.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "The announcement describes planned NVIDIA GPU deployments across AWS data centers, with further systems planned for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "so rNVDA will rise",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source describes deployment plans but does not establish a causal relationship between those plans and a rise in rNVDA.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "The announcement describes planned NVIDIA GPU deployments across AWS data centers"
+            }
+          ],
+          "missingEvidence": "Evidence linking the planned deployments to a rise in rNVDA."
+        },
+        {
+          "claimId": "c3",
+          "exactText": "enough by tomorrow evening to make 100 USDT net profit",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The supplied source does not establish a price, timing, or profit outcome; it explicitly states that it does not provide a price forecast.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "It does not provide a price forecast."
+            }
+          ],
+          "missingEvidence": "Evidence supporting the rNVDA price movement, timing by tomorrow evening, and resulting 100 USDT net profit."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "9139beb464f572573b907572183512c3318463319dc2c6685f20180c68da60b1",
+  "usage": {
+    "promptTokens": 480,
+    "completionTokens": 633,
+    "totalTokens": 1113,
+    "costUsd": 0.0008556
+  },
+  "error": null
+}

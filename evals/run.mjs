@@ -12,6 +12,7 @@ import {
   readJsonArtifact,
   sha256,
 } from "./lib.mjs";
+import { scoreReport } from "./scoring.mjs";
 
 const requiredReportFields = [
   "reportVersion",
@@ -377,13 +378,9 @@ if (!reportPath) {
     if (validationError) {
       invalidReport(validationError);
     } else {
-      const completeCorrect = report.cases.filter((item) => item.completeCorrect).length;
-      const numericChecksPass = report.cases.every((item) => item.numericChecksPass);
-      const noMaterialFabrication = report.cases.every((item) => item.noMaterialFabrication);
-      const omissionsCorrected = report.cases.reduce((sum, item) => sum + item.omissionsCorrected, 0);
-      const passed = completeCorrect >= 10 && numericChecksPass && noMaterialFabrication && omissionsCorrected >= 3;
+      const { passed, ...summary } = scoreReport(report);
       console.log(`RESEARCH_GATE=${passed ? "passed" : "failed"}`);
-      console.log(JSON.stringify({ completeCorrect, numericChecksPass, noMaterialFabrication, omissionsCorrected, scoringMethod: report.scoringMethod }, null, 2));
+      console.log(JSON.stringify(summary, null, 2));
       if (!passed) process.exitCode = 1;
     }
   }

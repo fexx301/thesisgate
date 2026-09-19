@@ -1,0 +1,68 @@
+{
+  "caseId": "E08",
+  "packetHash": "2d4306094e8349aad14328ec387626094d72f0f9e41d8ce3373153ede7d3035b",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:49:00.770Z",
+  "latencyMs": 5789,
+  "attempts": 1,
+  "effectiveInputHash": "b937e2b39994a54da4909fcb1bfa9c5da64b0ace088377f4a38d63a9a1622d3e",
+  "inputProjectionHash": "69b52f062bacf4f6eb3ee8d4c35292d9100cb32ad8328ea584bf7d57cbdaad91",
+  "sourceHash": "869d217ea74d02bdbd8b6a7c9d065ab262081a80f0f51d22f81bbf2ac47413d4",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E08_general_baseline_12dc4142",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source confirms only that it contains a narrow factual claim. It provides neither the underlying fact, a price target, a probability, nor trade parameters sufficient to calculate what would be required to make 100 USDT.",
+      "mostConsequentialUnknown": "The missing entry price, exit price or target, position size, leverage, fees, and direction of the trade prevent calculating the required return or payoff.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The source supports a fact.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source says it states a narrow factual claim but does not identify that claim, so support for the unspecified fact cannot be assessed.",
+          "citations": [
+            {
+              "sourceId": "src_e08",
+              "excerpt": "The source states a narrow factual claim but gives no price target or probability."
+            }
+          ],
+          "missingEvidence": "The specific factual claim being referenced."
+        },
+        {
+          "claimId": "c2",
+          "exactText": "Calculate what the trade would require to make 100 USDT.",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "A calculation requires trade parameters such as entry price, exit price or target, position size, direction, leverage, and fees. The source provides no price target or probability and does not provide the other required parameters.",
+          "citations": [
+            {
+              "sourceId": "src_e08",
+              "excerpt": "The source states a narrow factual claim but gives no price target or probability."
+            }
+          ],
+          "missingEvidence": "Entry price, exit price or target, position size, direction, leverage, and trading fees."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "a100957ff9c41139d7355401809f49f674c9dcb2425c6ae69ee5ceceea0f8dbe",
+  "usage": {
+    "promptTokens": 250,
+    "completionTokens": 567,
+    "totalTokens": 817,
+    "costUsd": 0.0007304
+  },
+  "error": null
+}

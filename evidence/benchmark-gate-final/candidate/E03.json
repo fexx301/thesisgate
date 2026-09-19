@@ -1,0 +1,68 @@
+{
+  "caseId": "E03",
+  "packetHash": "52349a26e0c8b9a6f6bd0b75ed64f5c2f47dbd1484ad716deb5e0797f6f0e893",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:48:03.902Z",
+  "latencyMs": 7158,
+  "attempts": 1,
+  "effectiveInputHash": "1bbaee81f053b6eff278ff1cf9e0cfb8bad0410a67de82c5f7e228f1e87f52ac",
+  "inputProjectionHash": "7f127b6d6129a6269e97c964115671e4771312391918683a4438ca217fabe159",
+  "sourceHash": "0b333aedf91ad8b3d567f3f3a1c83733eb2a9787ebcf20e3e8406cf696810e95",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E03_candidate_5674b027",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source supports only that infrastructure deployment is planned for 2027 to 2028. It does not establish that NVIDIA is earning related revenue today, and the asserted proof is unsupported.",
+      "mostConsequentialUnknown": "Whether NVIDIA is currently recognizing revenue specifically related to the planned infrastructure deployment.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The planned deployment",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "supported",
+          "explanation": "The source states that the issuer describes future infrastructure deployment planned for 2027 to 2028.",
+          "citations": [
+            {
+              "sourceId": "src_e03",
+              "excerpt": "The issuer describes future infrastructure deployment planned for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "proves NVIDIA is already earning the related revenue today",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The supplied source does not establish that the planned deployment proves current related revenue. It expressly contains no realized revenue figure or current production result.",
+          "citations": [
+            {
+              "sourceId": "src_e03",
+              "excerpt": "The passage contains no realized revenue figure or current production result."
+            }
+          ],
+          "missingEvidence": "Current revenue recognition records tying revenue to the deployment, plus evidence that the deployment is already operational and producing revenue."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "b9dc1f323a5b8a028773709c31145448775f828b6c08f813eb7dc12993f559d8",
+  "usage": {
+    "promptTokens": 463,
+    "completionTokens": 580,
+    "totalTokens": 1043,
+    "costUsd": 0.0007886
+  },
+  "error": null
+}

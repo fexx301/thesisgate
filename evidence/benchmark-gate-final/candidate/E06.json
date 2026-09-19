@@ -1,0 +1,53 @@
+{
+  "caseId": "E06",
+  "packetHash": "0daf48a3fe61a95f0b0d8181bce6da5ca5d323e30004f90bdfbf8ed02ca6bb81",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:48:38.270Z",
+  "latencyMs": 3674,
+  "attempts": 1,
+  "effectiveInputHash": "301c9680e7cec6e3d909e6f5921a49809a2285b8d4443b8c8a51d9d8a8b42e72",
+  "inputProjectionHash": "bef737b0b487402bb393e2aa70123fb399a20a56ba0dc386504f99400953cad9",
+  "sourceHash": "5d593e98028db1389853002db9ac8b6a329ef02f05b19ecc474dba725c5a5d25",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E06_candidate_2a207e69",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied source contradicts the thesis: it states that the URL is only a reference and does not authenticate the pasted passage.",
+      "mostConsequentialUnknown": null,
+      "claims": [
+        {
+          "claimId": "claim1",
+          "exactText": "The URL proves the pasted text is an authenticated official source.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "contradicted",
+          "explanation": "The source explicitly says the pasted text was supplied by the user and that the adjacent URL does not authenticate it.",
+          "citations": [
+            {
+              "sourceId": "src_e06",
+              "excerpt": "The URL beside the text is only a reference and does not authenticate the pasted passage."
+            }
+          ],
+          "missingEvidence": null
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "9f7b6a5b2e11804c818ff39ac28eb97e1ad5f23e2873e9a2d5621d9f5caa0b11",
+  "usage": {
+    "promptTokens": 466,
+    "completionTokens": 281,
+    "totalTokens": 747,
+    "costUsd": 0.0004304
+  },
+  "error": null
+}

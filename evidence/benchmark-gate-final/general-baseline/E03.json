@@ -1,0 +1,53 @@
+{
+  "caseId": "E03",
+  "packetHash": "52349a26e0c8b9a6f6bd0b75ed64f5c2f47dbd1484ad716deb5e0797f6f0e893",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:48:03.902Z",
+  "latencyMs": 5198,
+  "attempts": 1,
+  "effectiveInputHash": "1bbaee81f053b6eff278ff1cf9e0cfb8bad0410a67de82c5f7e228f1e87f52ac",
+  "inputProjectionHash": "7f127b6d6129a6269e97c964115671e4771312391918683a4438ca217fabe159",
+  "sourceHash": "0b333aedf91ad8b3d567f3f3a1c83733eb2a9787ebcf20e3e8406cf696810e95",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E03_general_baseline_c4f87209",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source describes a future deployment plan, not current revenue generation. It does not establish that NVIDIA is already earning related revenue today.",
+      "mostConsequentialUnknown": "Whether NVIDIA is currently recognizing revenue related to the planned infrastructure deployment.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The planned deployment proves NVIDIA is already earning the related revenue today.",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source characterizes the deployment as planned for 2027 to 2028 and states that it contains no realized revenue figure or current production result. Therefore, the planned deployment does not establish current related revenue, but the source does not provide evidence conclusively disproving that such revenue exists.",
+          "citations": [
+            {
+              "sourceId": "src_e03",
+              "excerpt": "The issuer describes future infrastructure deployment planned for 2027 to 2028. The passage contains no realized revenue figure or current production result."
+            }
+          ],
+          "missingEvidence": "Current revenue disclosures tying recognized revenue to the planned infrastructure deployment."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "1911233d83c42dafd7355725b2ab2ee25ea15e30c0a7cc93f3711f920e25a5ef",
+  "usage": {
+    "promptTokens": 257,
+    "completionTokens": 413,
+    "totalTokens": 670,
+    "costUsd": 0.000547
+  },
+  "error": null
+}

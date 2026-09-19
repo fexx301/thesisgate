@@ -1,0 +1,53 @@
+{
+  "caseId": "E09",
+  "packetHash": "7bd924fa5cffa8910d10e45165cc4fd4adaf5e99b0289774c8117c4956cf9603",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:49:09.539Z",
+  "latencyMs": 4440,
+  "attempts": 1,
+  "effectiveInputHash": "577ed5a63c6ba43dad770d0c8d780d8ec8d1d45f9aa74dc4674f5901fad2831c",
+  "inputProjectionHash": "4ad21806391de6dc190092fcf44eba63a170231388b4935b05d7d9f0a670ee39",
+  "sourceHash": "e0564f4fa620bb1b02d11e9ae7be8d097b36bad4cc696ceb8210dc7da17451e7",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E09_candidate_18ca7f80",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied source does not establish the deterministic results at 1,000 or 10,000 USDT notional, so the requested comparison is insufficiently supported.",
+      "mostConsequentialUnknown": "The deterministic result for each notional is not stated in the supplied source.",
+      "claims": [
+        {
+          "claimId": "claim_1",
+          "exactText": "Compare the deterministic result at 1,000 and 10,000 USDT notional.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source states that no source claim is used to infer a return, but it does not provide deterministic results for either notional or a comparison between them.",
+          "citations": [
+            {
+              "sourceId": "src_e09",
+              "excerpt": "No source claim is used to infer a return."
+            }
+          ],
+          "missingEvidence": "The deterministic result corresponding to 1,000 USDT notional and the deterministic result corresponding to 10,000 USDT notional."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "4e767d384614c65c3705592e65d4249b688efa6488078991d8a795a6ecedd80d",
+  "usage": {
+    "promptTokens": 460,
+    "completionTokens": 403,
+    "totalTokens": 863,
+    "costUsd": 0.0005756
+  },
+  "error": null
+}

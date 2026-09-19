@@ -1,0 +1,76 @@
+{
+  "caseId": "E07",
+  "packetHash": "6ea87a71ff7402950c1ef354c12a1529762601db6371849609f564e0077a001f",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:48:49.259Z",
+  "latencyMs": 5528,
+  "attempts": 1,
+  "effectiveInputHash": "1f10bd6c8db25645df939f51f4ddcd9a75bf4de0e6d78ebdd509ca129bc4ed40",
+  "inputProjectionHash": "2fc57574bba71eb41841ad7965e4cd5b982ff46ed83c7ae237164d733ffc5580",
+  "sourceHash": "75f77b5dbc80aadcecebf6368c9780c7a4337be8e41594dabdeb568af59173bf",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E07_general_baseline_702eff8f",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source records an ordinary factual announcement but does not define a return reference. It does not establish that the source is relevant or that any user follow-up is ambiguous.",
+      "mostConsequentialUnknown": "What specific user follow-up is being evaluated, and what relevance or return reference is intended?",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The source is relevant",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source identifies itself as an ordinary factual announcement but provides no subject matter or context establishing relevance to a particular follow-up.",
+          "citations": [
+            {
+              "sourceId": "src_e07",
+              "excerpt": "The source contains an ordinary factual announcement and no defined return reference."
+            }
+          ],
+          "missingEvidence": "The subject of the follow-up and a stated basis connecting the announcement to it."
+        },
+        {
+          "claimId": "c2",
+          "exactText": "the user follow-up is ambiguous",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "No user follow-up is included in the supplied source, so its clarity cannot be assessed. The absence of a defined return reference indicates missing context but does not by itself prove ambiguity.",
+          "citations": [
+            {
+              "sourceId": "src_e07",
+              "excerpt": "The source contains an ordinary factual announcement and no defined return reference."
+            }
+          ],
+          "missingEvidence": "The exact user follow-up and the return reference or criteria needed to interpret it."
+        }
+      ]
+    },
+    "intent": {
+      "result": "clarification",
+      "planChanged": false,
+      "changed": [],
+      "clarification": "Should the percentage apply to captured bid prices, the entry VWAP, or another reference?",
+      "refreshMarket": false,
+      "beforePlanHash": "518574f8579ecaf4fcff7f1920d10d47782d4e35b99f959535f53eacf61d6fba",
+      "afterPlanHash": "518574f8579ecaf4fcff7f1920d10d47782d4e35b99f959535f53eacf61d6fba"
+    }
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "1f0fd99f55c07a5294e70abca9685213e32ae96c0b0dbd53e83d951cd5efd474",
+  "usage": {
+    "promptTokens": 242,
+    "completionTokens": 519,
+    "totalTokens": 761,
+    "costUsd": 0.0006712
+  },
+  "error": null
+}

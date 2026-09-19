@@ -1,0 +1,611 @@
+{
+  "reportId": "report_aaf22109-2f90-46bd-a6d0-81cbfa8c2e5b",
+  "inputRevision": 1,
+  "reportRevision": 1,
+  "schemaVersion": "research-v2",
+  "formulaVersion": "economics-v1",
+  "promptVersion": "claims-v4",
+  "evidenceInputHash": "e476758f",
+  "economicsInputHash": "8c01d1c0",
+  "modelId": null,
+  "confirmedPlan": {
+    "asset": "NVDA",
+    "category": "SPOT",
+    "side": "long",
+    "quoteCurrency": "USDT",
+    "thesis": "The NVIDIA and AWS announcement means rNVDA will rise enough by tomorrow evening to make 100 USDT net profit.",
+    "purchaseNotionalExcludingFee": "10000",
+    "horizon": {
+      "originalText": "until tomorrow evening",
+      "endAtUTC": null,
+      "timezone": null
+    },
+    "goal": {
+      "kind": "profit_usdt",
+      "amount": "100"
+    },
+    "exitAssumptions": {
+      "depthMultiplier": "1",
+      "priceHaircut": "0",
+      "depthOrigin": "illustrative_preset",
+      "haircutOrigin": "illustrative_preset"
+    },
+    "scenario": {
+      "bidPriceShift": "0.003",
+      "assumptionOrigin": "illustrative_preset"
+    },
+    "invalidation": null,
+    "feeIn": "0.001",
+    "feeOut": "0.001",
+    "feeOrigin": "published_standard_assumption"
+  },
+  "instrument": {
+    "symbol": "RNVDAUSDT",
+    "asset": "NVDA",
+    "category": "SPOT",
+    "baseCoin": "rNVDA",
+    "quoteCoin": "USDT",
+    "symbolType": "stock",
+    "isReality": true,
+    "status": "online",
+    "quantityStep": "0.0001",
+    "priceTick": "0.01",
+    "minOrderQty": "0.0001",
+    "maxOrderQty": "0",
+    "minOrderNotional": "10",
+    "maxPositionQty": "200",
+    "rawMetadataTime": "2026-09-08T21:51:19.213Z"
+  },
+  "snapshot": {
+    "id": "snapshot_7de5ee043d0e35d42d9f7974",
+    "hash": "7de5ee043d0e35d42d9f79747aa70774b896f2332463e4d6a96a3538d39299fe",
+    "asset": "NVDA",
+    "symbol": "RNVDAUSDT",
+    "bids": [
+      [
+        "225.62",
+        "0.6131"
+      ],
+      [
+        "225.6",
+        "0.8347"
+      ],
+      [
+        "225.24",
+        "205.2"
+      ],
+      [
+        "225.2",
+        "142.2"
+      ],
+      [
+        "225.18",
+        "178.2"
+      ],
+      [
+        "225.12",
+        "181.8"
+      ],
+      [
+        "225.07",
+        "291.6"
+      ],
+      [
+        "225.06",
+        "216"
+      ],
+      [
+        "225.01",
+        "214.2"
+      ],
+      [
+        "225",
+        "171"
+      ],
+      [
+        "224.96",
+        "137.544"
+      ],
+      [
+        "224.88",
+        "205.2"
+      ],
+      [
+        "224.73",
+        "172.8"
+      ],
+      [
+        "224.52",
+        "151.7088"
+      ],
+      [
+        "224.46",
+        "160.2"
+      ],
+      [
+        "224.44",
+        "69.12"
+      ],
+      [
+        "224.34",
+        "56.16"
+      ],
+      [
+        "224.29",
+        "116.7939"
+      ],
+      [
+        "224.22",
+        "72.4141"
+      ],
+      [
+        "224.11",
+        "62.64"
+      ],
+      [
+        "223.97",
+        "57.2187"
+      ],
+      [
+        "223.91",
+        "88.56"
+      ],
+      [
+        "223.66",
+        "75.6"
+      ],
+      [
+        "223.5",
+        "81.36"
+      ],
+      [
+        "223.31",
+        "66.96"
+      ],
+      [
+        "223.18",
+        "63.36"
+      ],
+      [
+        "223.05",
+        "80.64"
+      ],
+      [
+        "222.96",
+        "87.12"
+      ],
+      [
+        "222.87",
+        "80.3053"
+      ],
+      [
+        "222.68",
+        "54"
+      ],
+      [
+        "222.56",
+        "60.48"
+      ],
+      [
+        "222.53",
+        "62.64"
+      ],
+      [
+        "222.39",
+        "59.04"
+      ],
+      [
+        "222.14",
+        "55.44"
+      ],
+      [
+        "222.09",
+        "74.16"
+      ],
+      [
+        "222.04",
+        "82.8"
+      ],
+      [
+        "221.4",
+        "87.12"
+      ],
+      [
+        "221.23",
+        "72.72"
+      ],
+      [
+        "220.91",
+        "66.96"
+      ],
+      [
+        "220.66",
+        "87.84"
+      ],
+      [
+        "220.62",
+        "87.84"
+      ],
+      [
+        "219.46",
+        "58.32"
+      ],
+      [
+        "219.28",
+        "78.48"
+      ],
+      [
+        "219.17",
+        "79.92"
+      ],
+      [
+        "218.61",
+        "80.64"
+      ],
+      [
+        "218.54",
+        "87.12"
+      ],
+      [
+        "218.14",
+        "77.76"
+      ],
+      [
+        "218.11",
+        "74.16"
+      ],
+      [
+        "217.43",
+        "59.04"
+      ],
+      [
+        "216.98",
+        "75.6"
+      ]
+    ],
+    "asks": [
+      [
+        "225.66",
+        "0.827"
+      ],
+      [
+        "225.68",
+        "0.509"
+      ],
+      [
+        "225.77",
+        "113.28"
+      ],
+      [
+        "225.78",
+        "88.32"
+      ],
+      [
+        "225.81",
+        "111.36"
+      ],
+      [
+        "225.82",
+        "110.4"
+      ],
+      [
+        "225.87",
+        "83.52"
+      ],
+      [
+        "225.88",
+        "87.36"
+      ],
+      [
+        "225.89",
+        "118.08"
+      ],
+      [
+        "225.91",
+        "87.36"
+      ],
+      [
+        "226.02",
+        "203.4"
+      ],
+      [
+        "226.32",
+        "196.2"
+      ],
+      [
+        "226.37",
+        "160.2"
+      ],
+      [
+        "226.38",
+        "183.6"
+      ],
+      [
+        "226.46",
+        "158.4"
+      ],
+      [
+        "226.54",
+        "190.8"
+      ],
+      [
+        "226.56",
+        "208.8"
+      ],
+      [
+        "226.57",
+        "138.6"
+      ],
+      [
+        "226.65",
+        "160.2"
+      ],
+      [
+        "226.66",
+        "174.6"
+      ],
+      [
+        "226.69",
+        "180"
+      ],
+      [
+        "226.72",
+        "217.8"
+      ],
+      [
+        "226.84",
+        "140.4"
+      ],
+      [
+        "226.94",
+        "81.36"
+      ],
+      [
+        "227.08",
+        "87.12"
+      ],
+      [
+        "227.18",
+        "128.16"
+      ],
+      [
+        "227.3",
+        "82.8"
+      ],
+      [
+        "227.43",
+        "56.8799"
+      ],
+      [
+        "227.52",
+        "84.24"
+      ],
+      [
+        "227.62",
+        "55.44"
+      ],
+      [
+        "227.7",
+        "69.12"
+      ],
+      [
+        "227.74",
+        "75.6"
+      ],
+      [
+        "227.81",
+        "61.2"
+      ],
+      [
+        "227.83",
+        "63.36"
+      ],
+      [
+        "227.99",
+        "77.76"
+      ],
+      [
+        "228.1",
+        "55.44"
+      ],
+      [
+        "228.37",
+        "54"
+      ],
+      [
+        "228.56",
+        "82.8"
+      ],
+      [
+        "228.76",
+        "150.3938"
+      ],
+      [
+        "228.94",
+        "80.64"
+      ],
+      [
+        "228.96",
+        "77.76"
+      ],
+      [
+        "229.04",
+        "54.72"
+      ],
+      [
+        "229.07",
+        "62.4983"
+      ],
+      [
+        "229.22",
+        "68.4"
+      ],
+      [
+        "229.24",
+        "54"
+      ],
+      [
+        "229.58",
+        "74.88"
+      ],
+      [
+        "230.13",
+        "85.68"
+      ],
+      [
+        "230.27",
+        "62.64"
+      ],
+      [
+        "230.64",
+        "88.56"
+      ],
+      [
+        "231.81",
+        "62.64"
+      ]
+    ],
+    "exchangeTimestamp": "2026-09-08T21:51:19.332Z",
+    "receivedAt": "2026-09-08T21:51:19Z",
+    "mode": "captured_real",
+    "rawResponseReference": "fixture:selection-probe.json",
+    "validationWarnings": []
+  },
+  "sources": [
+    {
+      "id": "src_a8b570d3-c5e2-475e-a9ce-6b468fca8b9f",
+      "originalUrl": "https://nvidianews.nvidia.com/news/aws-and-nvidia-to-deliver-2-million-additional-gpus-and-next-generation-infrastructure-for-agentic-and-physical-ai",
+      "finalApprovedUrl": null,
+      "title": "NVIDIA and AWS announced a planned expansion of AI infrastructure on August 26, 2026. The announcement describes additional NVIDIA GPU deployments across AWS da",
+      "publisher": "nvidianews.nvidia.com",
+      "publicationDate": null,
+      "publicationDatePrecision": "unknown",
+      "eventDate": null,
+      "fetchedAt": "2026-09-16T15:01:32.112Z",
+      "cleanedText": "NVIDIA and AWS announced a planned expansion of AI infrastructure on August 26, 2026. The announcement describes additional NVIDIA GPU deployments across AWS data centers, with further systems planned for 2027 to 2028. The source describes planned infrastructure and future deployment. It does not state that the deployment is already producing revenue or provide a price forecast.",
+      "textHash": "e9498953ce8e7707a7984d5404557bb34cf1c2171ea7a85475a01b767af33c49",
+      "provenance": "user_pasted_unverified",
+      "truncated": false
+    }
+  ],
+  "claims": [],
+  "evidence": {
+    "status": "unavailable",
+    "assessmentOrigin": "unavailable",
+    "verdict": "not_assessed",
+    "scope": "by the supplied evidence",
+    "mostConsequentialUnknown": "Runtime claim assessment is disabled. Economics can still be calculated; the supplied source remains visible.",
+    "summary": "Runtime claim assessment is disabled. Economics can still be calculated; the supplied source remains visible."
+  },
+  "economics": {
+    "computationStatus": "calculated",
+    "goalComparison": "below",
+    "snapshotId": "snapshot_7de5ee043d0e35d42d9f7974",
+    "planRevision": 1,
+    "scenarioRevision": 1,
+    "units": {
+      "quoteCurrency": "USDT",
+      "baseAsset": "rNVDA"
+    },
+    "requestedNotional": "10000",
+    "quantity": "44.2934",
+    "spentNotional": "9999.984138",
+    "entryCash": "10009.984122138",
+    "unspentNotional": "0.015862",
+    "entryVWAP": "225.76691195528001915",
+    "modeledExitVWAP": "225.25204400655628152",
+    "modeledExitGross": "9977.178886",
+    "modeledExitNet": "9967.201707114",
+    "netPnl": "-12.880809902658",
+    "netReturn": "-0.001286796237185921694",
+    "frictionProxy": "42.782415024",
+    "breakEvenShift": "0.0042923195778675211",
+    "requiredGoalShift": "0.0143252257975365687",
+    "scenarioBidPriceShift": "0.003",
+    "effectivePriceShift": "0.003",
+    "scenarioGross": "10007.110422658",
+    "scenarioNet": "9997.103312235342",
+    "matchedExitQuantity": "44.2934",
+    "unmatchedExitQuantity": "0",
+    "visibleEntryCapacity": "1170548.833666",
+    "visibleExitCapacity": "1118427.566941",
+    "exitDepthMultiplier": "1",
+    "exitPriceHaircut": "0",
+    "warnings": [
+      "Visible ask capacity is 1170548.833666 USDT at this snapshot."
+    ],
+    "scenarioTable": [
+      {
+        "label": "-3% downside",
+        "bidPriceShift": "-0.03",
+        "effectivePriceShift": "-0.03",
+        "netPnl": "-341.79846623742",
+        "netReturn": "-0.034145755084815896354",
+        "goalComparison": "below",
+        "status": "calculated"
+      },
+      {
+        "label": "Flat",
+        "bidPriceShift": "0",
+        "effectivePriceShift": "0",
+        "netPnl": "-42.782415024",
+        "netReturn": "-0.0042739743142431921177",
+        "goalComparison": "below",
+        "status": "calculated"
+      },
+      {
+        "label": "+0.3%",
+        "bidPriceShift": "0.003",
+        "effectivePriceShift": "0.003",
+        "netPnl": "-12.880809902658",
+        "netReturn": "-0.001286796237185921694",
+        "goalComparison": "below",
+        "status": "calculated"
+      },
+      {
+        "label": "+1%",
+        "bidPriceShift": "0.01",
+        "effectivePriceShift": "0.01",
+        "netPnl": "56.88960204714",
+        "netReturn": "0.0056832859426143759611",
+        "goalComparison": "below",
+        "status": "calculated"
+      },
+      {
+        "label": "+3%",
+        "bidPriceShift": "0.03",
+        "effectivePriceShift": "0.03",
+        "netPnl": "256.23363618942",
+        "netReturn": "0.025597806456329512119",
+        "goalComparison": "meets",
+        "status": "calculated"
+      }
+    ]
+  },
+  "performance": {
+    "totalDurationMs": 7,
+    "marketDurationMs": 3,
+    "modelDurationMs": null,
+    "modelCalls": 0,
+    "modelRunStatus": "not_attempted",
+    "modelUsage": null,
+    "reusedEvidence": false
+  },
+  "partialErrors": [
+    {
+      "kind": "model_unconfigured",
+      "message": "Runtime claim assessment is disabled. Economics can still be calculated; the supplied source remains visible.",
+      "recovery": "Configure the server-only model variables in .env.local, then retry."
+    }
+  ],
+  "generatedAt": "2026-09-16T15:01:32.112Z",
+  "limitations": [
+    "This is a conditional research brief, not a buy or sell instruction.",
+    "The scenario uses one displayed order-book snapshot. It is not a firm quote, an execution promise, or a forecast.",
+    "The model does not estimate how price, depth, or returns evolve over the holding horizon.",
+    "A supplied source can support what an issuer stated without proving future revenue or price direction.",
+    "Captured market mode is historical replay data from the selection spike. It is not current market data.",
+    "Pasted source text is user-supplied and unverified, even when an official-looking URL is present.",
+    "No runtime model assessment was recorded for this report."
+  ]
+}

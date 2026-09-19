@@ -1,0 +1,68 @@
+{
+  "caseId": "E02",
+  "packetHash": "2d1c79ed90073dd3a8a99f24e929dae48c39a188353704decafb84da872e84d8",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:47:51.542Z",
+  "latencyMs": 4430,
+  "attempts": 1,
+  "effectiveInputHash": "78c3a37068ac93e05c763340537247b8464d2aadc91e737b149be8d51b87af95",
+  "inputProjectionHash": "d44f250d0e394b7f4378c658a1848fb159f0a64d64ef7c69c2e836eea83b44b8",
+  "sourceHash": "7d1aa713574f54b225e9519630c19a14bea926556d0b036a292bd0691501772c",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E02_candidate_717f60b8",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source indicates the September 8 post repeats an earlier August 26 announcement and does not report a new deployment event. It does not establish that the post changes the immediate rNVDA outlook.",
+      "mostConsequentialUnknown": "Whether any genuinely new information in the September 8 post materially changes the immediate rNVDA outlook is not established by the supplied source.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The September 8 post is a new announcement.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "contradicted",
+          "explanation": "The source says the post repeats the August 26 announcement, which conflicts with characterizing it as a new announcement.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "A post dated September 8 repeats that the August 26 announcement described planned infrastructure for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "The September 8 post changes the immediate rNVDA outlook.",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source reports no new deployment event but does not establish whether the post changes the immediate rNVDA outlook.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "The post does not report a new deployment event."
+            }
+          ],
+          "missingEvidence": "Evidence of a new, market-relevant development and its effect on the immediate rNVDA outlook."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "f37b70ebb9c761def2050a305ccd1ddaed97904b33c8cbaa16b57863dc0c3ed5",
+  "usage": {
+    "promptTokens": 475,
+    "completionTokens": 506,
+    "totalTokens": 981,
+    "costUsd": 0.0007022
+  },
+  "error": null
+}

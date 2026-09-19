@@ -1,0 +1,98 @@
+{
+  "caseId": "E05",
+  "packetHash": "6355517e77abd93c8af501682f2eef4c14e188de83b0be441d96ee576eb0ce83",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:48:29.816Z",
+  "latencyMs": 7752,
+  "attempts": 1,
+  "effectiveInputHash": "209654ca3bdf28a37b1efd96a10ffacff43c151d03df109630eef85419aa190c",
+  "inputProjectionHash": "037fe310ae875ef7eb9713e852fd95575ff4af76355d6f47d729867e0c441a09",
+  "sourceHash": "3096980bc7d370e7cb5d9772b9155dc61ec16e2f4783810b370bec42213aad4e",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E05_candidate_c1daed9c",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source supports only that additional infrastructure is planned. It does not establish a causal effect on rNVDA, a 1% price increase, or trade profitability.",
+      "mostConsequentialUnknown": "Whether the planned infrastructure would affect rNVDA's price, and whether any resulting price movement would make the trade profitable.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The company plans additional infrastructure.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "supported",
+          "explanation": "The source states that additional infrastructure is planned for a future period.",
+          "citations": [
+            {
+              "sourceId": "src_e05",
+              "excerpt": "The company says additional infrastructure is planned for a future period."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "Additional infrastructure will cause rNVDA to rise.",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source does not establish that the infrastructure plan will cause an increase in the token price.",
+          "citations": [
+            {
+              "sourceId": "src_e05",
+              "excerpt": "The passage does not state that the plan will increase the token price or that a return is likely."
+            }
+          ],
+          "missingEvidence": "Evidence linking the planned infrastructure to a change in rNVDA's price."
+        },
+        {
+          "claimId": "c3",
+          "exactText": "rNVDA will rise 1%.",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The supplied source does not establish a 1% price increase.",
+          "citations": [
+            {
+              "sourceId": "src_e05",
+              "excerpt": "The passage does not state that the plan will increase the token price or that a return is likely."
+            }
+          ],
+          "missingEvidence": "Evidence supporting the magnitude and timing of a 1% increase in rNVDA."
+        },
+        {
+          "claimId": "c4",
+          "exactText": "This trade is profitable.",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The supplied source does not establish that the trade will be profitable.",
+          "citations": [
+            {
+              "sourceId": "src_e05",
+              "excerpt": "The passage does not state that the plan will increase the token price or that a return is likely."
+            }
+          ],
+          "missingEvidence": "Evidence that the trade's outcome will produce a profit."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "e3ce9506a27101926d9de20172f452e21e138292698dafa70fe08670c43c2072",
+  "usage": {
+    "promptTokens": 475,
+    "completionTokens": 955,
+    "totalTokens": 1430,
+    "costUsd": 0.001241
+  },
+  "error": null
+}

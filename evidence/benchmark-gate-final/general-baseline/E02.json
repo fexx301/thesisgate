@@ -1,0 +1,98 @@
+{
+  "caseId": "E02",
+  "packetHash": "2d1c79ed90073dd3a8a99f24e929dae48c39a188353704decafb84da872e84d8",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-15T03:47:51.543Z",
+  "latencyMs": 6748,
+  "attempts": 1,
+  "effectiveInputHash": "78c3a37068ac93e05c763340537247b8464d2aadc91e737b149be8d51b87af95",
+  "inputProjectionHash": "d44f250d0e394b7f4378c658a1848fb159f0a64d64ef7c69c2e836eea83b44b8",
+  "sourceHash": "7d1aa713574f54b225e9519630c19a14bea926556d0b036a292bd0691501772c",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "baa0a15fc306c5162107030e89f69e671313eb9f3c98877e2e271cfe63d6808e",
+  "manifestHash": "aad08e4ec526f19e7d2c40781fa92723f45a024f7a25e19b217d31885a805e34",
+  "implementationHash": "9ebf432554a225a7d15097b9dbe05de10a85204a12453cfbbf736832139715f7",
+  "requestId": "eval_E02_general_baseline_057e36af",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source supports that the September 8 post repeats an August 26 announcement concerning planned infrastructure for 2027 to 2028. It does not support that the post is a new announcement or that it changes the immediate rNVDA outlook.",
+      "mostConsequentialUnknown": "Whether any information outside the supplied source gives the September 8 post new content or establishes an effect on the immediate rNVDA outlook.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The September 8 post is a new announcement.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "contradicted",
+          "explanation": "The source states that the post repeats the August 26 announcement, which conflicts with characterizing it as new.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "A post dated September 8 repeats that the August 26 announcement described planned infrastructure for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "The September 8 post changes the immediate rNVDA outlook.",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source does not establish any change to the immediate outlook, and it specifically says the post reports no new deployment event. A causal effect on the outlook therefore cannot be determined from the record.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "The post does not report a new deployment event."
+            }
+          ],
+          "missingEvidence": "Evidence of new information in the September 8 post and a demonstrated connection between that information and a change in the immediate rNVDA outlook."
+        },
+        {
+          "claimId": "c3",
+          "exactText": "The August 26 announcement described planned infrastructure for 2027 to 2028.",
+          "distinction": "factual",
+          "materiality": "contextual",
+          "status": "supported",
+          "explanation": "This detail is directly stated in the source.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "A post dated September 8 repeats that the August 26 announcement described planned infrastructure for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c4",
+          "exactText": "The September 8 post reports a new deployment event.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "contradicted",
+          "explanation": "The source expressly states that the post does not report a new deployment event.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "The post does not report a new deployment event."
+            }
+          ],
+          "missingEvidence": null
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-5.6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "fbf818f215785148a76d91e75d33bbada88ca99602815c96ebe7fd008e57e8e3",
+  "usage": {
+    "promptTokens": 269,
+    "completionTokens": 765,
+    "totalTokens": 1034,
+    "costUsd": 0.0009718
+  },
+  "error": null
+}
