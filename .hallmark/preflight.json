@@ -1,10 +1,10 @@
 {
-  "date": "2026-09-09",
+  "date": "2026-09-15",
   "framework": "Next.js 16 App Router",
-  "fontStack": "Avenir Next and system fallbacks are hard-coded in src/app/globals.css",
-  "palette": "Dark/light hex tokens with RGBA shadows and focus values in src/app/globals.css",
-  "motion": "No motion dependency; only CSS spinner and state transitions",
-  "spacing": "No named spacing scale; layout uses raw pixel values",
+  "fontStack": "Space Grotesk display, Inter body, JetBrains Mono with system fallbacks in src/app/hallmark.css with display=swap",
+  "palette": "Cobalt cool-light oklch token system in tokens.css, graphite plan rail",
+  "motion": "No motion dependency; only CSS spinner and state transitions with reduced-motion support",
+  "spacing": "4-point named spacing scale via --space-* tokens",
   "preserve": [
     "Workbench route and component ownership",
     "Existing Phosphor icon set",
@@ -17,5 +17,6 @@
     "N9 edge-aligned header action",
     "Ft2 inline-rule footer",
     "4-point spacing and 8-state interactive styling"
-  ]
+  ],
+  "notes": "Single source of truth is src/app/hallmark.css + tokens.css. Legacy src/app/globals.css and src/app/page.module.css were removed on 2026-09-15 after porting .sr-only, .example-label, .confirmation-strip, .assumptions-visible, and .instrument-details."
 }
