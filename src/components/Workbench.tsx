@@ -546,6 +546,15 @@ function ScenarioTable({ report }: { report: ResearchResult }) {
   );
 }
 
+function BriefOverview({ report }: { report: ResearchResult }) {
+  return (
+    <section className="brief-overview" aria-label="Brief at a glance">
+      <div><span>Source evidence</span><strong>{evidenceStatusLabel(report.evidence.status, report.evidence.verdict)}</strong><a href="#evidence-heading">Read claim review</a></div>
+      <div><span>Scenario net result</span><strong>{formatMoney(report.economics.netPnl)}</strong><small>{readableStatus(report.economics.goalComparison)} · under your assumptions</small><a href="#economics-heading">Review trade math</a></div>
+    </section>
+  );
+}
+
 function SourcesPanel({ report }: { report: ResearchResult }) {
   return (
     <section className="report-card sources-card" aria-labelledby="sources-heading">
@@ -553,10 +562,11 @@ function SourcesPanel({ report }: { report: ResearchResult }) {
         <SectionHeading id="sources-heading" title="Sources and provenance" detail="Dates and origin stay visible so context is not mistaken for freshness." icon={<Info size={22} weight="regular" />} />
       </div>
       <div className="source-list">
-        {report.sources.length ? report.sources.map((source) => (
+        {report.sources.length ? report.sources.map((source, index) => (
           <details key={source.id} className="source-item">
-            <summary><span>{source.title}</span><CaretDown size={18} aria-hidden="true" /></summary>
+            <summary><span>Source {index + 1} · {source.provenance === "user_pasted_unverified" ? "Pasted passage" : suppliedUrlDomain(source.originalUrl) || "Source document"}</span><CaretDown size={18} aria-hidden="true" /></summary>
             <div className="source-details">
+              <p className="source-title"><span>Full source title</span>{source.title}</p>
               <p><span>Supplied URL domain</span>{suppliedUrlDomain(source.originalUrl)}</p>
               <p><span>Publication date</span>{source.publicationDate ?? "Unknown"}</p>
               <p><span>Event date</span>{source.eventDate ?? "Unknown"}</p>
@@ -1288,6 +1298,7 @@ export default function Workbench() {
           {isBusy && !state.report ? <ReportSkeleton /> : state.report ? (
             <>
               {!reportIsCurrent ? <div className="stale-banner" role="status"><Info size={16} weight="bold" aria-hidden="true" /><span>This report is from an earlier plan or market mode. Submit again before exporting.</span></div> : null}
+              <BriefOverview report={state.report} />
               {state.report.evidence.status !== "assessed" ? <button className="button button-secondary" type="button" disabled={isBusy} onClick={() => submitResearch({ retryEvidence: true })}>Retry evidence assessment</button> : null}
               <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} requestedMode={state.reportMarketMode ?? state.marketMode} now={clock} onRefresh={() => { if (!validatePlan(state.plan)) return; invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market refresh requested." }); track("live_refresh_requested", { marketMode: "live" }); submitResearch({ marketMode: "live", forceMarketRefresh: true }); }} isRefreshing={isBusy} /></div>
               <ScenarioTable report={state.report} />

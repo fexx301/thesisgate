@@ -58,6 +58,8 @@ The app reads the text you paste. It does not fetch the URL or treat an official
 
 ## How to read the brief
 
+The brief opens with the source-evidence status and the selected scenario's net result together. These remain separate conclusions: source support does not predict a profitable trade. Follow the summary links to the claim review or trade math. Source rows expand to show the original title, dates, and provenance.
+
 ### Evidence behind your thesis
 
 This section asks whether the supplied words support the exact claim. It does not decide whether the trade will make money.
