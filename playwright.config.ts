@@ -10,6 +10,7 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
+  workers: 2,
   reporter: "list",
   use: {
     baseURL,
@@ -30,9 +31,14 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm run dev -- --hostname 127.0.0.1 --port 3101",
+        command: "npm run start -- --hostname 127.0.0.1 --port 3101",
         url: baseURL,
-        reuseExistingServer: true,
+        reuseExistingServer: false,
         timeout: 120_000,
+        env: {
+          THESIS_LLM_ENABLED: "false",
+          THESIS_PUBLIC_ORIGINS: baseURL,
+          THESIS_RECOMPUTE_SIGNING_SECRET: "local-browser-test-signing-secret-not-for-deployment",
+        },
       },
 });

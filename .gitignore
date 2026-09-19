@@ -35,10 +35,40 @@ yarn-error.log*
 
 # env files (never commit local credentials)
 .env*
+!/.env.example
 
-# documentation (keep only the project README)
+# documentation (keep project docs and evaluation records)
 *.md
 !/README.md
+!/evals/practitioner-validation-sheet.md
+!/evals/scoring-rubric.md
+!/public/finished-brief/nvda-captured.md
+
+# Publish reviewed evidence only; raw eval runs and credentials stay ignored.
+/evidence/*
+!/evidence/benchmark-gate-final/
+!/evidence/x-post-validity.txt
+/evidence/benchmark-gate-final/*
+!/evidence/benchmark-gate-final/report.scored.json
+!/evidence/benchmark-gate-final/report.original.json
+!/evidence/benchmark-gate-final/run-manifest.json
+!/evidence/benchmark-gate-final/run-manifest.original.json
+!/evidence/benchmark-gate-final/benchmark-manifest.json
+!/evidence/benchmark-gate-final/correction-review.json
+!/evidence/benchmark-gate-final/integrity-manifest.json
+!/evidence/benchmark-gate-final/candidate/
+!/evidence/benchmark-gate-final/general-baseline/
+!/evidence/benchmark-gate-final/calculator/
+/evidence/benchmark-gate-final/*/*
+!/evidence/benchmark-gate-final/candidate/E0[1-9].json
+!/evidence/benchmark-gate-final/candidate/E1[0-2].json
+!/evidence/benchmark-gate-final/general-baseline/E0[1-9].json
+!/evidence/benchmark-gate-final/general-baseline/E1[0-2].json
+!/evidence/benchmark-gate-final/calculator/E0[1-9].json
+!/evidence/benchmark-gate-final/calculator/E1[0-2].json
+/public/finished-brief/*
+!/public/finished-brief/nvda-captured.json
+!/public/finished-brief/nvda-captured.md
 
 # vercel
 .vercel

@@ -48,8 +48,11 @@ jobs:
       - name: Run evaluation dry run
         run: npm run eval:runner
 
+      - name: Verify published historical evidence integrity
+        run: node evals/verify-evidence.mjs
+
       - name: Production build
         run: npm run build
 
-      - name: Browser tests
+      - name: Production browser journeys
         run: npm run test:e2e
