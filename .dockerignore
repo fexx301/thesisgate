@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+test-results
+playwright-report
+evals/results
+quota-service/data
+*.sqlite
+*.sqlite-*
+deploy/production.env
+deploy/*.secret
+.hallmark
+*.tsbuildinfo

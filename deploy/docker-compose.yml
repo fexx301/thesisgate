@@ -1,0 +1,73 @@
+# One-box production stack: Caddy (HTTPS) -> Next.js app -> quota service (private network only).
+# Run from the thesisgate/ directory:  docker compose -f deploy/docker-compose.yml --env-file deploy/production.env up -d --build
+name: thesisgate
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: production.env
+    environment:
+      # The quota service is only reachable on the private compose network.
+      THESIS_LLM_QUOTA_URL: http://quota:8787/v1/reservations
+    depends_on:
+      quota:
+        condition: service_healthy
+    networks: [edge, private]
+    mem_limit: 900m
+
+  quota:
+    build:
+      context: ..
+      dockerfile: quota-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      THESIS_QUOTA_HOST: 0.0.0.0
+      THESIS_QUOTA_PORT: "8787"
+      THESIS_QUOTA_DATABASE_PATH: /data/quota.sqlite
+      THESIS_QUOTA_SERVICE_TOKEN: ${THESIS_LLM_QUOTA_TOKEN:?set THESIS_LLM_QUOTA_TOKEN in production.env}
+      THESIS_QUOTA_MAX_CALL_COST_USD: ${THESIS_LLM_MAX_CALL_COST_USD:?}
+      THESIS_QUOTA_DAILY_BUDGET_USD: ${THESIS_LLM_DAILY_BUDGET_USD:?}
+      THESIS_QUOTA_PER_VISITOR_BUDGET_USD: ${THESIS_LLM_PER_VISITOR_BUDGET_USD:?}
+      THESIS_QUOTA_PROVIDER_HARD_LIMIT_USD: ${THESIS_LLM_PROVIDER_HARD_LIMIT_USD:?}
+      THESIS_QUOTA_MAX_CONCURRENT: ${THESIS_LLM_MAX_CONCURRENT:?}
+      THESIS_QUOTA_LEASE_SECONDS: "60"
+    volumes:
+      - quota-data:/data
+    # No published ports: nothing outside this host can reach the ledger.
+    networks: [private]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/healthz').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 256m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in production.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [app]
+    networks: [edge]
+    mem_limit: 128m
+
+networks:
+  edge: {}
+  private:
+    internal: true
+
+volumes:
+  quota-data: {}
+  caddy-data: {}
+  caddy-config: {}

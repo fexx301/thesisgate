@@ -1,11 +1,26 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { parseIntent } from "../../src/domain/intent";
 import type { Plan } from "../../src/domain/contracts";
 
 async function openPlanForEditing(page: Page) {
   const editPlan = page.getByRole("link", { name: "Edit plan" });
   if (await editPlan.isVisible()) await editPlan.click();
+}
+
+// Browser tests run offline and deterministic: every brief starts from the captured Sep 8 replay.
+async function replayCaptured(page: Page) {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Replay captured example" }).click();
+  await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled({ timeout: 30_000 });
+}
+
+async function useCapturedMode(page: Page) {
+  await page.getByRole("radio", { name: /Captured replay/ }).check();
+}
+
+async function sendChat(page: Page, message: string) {
+  await page.locator("#chat-input").fill(message);
+  await page.getByRole("button", { name: "Send message" }).click();
 }
 
 test("captured research flow keeps evidence and economics distinct", async ({ page }) => {
@@ -18,13 +33,15 @@ test("captured research flow keeps evidence and economics distinct", async ({ pa
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "Stress-test the trade behind the headline." })).toBeVisible();
-  await page.getByRole("button", { name: "Stress-test my thesis" }).click();
+  await page.getByRole("button", { name: "Replay captured example" }).click();
 
   await expect(page.getByRole("heading", { name: "Evidence behind your thesis" })).toBeVisible({ timeout: 30_000 });
   await expect(page.locator(".evidence-card .panel-summary")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "Economics under your assumptions" })).toBeVisible();
   await expect(page.getByText("Captured example at")).toBeVisible();
   await expect(page.getByText("Goal threshold")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Priced in since the close?" })).toBeVisible();
+  await expect(page.locator(".priced-card")).toContainText("NVDA close");
   expect(researchRequests).toHaveLength(1);
 
   await openPlanForEditing(page);
@@ -32,18 +49,17 @@ test("captured research flow keeps evidence and economics distinct", async ({ pa
   await expect(page.getByText("This report is from an earlier plan or market mode.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Markdown" })).toBeDisabled();
 
-  await page.getByLabel("Follow-up edit").fill("Halve the amount");
-  await page.getByRole("button", { name: "Apply edit" }).click();
+  await sendChat(page, "Halve the amount");
   await expect(page.locator("#notional")).toHaveValue("5000");
+  await expect(page.locator(".chat-log")).toContainText("purchase notional halved");
   await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
   await expect.poll(() => recomputeRequests.length).toBe(1);
   expect(researchRequests).toHaveLength(1);
 });
 
 test("goal change preserves evidence and recomputes threshold", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Stress-test my thesis" }).click();
-  await expect(page.getByRole("heading", { name: "Evidence behind your thesis" })).toBeVisible({ timeout: 30_000 });
+  await replayCaptured(page);
+  await expect(page.getByRole("heading", { name: "Evidence behind your thesis" })).toBeVisible();
 
   await openPlanForEditing(page);
   await page.getByLabel("Objective", { exact: true }).selectOption("break_even");
@@ -56,9 +72,8 @@ test("goal change preserves evidence and recomputes threshold", async ({ page })
 });
 
 test("depth exhaustion shows insufficient without a whole-position profit", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Stress-test my thesis" }).click();
-  await expect(page.getByRole("heading", { name: "Economics under your assumptions" })).toBeVisible({ timeout: 30_000 });
+  await replayCaptured(page);
+  await expect(page.getByRole("heading", { name: "Economics under your assumptions" })).toBeVisible();
 
   await openPlanForEditing(page);
   await page.locator("details.assumptions-disclosure summary").click();
@@ -68,10 +83,12 @@ test("depth exhaustion shows insufficient without a whole-position profit", asyn
 });
 
 test("threshold-only mode is reachable and labeled", async ({ page }) => {
-  await page.goto("/");
+  await replayCaptured(page);
+  await openPlanForEditing(page);
   await page.getByRole("button", { name: "Threshold only" }).click();
   await page.getByRole("button", { name: "Stress-test my thesis" }).click();
   await expect(page.locator(".economics-card")).toContainText(/threshold.only/i);
+  await expect(page.locator(".brief-overview")).toContainText("Your goal needs");
   await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
 });
 
@@ -83,7 +100,9 @@ test("invalidation omission is shown, not invented", async ({ page }) => {
 
 test("keyboard-only flow reaches submit and export controls", async ({ page }) => {
   await page.goto("/");
-  for (let index = 0; index < 80; index += 1) {
+  await useCapturedMode(page);
+  await page.locator("#chat-input").focus();
+  for (let index = 0; index < 200; index += 1) {
     await page.keyboard.press("Tab");
     if (await page.getByRole("button", { name: "Stress-test my thesis" }).evaluate((element) => element === document.activeElement)) break;
   }
@@ -91,7 +110,7 @@ test("keyboard-only flow reaches submit and export controls", async ({ page }) =
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Evidence behind your thesis" })).toBeVisible({ timeout: 30_000 });
   // Report heading receives focus for screen-reader announcement.
-  await expect(page.getByRole("heading", { name: "Keep the conclusions distinct." })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Evidence, timing and trade math, kept separate." })).toBeFocused();
   await page.keyboard.press("Tab");
   const editPlan = page.getByRole("link", { name: "Edit plan" });
   if (await editPlan.isVisible()) {
@@ -114,37 +133,50 @@ test("mobile and tablet layouts do not overflow horizontally", async ({ page }) 
   }
 });
 
-test("a follow-up applied after a newer edit does not overwrite the newer plan", async ({ page }) => {
+test("a chat edit that returns after a newer manual edit does not overwrite the newer plan", async ({ page }) => {
   let release!: () => void;
   let arrived!: () => void;
   let delivered!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
   const requested = new Promise<void>((resolve) => { arrived = resolve; });
   const settled = new Promise<void>((resolve) => { delivered = resolve; });
-  await page.route("**/api/intent", async (route) => {
-    const request = route.request().postDataJSON() as { message: string; plan: Plan };
-    const patch = parseIntent(request.message, request.plan);
+  await page.route("**/api/chat", async (route) => {
+    const request = route.request().postDataJSON() as { plan: Plan };
+    const plan = { ...request.plan, purchaseNotionalExcludingFee: "500" };
     arrived();
     await gate;
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(patch) });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ reply: "Halved.", plan, changed: ["purchase notional halved"], selectHeadlineIds: null, action: "run_brief", marketMode: null, origin: "rules", modelId: null }),
+    });
     delivered();
   });
   await page.goto("/");
-  await page.fill("#follow-up", "Halve the amount");
-  await page.click(".follow-up button[type=submit]");
+  await useCapturedMode(page);
+  await sendChat(page, "Halve the amount");
   await requested;
   await page.fill("#notional", "9000");
   release();
   await settled;
   await expect(page.locator("#notional")).toHaveValue("9000");
-  await expect(page.locator("#follow-up")).toHaveValue("Halve the amount");
   await expect(page.locator(".change-banner")).toContainText("Purchase notional changed");
+  await expect(page.locator(".chat-log")).not.toContainText("Halved.");
+});
+
+test("the conversation falls back to simple edits when the model is off", async ({ page }) => {
+  await replayCaptured(page);
+  await sendChat(page, "what if I only put in 3k instead?");
+  await expect(page.locator("#notional")).toHaveValue("3000");
+  await expect(page.locator(".chat-log")).toContainText("Simple-edit mode");
+  await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled({ timeout: 30_000 });
 });
 
 test("incomplete numeric draft survives save and restore without crashing", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
+  await useCapturedMode(page);
   await page.locator("#notional").fill("");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.reload();
@@ -168,9 +200,7 @@ test("explicit evidence retry calls research instead of reusing an unavailable a
     if (request.url().endsWith("/api/research")) researchCalls += 1;
     if (request.url().endsWith("/api/recompute")) recomputeCalls += 1;
   });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Stress-test my thesis" }).click();
-  await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
+  await replayCaptured(page);
   await page.getByRole("button", { name: "Retry evidence assessment" }).click();
   await expect.poll(() => researchCalls).toBe(2);
   await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
@@ -187,9 +217,7 @@ test("current snapshotless partial report can be exported", async ({ page }) => 
     report.economicsInputHash = null;
     await route.fulfill({ response, json: report });
   });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Stress-test my thesis" }).click();
-  await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
+  await replayCaptured(page);
   await expect(page.locator(".stale-banner")).toHaveCount(0);
   const downloadEvent = page.waitForEvent("download");
   await page.getByRole("button", { name: "JSON", exact: true }).click();
@@ -203,6 +231,7 @@ test("current snapshotless partial report can be exported", async ({ page }) => 
 
 test("downloaded markdown preserves calculated warnings and position details", async ({ page }) => {
   await page.goto("/");
+  await useCapturedMode(page);
   await page.locator("details.assumptions-disclosure summary").click();
   await page.getByLabel("Available exit depth").fill("0");
   const responseEvent = page.waitForResponse((response) => response.url().endsWith("/api/research") && response.ok());
@@ -217,4 +246,6 @@ test("downloaded markdown preserves calculated warnings and position details", a
   for (const warning of report.economics.warnings) expect(markdown).toContain(warning);
   expect(markdown).toContain(report.instrument.symbol);
   expect(markdown).toContain(report.economics.unmatchedExitQuantity);
+  expect(markdown).toContain("## Priced in since the close?");
+  expect(markdown).toContain(`NVDA ${report.marketContext.underlying.lastClose} USD`);
 });

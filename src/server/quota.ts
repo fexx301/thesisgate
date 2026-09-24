@@ -51,18 +51,25 @@ function positiveInteger(name: string) {
   return value;
 }
 
+/**
+ * Plain HTTP is allowed only for hosts that cannot be reached over the public internet: loopback, and
+ * single-label names such as a Docker Compose service ("quota") on a private container network.
+ */
+export function isPrivateServiceHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]" || /^[a-z][a-z0-9-]{0,62}$/i.test(hostname);
+}
+
 function endpointValue() {
   const raw = process.env.THESIS_LLM_QUOTA_URL?.trim();
   if (!raw) throw new ModelQuotaError("configuration", "THESIS_LLM_QUOTA_URL is required for production model calls.");
   try {
     const url = new URL(raw);
-    const localDevelopment = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-    if ((url.protocol !== "https:" && !(process.env.NODE_ENV !== "production" && localDevelopment)) || url.username || url.password) {
+    if ((url.protocol !== "https:" && !isPrivateServiceHost(url.hostname)) || url.username || url.password) {
       throw new Error("unsafe quota endpoint");
     }
     return url.toString();
   } catch {
-    throw new ModelQuotaError("configuration", "THESIS_LLM_QUOTA_URL must be an HTTPS URL without credentials.");
+    throw new ModelQuotaError("configuration", "THESIS_LLM_QUOTA_URL must be an HTTPS URL, or plain HTTP to loopback or a private single-label service host, without credentials.");
   }
 }
 
@@ -123,15 +130,19 @@ let activeModelCalls = 0;
 const VISITOR_WINDOW_MS = 10 * 60 * 1000;
 const VISITOR_MAX = 5;
 const GLOBAL_DAILY_MAX = 200;
+// Chat turns are short, cheap planning calls, so they get their own bucket instead of consuming briefs.
+const CHAT_VISITOR_MAX = 20;
+const CHAT_GLOBAL_DAILY_MAX = 600;
 const visitorCalls = new Map<string, number[]>();
 let globalDayKey = "";
 let globalDayCount = 0;
+let chatDayCount = 0;
 
 function dayKey(now: number) {
   return new Date(now).toISOString().slice(0, 10);
 }
 
-export function checkLocalModelRateLimit(visitorKey: string) {
+export function checkLocalModelRateLimit(visitorKey: string, kind: "analysis" | "chat" = "analysis") {
   const now = Date.now();
   for (const [key, calls] of visitorCalls) {
     if (now - calls[calls.length - 1] >= VISITOR_WINDOW_MS) visitorCalls.delete(key);
@@ -140,6 +151,21 @@ export function checkLocalModelRateLimit(visitorKey: string) {
   if (day !== globalDayKey) {
     globalDayKey = day;
     globalDayCount = 0;
+    chatDayCount = 0;
+  }
+  if (kind === "chat") {
+    if (chatDayCount >= CHAT_GLOBAL_DAILY_MAX) {
+      throw new ModelQuotaError("denied", "The daily conversation budget is exhausted. Simple edits still work without the model.");
+    }
+    const chatKey = `chat:${visitorKey}`;
+    const chatCalls = (visitorCalls.get(chatKey) ?? []).filter((t) => now - t < VISITOR_WINDOW_MS);
+    if (chatCalls.length >= CHAT_VISITOR_MAX) {
+      throw new ModelQuotaError("denied", "Twenty messages per visitor per ten minutes. Simple edits still work without the model.");
+    }
+    chatCalls.push(now);
+    visitorCalls.set(chatKey, chatCalls);
+    chatDayCount += 1;
+    return;
   }
   if (globalDayCount >= GLOBAL_DAILY_MAX) {
     throw new ModelQuotaError("denied", "The daily model-analysis budget is exhausted. Replay captured results remain available.");
@@ -157,6 +183,7 @@ export function resetLocalRateLimitsForTests() {
   visitorCalls.clear();
   globalDayKey = "";
   globalDayCount = 0;
+  chatDayCount = 0;
   activeModelCalls = 0;
 }
 

@@ -22,7 +22,11 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import { toJson, toMarkdown } from "@/domain/export";
-import { InstrumentSchema, MAX_SOURCE_CHARS, MarketSnapshotSchema, PlanSchema, RecomputeResultSchema, ResearchResultSchema, type Asset, type Instrument, type MarketSnapshot, type Plan, type ResearchResult } from "@/domain/contracts";
+import { ChatResultSchema, InstrumentSchema, MarketContextSchema, MAX_SELECTED_HEADLINES, MAX_SOURCE_CHARS, MarketSnapshotSchema, MULTI_SOURCE_PROMPT_VERSION, PlanSchema, PROMPT_VERSION, RadarResultSchema, RecomputeResultSchema, ResearchResultSchema, type Asset, type Instrument, type MarketContext, type MarketSnapshot, type Plan, type RadarResult, type ResearchResult } from "@/domain/contracts";
+import { pricedInView } from "@/domain/priced-in";
+import { ChatPanel, type ChatEntry } from "./ChatPanel";
+import { PricedInCard } from "./PricedInCard";
+import { RadarPanel, SessionPill, signedPercent } from "./RadarPanel";
 import { TelemetryEventSchema, type TelemetryEvent } from "@/domain/telemetry";
 import { revisionReducer, type MarketMode, type WorkbenchState } from "@/domain/revisions";
 
@@ -61,10 +65,12 @@ const DraftSchema = z.object({
   percentInputs: PercentInputsSchema.optional(),
 }).strict();
 type DraftPayload = z.infer<typeof DraftSchema>;
-const IntentResponseSchema = z.object({
-  plan: PlanSchema, changed: z.array(z.string().max(500)).max(20),
-  clarification: z.string().max(2000).nullable(), refreshMarket: z.boolean(),
-}).strict();
+const CAPTURED_THESIS = "NVIDIA and AWS announced 2 million more GPUs today, so rNVDA will rise enough by tomorrow evening to make 100 USDT net profit.";
+const GREETING: ChatEntry = {
+  id: "greeting",
+  role: "assistant",
+  content: "Tell me the trade you're weighing: the news behind it, rNVDA or rTSLA, how much, how long you'd hold, and what you want out of it. I'll set up the plan, pick evidence from the radar and run the checks. I won't tell you whether to buy.",
+};
 
 function percentToFraction(raw: string) {
   if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)) return raw;
@@ -82,17 +88,17 @@ function initialPlan(): Plan {
     category: "SPOT",
     side: "long",
     quoteCurrency: "USDT",
-    thesis: "The NVIDIA and AWS announcement means rNVDA will rise enough by tomorrow evening to make 100 USDT net profit.",
-    purchaseNotionalExcludingFee: "10000",
-    horizon: { originalText: "until tomorrow evening", endAtUTC: null, timezone: null },
-    goal: { kind: "profit_usdt", amount: "100" },
+    thesis: "",
+    purchaseNotionalExcludingFee: "1000",
+    horizon: { originalText: "", endAtUTC: null, timezone: null },
+    goal: null,
     exitAssumptions: {
       depthMultiplier: "1",
       priceHaircut: "0",
       depthOrigin: "illustrative_preset",
       haircutOrigin: "illustrative_preset",
     },
-    scenario: { bidPriceShift: "0.003", assumptionOrigin: "illustrative_preset" },
+    scenario: null,
     invalidation: null,
     feeIn: "0.001",
     feeOut: "0.001",
@@ -100,12 +106,24 @@ function initialPlan(): Plan {
   };
 }
 
+function capturedExamplePlan(): Plan {
+  return {
+    ...initialPlan(),
+    thesis: CAPTURED_THESIS,
+    purchaseNotionalExcludingFee: "10000",
+    horizon: { originalText: "until tomorrow evening", endAtUTC: null, timezone: null },
+    goal: { kind: "profit_usdt", amount: "100" },
+    scenario: { bidPriceShift: "0.003", assumptionOrigin: "illustrative_preset" },
+  };
+}
+
 function initialState(): WorkbenchState {
   return {
     plan: initialPlan(),
-    sourceText: CAPTURED_SOURCE_TEXT,
-    sourceUrl: CAPTURED_SOURCE_URL,
-    marketMode: "captured_real",
+    sourceText: "",
+    sourceUrl: "",
+    selectedHeadlineIds: [],
+    marketMode: "live",
     reportMarketMode: null,
     planRevision: 1,
     thesisRevision: 1,
@@ -240,7 +258,7 @@ function normalizeSourceText(value: string) {
   return canonical.slice(0, MAX_SOURCE_CHARS);
 }
 
-function evidenceInputsMatch(report: ResearchResult, plan: Plan, sourceText: string, retryEvidence: boolean) {
+function evidenceInputsMatch(report: ResearchResult, plan: Plan, sourceText: string, headlineIds: string[], marketMode: MarketMode, retryEvidence: boolean) {
   // A failed claim assessment must not be silently reused: re-running with unchanged inputs
   // has to reach /api/research again so the model adapter gets an explicit retry.
   if (retryEvidence) return false;
@@ -257,12 +275,12 @@ function evidenceInputsMatch(report: ResearchResult, plan: Plan, sourceText: str
     invalidation: plan.invalidation,
   });
   const normalizedSource = normalizeSourceText(sourceText);
-  const reportSource = report.sources[0]?.cleanedText ?? "";
-  const reportProvenance = report.sources[0]?.provenance ?? null;
-  // Pasted text is always user_pasted_unverified; provenance + hash guard prompt/model rotation reuse.
-  const sameProvenance = reportProvenance === "user_pasted_unverified";
-  const samePrompt = report.promptVersion === "claims-v4";
-  return samePlan && reportSource === normalizedSource && sameProvenance && samePrompt && Boolean(report.instrument && report.snapshot);
+  const reportPasted = report.sources.find((source) => source.provenance === "user_pasted_unverified")?.cleanedText ?? "";
+  const sameHeadlines = JSON.stringify([...report.headlineIds].sort()) === JSON.stringify([...headlineIds].sort());
+  // Headline IDs are mode-specific server records, so switching data mode must re-retrieve them.
+  const sameHeadlineMode = !headlineIds.length || report.snapshot?.mode === marketMode;
+  const samePrompt = report.promptVersion === PROMPT_VERSION || report.promptVersion === MULTI_SOURCE_PROMPT_VERSION;
+  return samePlan && reportPasted === normalizedSource && sameHeadlines && sameHeadlineMode && samePrompt && Boolean(report.instrument && report.snapshot);
 }
 
 function parseDraft(value: unknown): DraftPayload | null {
@@ -316,9 +334,10 @@ function feeOriginLabel(origin: string) {
 
 function sourceProvenanceLabel(provenance: string) {
   const labels: Record<string, string> = {
-    retrieved_official: "Retrieved from an approved source",
+    retrieved_official: "Full text retrieved from the issuer's official newsroom",
+    retrieved_feed_summary: "Headline and feed summary retrieved by ThesisGate; full article not read",
     user_pasted_unverified: "Pasted by you; not independently verified",
-    captured_official_excerpt: "Captured official excerpt",
+    captured_official_excerpt: "Full text captured from the issuer's official newsroom",
     synthetic_test: "Synthetic test source",
   };
   return labels[provenance] ?? humanize(provenance);
@@ -340,6 +359,31 @@ function partialKindLabel(kind: string) {
   return labels[kind] ?? humanize(kind);
 }
 
+
+async function readJson(response: Response, fallback: string) {
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error(fallback);
+  if (!response.ok) throw new Error("error" in payload && typeof payload.error === "string" ? payload.error : fallback);
+  return payload as Record<string, unknown>;
+}
+
+let entryCounter = 0;
+function entryId() {
+  entryCounter += 1;
+  return `entry-${Date.now()}-${entryCounter}`;
+}
+
+function briefSummary(report: ResearchResult | null) {
+  if (!report) return null;
+  const economics = report.economics;
+  return [
+    `Evidence verdict: ${report.evidence.status === "assessed" ? report.evidence.verdict : "not assessed"}.`,
+    economics.netPnl ? `Scenario net PnL: ${new Decimal(economics.netPnl).toFixed(2)} USDT (${economics.goalComparison}).` : null,
+    economics.breakEvenShift ? `Break-even bid shift: ${new Decimal(economics.breakEvenShift).mul(100).toFixed(2)}%.` : null,
+    economics.requiredGoalShift ? `Goal bid shift: ${new Decimal(economics.requiredGoalShift).mul(100).toFixed(2)}%.` : null,
+    report.marketContext?.moveSinceClose ? `rToken moved ${signedPercent(report.marketContext.moveSinceClose)} since the US close.` : null,
+  ].filter(Boolean).join(" ").slice(0, 1_500);
+}
 
 function IconText({ children, icon }: { children: ReactNode; icon: ReactNode }) {
   return <span className="icon-text"><span aria-hidden="true">{icon}</span>{children}</span>;
@@ -393,12 +437,7 @@ function EmptyReport({ onReplay }: { onReplay: () => void }) {
       <div className="empty-report-content">
         <div className="empty-icon" aria-hidden="true"><MagnifyingGlass size={26} weight="regular" /></div>
         <h2>Your brief will appear here</h2>
-        <p>Submit a thesis to compare its source evidence with the price move required by your objective. You get a claim verdict, a cost threshold, and the conditions that would change them.</p>
-      </div>
-      <div className="empty-report-grid" aria-label="Sample brief preview">
-        <div className="empty-preview-item"><span>Evidence verdict</span><strong>Mixed</strong><small>Sample · source-grounded</small></div>
-        <div className="empty-preview-item"><span>Break-even shift</span><strong>0.43%</strong><small>Sample · after visible costs</small></div>
-        <div className="empty-preview-item"><span>Goal threshold</span><strong>1.43%</strong><small>Sample · explicit scenario</small></div>
+        <p>Describe a trade on the left. You get three answers side by side: what the news actually supports, how far the rToken has already moved since the US close, and what your trade needs after fees and liquidity.</p>
       </div>
       <button className="button button-secondary" type="button" onClick={onReplay}>
         <IconText icon={<ArrowClockwise size={17} weight="bold" />}>Replay captured example</IconText>
@@ -550,7 +589,13 @@ function BriefOverview({ report }: { report: ResearchResult }) {
   return (
     <section className="brief-overview" aria-label="Brief at a glance">
       <div><span>Source evidence</span><strong>{evidenceStatusLabel(report.evidence.status, report.evidence.verdict)}</strong><a href="#evidence-heading">Read claim review</a></div>
-      <div><span>Scenario net result</span><strong>{formatMoney(report.economics.netPnl)}</strong><small>{readableStatus(report.economics.goalComparison)} · under your assumptions</small><a href="#economics-heading">Review trade math</a></div>
+      {report.economics.netPnl !== null ? (
+        <div><span>Scenario net result</span><strong>{formatMoney(report.economics.netPnl)}</strong><small>{readableStatus(report.economics.goalComparison)} · under your assumptions</small><a href="#economics-heading">Review trade math</a></div>
+      ) : report.economics.requiredGoalShift !== null ? (
+        <div><span>Your goal needs</span><strong>{signedPercent(report.economics.requiredGoalShift)}</strong><small>on exit bids after fees · break-even {signedPercent(report.economics.breakEvenShift)}</small><a href="#economics-heading">Review trade math</a></div>
+      ) : (
+        <div><span>Break-even needs</span><strong>{signedPercent(report.economics.breakEvenShift)}</strong><small>on exit bids after fees and depth</small><a href="#economics-heading">Review trade math</a></div>
+      )}
     </section>
   );
 }
@@ -564,7 +609,7 @@ function SourcesPanel({ report }: { report: ResearchResult }) {
       <div className="source-list">
         {report.sources.length ? report.sources.map((source, index) => (
           <details key={source.id} className="source-item">
-            <summary><span>Source {index + 1} · {source.provenance === "user_pasted_unverified" ? "Pasted passage" : suppliedUrlDomain(source.originalUrl) || "Source document"}</span><CaretDown size={18} aria-hidden="true" /></summary>
+            <summary><span>Source {index + 1} · {source.provenance === "user_pasted_unverified" ? "Pasted passage" : `${source.publisher}${source.publicationDate ? ` · ${source.publicationDate.slice(0, 10)}` : ""}`}</span><CaretDown size={18} aria-hidden="true" /></summary>
             <div className="source-details">
               <p className="source-title"><span>Full source title</span>{source.title}</p>
               <p><span>Supplied URL domain</span>{suppliedUrlDomain(source.originalUrl)}</p>
@@ -573,8 +618,8 @@ function SourcesPanel({ report }: { report: ResearchResult }) {
               <p><span>Provenance</span>{sourceProvenanceLabel(source.provenance)}</p>
               <p><span>Text received</span>{formatTimestamp(source.fetchedAt)}</p>
               <p><span>Text hash</span><code>{source.textHash.slice(0, 16)}...</code></p>
-              {source.originalUrl ? <a href={source.originalUrl} target="_blank" rel="noreferrer">Open supplied URL</a> : null}
-              <p className="source-note">Pasted text is retained as unverified source material. An official-looking URL does not authenticate it.</p>
+              {source.originalUrl ? <a href={source.originalUrl} target="_blank" rel="noreferrer">{source.provenance === "user_pasted_unverified" ? "Open supplied URL" : "Open article"}</a> : null}
+              <p className="source-note">{source.provenance === "user_pasted_unverified" ? "Pasted text is retained as unverified source material. An official-looking URL does not authenticate it." : source.provenance === "retrieved_feed_summary" ? "Only the headline and feed summary were assessed. Open the article for the full text." : "ThesisGate fetched this text itself from an allowlisted official host."}</p>
               {source.truncated ? <p className="source-note" role="note">Source text was truncated to {MAX_SOURCE_CHARS.toLocaleString("en")} characters before assessment. Content beyond this boundary was not assessed.</p> : null}
             </div>
           </details>
@@ -603,21 +648,28 @@ function RunDetails({ report }: { report: ResearchResult }) {
 }
 
 function ChangePanel({ report }: { report: ResearchResult }) {
-  const firstClaim = report.claims[0];
-  const evidenceCondition = firstClaim
-    ? `A validated passage addressing "${firstClaim.exactText.slice(0, 140)}" (currently ${readableStatus(firstClaim.status)}) could change the ${readableStatus(report.evidence.verdict)} verdict.`
-    : "A validated source passage confirming or contradicting the exact causal or forecast claim could change the verdict.";
-  const numericalCondition = report.economics.requiredGoalShift
-    ? `A snapshot where the required ${formatPercent(report.economics.requiredGoalShift)} bid shift is met, or exit depth above ${new Decimal(report.economics.exitDepthMultiplier).mul(100).toString()}% of this order-book snapshot, could change the ${readableStatus(report.economics.goalComparison)} outcome.`
-    : "A new order-book snapshot or a different explicit exit-depth assumption could change the threshold.";
+  const open = report.claims.find((claim) => claim.materiality === "material" && claim.status !== "supported")
+    ?? report.claims.find((claim) => claim.status !== "supported");
+  const evidenceCondition = open
+    ? `${open.missingEvidence ?? `A source that directly establishes "${open.exactText.slice(0, 160)}"`} That would move this claim from ${readableStatus(open.status).toLowerCase()}.`
+    : report.claims[0]
+      ? `Every assessed claim is supported. A dated source contradicting "${report.claims[0].exactText.slice(0, 140)}" would change that.`
+      : "Select a headline or paste a source so the claims can be checked.";
+  const view = pricedInView(report.marketContext, report.economics);
+  const symbol = report.marketContext?.underlying?.symbol ?? report.confirmedPlan.asset;
+  const numericalCondition = view.goal
+    ? `Your goal needs the r${report.confirmedPlan.asset} bid book about ${formatPercent(report.economics.requiredGoalShift, 2)} higher (top bid near ${new Decimal(view.goal.level).toFixed(2)} USDT${view.goal.vsClose ? `, ${signedPercent(view.goal.vsClose)} versus ${symbol}'s close` : ""}). Break-even needs ${formatPercent(report.economics.breakEvenShift, 2)}. Thinner exit liquidity raises both.`
+    : report.economics.breakEvenShift
+      ? `Break-even needs the bid book about ${formatPercent(report.economics.breakEvenShift, 2)} higher after fees and depth. Set a goal to see its threshold.`
+      : "A usable order-book snapshot is needed before thresholds can be calculated.";
   return (
     <section className="change-panel" aria-labelledby="change-heading">
       <div className="change-icon" aria-hidden="true"><Target size={21} weight="regular" /></div>
       <div>
-        <h2 id="change-heading">What could change this assessment?</h2>
+        <h2 id="change-heading">What would change this?</h2>
         <div className="change-grid">
-          <div><span>Evidence condition</span><p>{evidenceCondition}</p></div>
-          <div><span>Numerical condition</span><p>{numericalCondition} These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.</p></div>
+          <div><span>Evidence to look for</span><p>{evidenceCondition}</p></div>
+          <div><span>Price levels that matter</span><p>{numericalCondition}</p></div>
         </div>
         {report.limitations.length ? <details className="limitations"><summary>Limits of this brief <CaretDown size={17} aria-hidden="true" /></summary><ul>{report.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></details> : null}
       </div>
@@ -627,9 +679,14 @@ function ChangePanel({ report }: { report: ResearchResult }) {
 
 export default function Workbench() {
   const [state, dispatch] = useReducer(revisionReducer, undefined, initialState);
-  const [followUpDraft, setFollowUpDraft] = useState("");
   const [percentInputs, setPercentInputs] = useState<PercentInputs>({});
-  const [followUpPending, setFollowUpPending] = useState(false);
+  const [chatEntries, setChatEntries] = useState<ChatEntry[]>([GREETING]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatPending, setChatPending] = useState(false);
+  const [radar, setRadar] = useState<RadarResult | null>(null);
+  const [radarLoading, setRadarLoading] = useState(false);
+  const [radarError, setRadarError] = useState<string | null>(null);
+  const [radarNonce, setRadarNonce] = useState(0);
   const [clock, setClock] = useState(() => Date.now());
   const [savedDraft, setSavedDraft] = useState<DraftPayload | null>(null);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
@@ -647,6 +704,41 @@ export default function Workbench() {
   const followUpGenerationRef = useRef(0);
   const followUpControllerRef = useRef<AbortController | null>(null);
   const currentInputsRef = useRef({ revision: state.planRevision, mode: state.marketMode, sourceText: state.sourceText, sourceUrl: state.sourceUrl });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setRadarLoading(true);
+    setRadarError(null);
+    fetch("/api/radar", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ asset: state.plan.asset, mode: state.marketMode }),
+      signal: controller.signal,
+    })
+      .then((response) => readJson(response, "The radar could not be loaded."))
+      .then((payload) => {
+        if (controller.signal.aborted) return;
+        setRadar(RadarResultSchema.parse(payload));
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setRadar(null);
+        setRadarError(error instanceof Error ? error.message : "The radar could not be loaded.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setRadarLoading(false);
+      });
+    return () => controller.abort();
+  }, [state.plan.asset, state.marketMode, radarNonce]);
+
+  useEffect(() => {
+    // Selections are server-issued IDs for one asset and data mode; drop any the current radar no longer lists.
+    if (!radar || radar.asset !== state.plan.asset || radar.mode !== state.marketMode) return;
+    const valid = state.selectedHeadlineIds.filter((id) => radar.headlines.some((headline) => headline.id === id));
+    if (valid.length !== state.selectedHeadlineIds.length) {
+      dispatch({ type: "set-headlines", headlineIds: valid, changedMessage: "Evidence selection was cleared for the new asset or data mode." });
+    }
+  }, [radar, state.plan.asset, state.marketMode, state.selectedHeadlineIds]);
 
   const track = useCallback((event: TelemetryEvent["event"], details: Omit<Partial<TelemetryEvent>, "event" | "sessionId" | "occurredAt"> = {}) => {
     if (process.env.NEXT_PUBLIC_TELEMETRY_ENABLED !== "true" || !telemetryConsentRef.current) return;
@@ -758,7 +850,7 @@ export default function Workbench() {
     followUpGenerationRef.current += 1;
     followUpControllerRef.current?.abort();
     followUpControllerRef.current = null;
-    setFollowUpPending(false);
+    setChatPending(false);
   }
 
   function validatePlan(plan: Plan) {
@@ -811,6 +903,7 @@ export default function Workbench() {
       let instrument: Instrument = baseReport.instrument as Instrument;
       let snapshot: MarketSnapshot = baseReport.snapshot as MarketSnapshot;
       let recomputeToken = baseReport.recomputeToken;
+      let marketContext: MarketContext | null = baseReport.marketContext;
       const sourceReference = canonicalSuppliedUrl(nextSourceUrl);
       let marketDurationMs: number | null = null;
       try {
@@ -829,6 +922,8 @@ export default function Workbench() {
           instrument = parsedInstrument.data;
           snapshot = parsedSnapshot.data;
           recomputeToken = marketPayload.recomputeToken;
+          const parsedContext = MarketContextSchema.safeParse(marketPayload.marketContext);
+          marketContext = parsedContext.success ? parsedContext.data : null;
           marketDurationMs = Math.max(0, Math.round(performance.now() - marketStartedAt));
         }
 
@@ -858,7 +953,8 @@ export default function Workbench() {
           instrument,
           snapshot,
           recomputeToken,
-          sources: baseReport.sources.map((source, index) => index === 0
+          marketContext,
+          sources: baseReport.sources.map((source, index) => index === 0 && source.provenance === "user_pasted_unverified"
             ? {
                 ...source,
                 originalUrl: sourceReference,
@@ -902,14 +998,15 @@ export default function Workbench() {
     })();
   }
 
-  function submitResearch(overrides?: { plan?: Plan; sourceText?: string; sourceUrl?: string; marketMode?: MarketMode; inputRevision?: number; forceMarketRefresh?: boolean; retryEvidence?: boolean }) {
+  function submitResearch(overrides?: { plan?: Plan; sourceText?: string; sourceUrl?: string; headlineIds?: string[]; marketMode?: MarketMode; inputRevision?: number; forceMarketRefresh?: boolean; retryEvidence?: boolean }) {
     const nextPlan = overrides?.plan ?? state.plan;
     if (!validatePlan(nextPlan)) return;
     const nextSource = overrides?.sourceText ?? state.sourceText;
     const nextUrl = overrides?.sourceUrl ?? state.sourceUrl;
+    const nextHeadlines = overrides?.headlineIds ?? state.selectedHeadlineIds;
     const nextMode = overrides?.marketMode ?? state.marketMode;
     const inputRevision = overrides?.inputRevision ?? state.planRevision;
-    const canReuseEvidence = Boolean(state.report && state.report.recomputeToken && evidenceInputsMatch(state.report, nextPlan, nextSource, Boolean(overrides?.retryEvidence)));
+    const canReuseEvidence = Boolean(state.report && state.report.recomputeToken && evidenceInputsMatch(state.report, nextPlan, nextSource, nextHeadlines, nextMode, Boolean(overrides?.retryEvidence)));
     if (canReuseEvidence) {
       submitEconomics(nextPlan, nextMode, inputRevision, Boolean(overrides?.forceMarketRefresh) || state.report?.snapshot?.mode !== nextMode, nextUrl);
       return;
@@ -924,6 +1021,7 @@ export default function Workbench() {
         plan: nextPlan,
         sourceText: nextSource.trim() ? nextSource : null,
         sourceUrl: nextUrl.trim() ? nextUrl : null,
+        headlineIds: nextHeadlines,
         marketMode: nextMode,
         inputRevision,
       }),
@@ -1041,21 +1139,59 @@ export default function Workbench() {
     submitResearch({ retryEvidence: unchangedFailedEvidence });
   }
 
-  function replayCapturedExample() {
+  async function replayCapturedExample() {
     invalidateFollowUp();
     setPercentInputs({});
-    const replayPlan = initialPlan();
-    dispatch({ type: "set-plan", plan: replayPlan, changedMessage: "Captured example loaded. The market snapshot is historical replay data.", evidenceChanged: true });
-    dispatch({ type: "set-source-text", sourceText: CAPTURED_SOURCE_TEXT });
-    dispatch({ type: "set-source-url", sourceUrl: CAPTURED_SOURCE_URL });
+    const replayPlan = capturedExamplePlan();
+    let headlineIds: string[] = [];
+    try {
+      const response = await fetch("/api/radar", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ asset: replayPlan.asset, mode: "captured_real" }),
+      });
+      const captured = RadarResultSchema.parse(await readJson(response, "The captured example could not be loaded."));
+      headlineIds = captured.headlines.slice(0, 1).map((headline) => headline.id);
+    } catch {
+      headlineIds = [];
+    }
+    dispatch({ type: "set-plan", plan: replayPlan, changedMessage: "Captured example loaded: the Sep 8, 2026 after-hours book with the NVIDIA/AWS release as evidence.", evidenceChanged: true });
+    dispatch({ type: "set-source-text", sourceText: headlineIds.length ? "" : CAPTURED_SOURCE_TEXT });
+    dispatch({ type: "set-source-url", sourceUrl: headlineIds.length ? "" : CAPTURED_SOURCE_URL });
+    dispatch({ type: "set-headlines", headlineIds, changedMessage: null });
     dispatch({ type: "set-market-mode", marketMode: "captured_real", changedMessage: "Captured example selected. No live fallback is used." });
-    submitResearch({ plan: replayPlan, sourceText: CAPTURED_SOURCE_TEXT, sourceUrl: CAPTURED_SOURCE_URL, marketMode: "captured_real", inputRevision: state.planRevision + 3 });
+    setChatEntries((entries) => [...entries, {
+      id: entryId(),
+      role: "assistant",
+      content: "Loaded the captured Sep 8 example: someone reads the NVIDIA/AWS GPU release after the US close and wants 100 USDT from 10,000 USDT of rNVDA by tomorrow evening. Try asking “what if I only put in 3k?” or “what if exit liquidity halves?”",
+    }]);
+    submitResearch({
+      plan: replayPlan,
+      sourceText: headlineIds.length ? "" : CAPTURED_SOURCE_TEXT,
+      sourceUrl: headlineIds.length ? "" : CAPTURED_SOURCE_URL,
+      headlineIds,
+      marketMode: "captured_real",
+      inputRevision: state.planRevision + 4 + (JSON.stringify(headlineIds) === JSON.stringify(state.selectedHeadlineIds) ? -1 : 0),
+    });
   }
 
-  async function applyFollowUp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const message = followUpDraft.trim();
-    if (!message || isBusy || followUpControllerRef.current || !validatePlan(state.plan)) return;
+  function toggleHeadline(id: string) {
+    const selected = state.selectedHeadlineIds.includes(id)
+      ? state.selectedHeadlineIds.filter((item) => item !== id)
+      : [...state.selectedHeadlineIds, id].slice(0, MAX_SELECTED_HEADLINES);
+    invalidateFollowUp();
+    dispatch({ type: "set-headlines", headlineIds: selected, changedMessage: "Evidence selection changed. The claim review will run again on submit." });
+  }
+
+  async function sendChat(message: string) {
+    const text = message.trim();
+    if (!text || chatPending || followUpControllerRef.current) return;
+    const userEntry: ChatEntry = { id: entryId(), role: "user", content: text.slice(0, 2_000) };
+    const history = [...chatEntries.filter((entry) => entry.id !== GREETING.id), userEntry]
+      .slice(-12)
+      .map(({ role, content }) => ({ role, content: content.slice(0, 2_000) }));
+    setChatEntries((entries) => [...entries, userEntry]);
+    setChatDraft("");
     const controller = new AbortController();
     followUpControllerRef.current = controller;
     const generation = ++followUpGenerationRef.current;
@@ -1069,42 +1205,66 @@ export default function Workbench() {
         && current.revision === baseInputs.revision && current.mode === baseInputs.mode
         && current.sourceText === baseInputs.sourceText && current.sourceUrl === baseInputs.sourceUrl;
     };
-    setFollowUpPending(true);
+    setChatPending(true);
     try {
-      const response = await fetch("/api/intent", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message, plan: state.plan }), signal: controller.signal,
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          messages: history,
+          plan: state.plan,
+          marketMode: state.marketMode,
+          headlines: (radar?.asset === state.plan.asset && radar.mode === state.marketMode ? radar.headlines : [])
+            .map((headline) => ({ id: headline.id, title: headline.title, publisher: headline.publisher, publishedAt: headline.publishedAt ?? headline.publishedDate })),
+          selectedHeadlineIds: state.selectedHeadlineIds,
+          hasSourceText: Boolean(state.sourceText.trim()),
+          briefSummary: reportIsCurrent ? briefSummary(state.report) : null,
+        }),
+        signal: controller.signal,
       });
-      const result = IntentResponseSchema.parse(await responsePayload(response, "The follow-up could not be parsed."));
+      const result = ChatResultSchema.parse(await readJson(response, "That message could not be processed."));
       if (!isCurrent()) return;
-      if (result.changed.length || result.refreshMarket) {
-        const nextPlan = result.plan;
-        const planChanged = JSON.stringify(nextPlan) !== JSON.stringify(state.plan);
-        const evidenceChanged = nextPlan.asset !== state.plan.asset || nextPlan.thesis !== state.plan.thesis
-          || JSON.stringify(nextPlan.horizon) !== JSON.stringify(state.plan.horizon) || nextPlan.invalidation !== state.plan.invalidation;
-        if (planChanged) {
-          setPercentInputs({});
-          commitPlan(nextPlan, `Changed: ${result.changed.join(", ")}.`, evidenceChanged);
-        }
-        if (result.refreshMarket) {
-          invalidateFollowUp();
-          dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Changed: live market refresh requested." });
-        }
-        const inputRevision = baseInputs.revision + (planChanged ? 1 : 0);
-        track("follow_up_applied", { marketMode: result.refreshMarket ? "live" : state.marketMode, reusedEvidence: Boolean(state.report && !evidenceChanged) });
-        if (result.refreshMarket || evidenceChanged || (state.report && planChanged)) {
-          submitResearch({ plan: nextPlan, marketMode: result.refreshMarket ? "live" : state.marketMode, inputRevision, forceMarketRefresh: result.refreshMarket });
-        }
-        setFollowUpDraft("");
+      setChatEntries((entries) => [...entries, { id: entryId(), role: "assistant", content: result.reply, changed: result.changed, origin: result.origin }]);
+      let revision = state.planRevision;
+      const planChanged = JSON.stringify(result.plan) !== JSON.stringify(state.plan);
+      if (planChanged) {
+        const evidenceChanged = result.plan.asset !== state.plan.asset || result.plan.thesis !== state.plan.thesis
+          || JSON.stringify(result.plan.horizon) !== JSON.stringify(state.plan.horizon) || result.plan.invalidation !== state.plan.invalidation;
+        setPercentInputs({});
+        commitPlan(result.plan, `Changed: ${result.changed.join(", ") || "plan updated"}.`, evidenceChanged);
+        revision += 1;
       }
-      if (result.clarification) dispatch({ type: "set-changed-message", changedMessage: result.clarification });
+      let headlineIds = state.selectedHeadlineIds;
+      const assetChanged = result.plan.asset !== state.plan.asset;
+      if (assetChanged && headlineIds.length) {
+        headlineIds = [];
+        dispatch({ type: "set-headlines", headlineIds, changedMessage: null });
+        revision += 1;
+      } else if (result.selectHeadlineIds && JSON.stringify(result.selectHeadlineIds) !== JSON.stringify(headlineIds)) {
+        headlineIds = result.selectHeadlineIds;
+        dispatch({ type: "set-headlines", headlineIds, changedMessage: null });
+        revision += 1;
+      }
+      track("follow_up_applied", { marketMode: result.action === "refresh_market" ? "live" : state.marketMode, reusedEvidence: false });
+      if (result.action === "refresh_market") {
+        const liveHeadlines = state.marketMode === "live" ? headlineIds : [];
+        if (liveHeadlines !== headlineIds) {
+          dispatch({ type: "set-headlines", headlineIds: liveHeadlines, changedMessage: null });
+          revision += headlineIds.length ? 1 : 0;
+        }
+        dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Changed: live market refresh requested." });
+        setRadarNonce((value) => value + 1);
+        submitResearch({ plan: result.plan, headlineIds: liveHeadlines, marketMode: "live", inputRevision: revision, forceMarketRefresh: true });
+      } else if (result.action === "run_brief") {
+        submitResearch({ plan: result.plan, headlineIds, inputRevision: revision });
+      }
     } catch (error) {
       if (!isCurrent()) return;
-      dispatch({ type: "set-changed-message", changedMessage: error instanceof Error ? error.message : "The follow-up could not be parsed." });
+      setChatEntries((entries) => [...entries, { id: entryId(), role: "assistant", content: error instanceof Error ? error.message : "That message could not be processed." }]);
     } finally {
       if (generation === followUpGenerationRef.current) {
         followUpControllerRef.current = null;
-        setFollowUpPending(false);
+        setChatPending(false);
       }
     }
   }
@@ -1123,6 +1283,19 @@ export default function Workbench() {
   }
 
   const goalKind = state.plan.goal?.kind ?? "none";
+  const radarContext: MarketContext | null = radar?.asset === state.plan.asset && radar.mode === state.marketMode ? radar.marketContext : null;
+  const topHeadline = radar?.asset === state.plan.asset ? radar.headlines.find((headline) => headline.kind === "issuer_official") ?? radar.headlines[0] : undefined;
+  const otherAsset = state.plan.asset === "NVDA" ? "TSLA" : "NVDA";
+  const chatSuggestions = chatPending
+    ? []
+    : state.report && reportIsCurrent
+      ? ["What if I only put in half?", "What if exit liquidity halves?", "What if bids only rise 1%?", state.marketMode === "live" ? "Refresh with live prices" : "Use live prices instead"]
+      : state.plan.thesis.trim()
+        ? ["Run the checks", `Switch to r${otherAsset}`]
+        : [
+            topHeadline ? `Put 2k into r${state.plan.asset} on "${topHeadline.title.length > 70 ? `${topHeadline.title.slice(0, 68).trimEnd()}…` : topHeadline.title}", hold until tomorrow's open, I want 40 USDT` : `Put 2k into r${state.plan.asset} and hold until tomorrow's open, I want 40 USDT`,
+            `Switch to r${otherAsset}`,
+          ];
 
   return (
     <main className="app-shell" data-theme="cobalt">
@@ -1138,7 +1311,7 @@ export default function Workbench() {
           </nav>
           <div className="header-status">
             <span className="status-led" aria-hidden="true" />
-            <span>{state.marketMode === "captured_real" ? "Captured data" : "Live data selected"}</span>
+            <span>{state.marketMode === "captured_real" ? "Captured replay" : "Live data"}</span>
             <span className="header-divider" aria-hidden="true" />
             <span>SPOT only</span>
           </div>
@@ -1147,17 +1320,33 @@ export default function Workbench() {
 
       <section className="intro-block" aria-labelledby="page-title">
         <div>
-          <p className="eyebrow">Source plus scenario</p>
+          <p className="eyebrow">rNVDA · rTSLA · Bitget Reality SPOT</p>
           <h1 id="page-title">Stress-test the trade behind the headline.</h1>
-          <p className="intro-copy">Compare source evidence with the costs, price thresholds, and unknowns of a stock-linked token using an explicit scenario, not a forecast.</p>
+          <p className="intro-copy">Stock tokens trade 24/7, even when Wall Street is closed. Describe the trade you&apos;re weighing: ThesisGate pulls the news, checks what the sources actually say, shows how far the token has already moved since the US close, and works out what your trade needs after fees and liquidity.</p>
         </div>
-        <div className="intro-note"><Info size={17} weight="bold" aria-hidden="true" /><span>The human makes the trading decision. This tool does not place orders.</span></div>
+        <aside className="intro-preview" aria-label="Market right now">
+          <p className="panel-kicker">{state.marketMode === "live" ? "Right now" : "Captured replay"} · r{state.plan.asset}</p>
+          {radarContext ? (
+            <>
+              <SessionPill context={radarContext} />
+              <dl className="intro-preview-metrics">
+                <div><dt>r{state.plan.asset} mid</dt><dd>{radarContext.rToken ? new Decimal(radarContext.rToken.mid).toFixed(2) : "—"}</dd></div>
+                <div><dt>{radarContext.underlying?.symbol ?? state.plan.asset} last close</dt><dd>{radarContext.underlying ? new Decimal(radarContext.underlying.lastClose).toFixed(2) : "—"}</dd></div>
+                <div><dt>Moved since close</dt><dd>{signedPercent(radarContext.moveSinceClose)}</dd></div>
+              </dl>
+            </>
+          ) : <p className="intro-preview-caption">{radarLoading ? "Loading market context…" : radarError ?? "Market context unavailable."}</p>}
+          <div className="intro-note"><Info size={17} weight="bold" aria-hidden="true" /><span>You make the trading decision. ThesisGate never places orders or predicts prices.</span></div>
+        </aside>
       </section>
 
       <div id="workbench" className="workbench-layout">
+        <div className="plan-column">
+        <ChatPanel entries={chatEntries} draft={chatDraft} pending={chatPending} suggestions={chatSuggestions} onDraftChange={setChatDraft} onSend={(message) => { void sendChat(message); }} />
+        <RadarPanel radar={radar?.asset === state.plan.asset && radar.mode === state.marketMode ? radar : null} loading={radarLoading} error={radarError} selected={state.selectedHeadlineIds} maxSelected={MAX_SELECTED_HEADLINES} now={clock} onToggle={toggleHeadline} onRefresh={() => setRadarNonce((value) => value + 1)} />
         <form id="plan" className="plan-panel" onSubmit={handleSubmit} noValidate>
           <div className="panel-heading">
-            <div><span className="panel-kicker">Your plan</span><h2>Make the claim precise.</h2></div>
+            <div><span className="panel-kicker">Your plan</span><h2>Check or edit the details.</h2></div>
             <div className="plan-heading-actions">
               <span className="panel-index" aria-hidden="true">01</span>
               <button className="plan-toggle" type="button" aria-controls="plan-fields" aria-expanded={planExpanded} onClick={() => setPlanExpanded((expanded) => !expanded)}>
@@ -1167,8 +1356,7 @@ export default function Workbench() {
             </div>
           </div>
           <div id="plan-fields" className={`plan-fields ${planExpanded ? "" : "plan-fields-collapsed"}`}>
-            <p className="panel-intro">Start with the exact statement you want to test. Paste the relevant source passage below.</p>
-            <p className="example-label" role="note"><Info size={14} weight="bold" aria-hidden="true" /> Example — prefilled NVIDIA/AWS thesis below. Edit to test your own idea.</p>
+            <p className="panel-intro">The conversation fills these in. Every field stays editable, and your edits take precedence.</p>
             <div className="draft-toolbar">
               <div><strong>Local draft</strong><span>Stored in this browser only.</span></div>
               <div className="draft-actions">
@@ -1188,9 +1376,9 @@ export default function Workbench() {
             <span id="thesis-help" className="field-help">Separate what the source says from what you expect price to do.</span>
             <FieldError id="thesis-error" message={planErrors.thesis} />
 
-            <label htmlFor="source-text">Source text <span className="required">required for evidence</span></label>
+            <label htmlFor="source-text">Extra source text <span className="optional">optional, added to radar evidence</span></label>
             <textarea id="source-text" value={state.sourceText} onChange={(event) => { invalidateFollowUp(); dispatch({ type: "set-source-text", sourceText: event.target.value }); }} rows={6} maxLength={60000} aria-describedby="source-text-help" />
-            <span id="source-text-help" className="field-help">Paste the relevant passage. URL fetching is currently off while source safety checks are being completed.</span>
+            <span id="source-text-help" className="field-help">{state.selectedHeadlineIds.length ? `${state.selectedHeadlineIds.length} radar headline${state.selectedHeadlineIds.length === 1 ? "" : "s"} selected as evidence.` : "No radar headline selected. Pick one above or paste a passage here."}</span>
 
             <label htmlFor="source-url">Source URL <span className="optional">optional reference</span></label>
             <input id="source-url" type="url" value={state.sourceUrl} onChange={(event) => { invalidateFollowUp(); dispatch({ type: "set-source-url", sourceUrl: event.target.value }); }} placeholder="https://official-source.example/article" />
@@ -1271,8 +1459,8 @@ export default function Workbench() {
             <fieldset className="mode-fieldset">
             <legend>Market data mode</legend>
             <div className="mode-options">
-              <label className={`mode-option ${state.marketMode === "captured_real" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "captured_real"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "captured_real", changedMessage: "Captured example selected. It is historical replay data." }); }} /><span><strong>Captured example</strong><small>Sep 8 selection snapshot</small></span></label>
-              <label className={`mode-option ${state.marketMode === "live" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "live"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market data selected. Failed refreshes will not fall back to fixtures." }); }} /><span><strong>Attempt live data</strong><small>Public Bitget market endpoints</small></span></label>
+              <label className={`mode-option ${state.marketMode === "live" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "live"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market data selected. Failed refreshes will not fall back to fixtures." }); }} /><span><strong>Live</strong><small>Bitget book, US quote, current headlines</small></span></label>
+              <label className={`mode-option ${state.marketMode === "captured_real" ? "mode-selected" : ""}`}><input type="radio" name="market-mode" checked={state.marketMode === "captured_real"} onChange={() => { invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "captured_real", changedMessage: "Captured example selected. It is historical replay data." }); }} /><span><strong>Captured replay</strong><small>Sep 8, 2026 after-hours snapshot</small></span></label>
             </div>
             </fieldset>
 
@@ -1282,10 +1470,11 @@ export default function Workbench() {
             <p className="button-note"><Info size={14} weight="bold" aria-hidden="true" /> No order placement. No price forecast.</p>
           </div>
         </form>
+        </div>
 
         <section id="report" className="report-column" aria-live="polite" aria-busy={isBusy}>
           <div className="report-header">
-            <div><span className="panel-kicker">Research brief</span><h2 ref={reportHeadingRef} tabIndex={-1}>Keep the conclusions distinct.</h2></div>
+            <div><span className="panel-kicker">Research brief</span><h2 ref={reportHeadingRef} tabIndex={-1}>Evidence, timing and trade math, kept separate.</h2></div>
             <span className="panel-index" aria-hidden="true">02</span>
             <div className="report-actions">
               <a className="report-plan-link" href="#plan" onClick={() => setPlanExpanded(true)}>Edit plan</a>
@@ -1299,6 +1488,7 @@ export default function Workbench() {
             <>
               {!reportIsCurrent ? <div className="stale-banner" role="status"><Info size={16} weight="bold" aria-hidden="true" /><span>This report is from an earlier plan or market mode. Submit again before exporting.</span></div> : null}
               <BriefOverview report={state.report} />
+              <PricedInCard context={state.report.marketContext} economics={state.report.economics} asset={state.report.confirmedPlan.asset} />
               {state.report.evidence.status !== "assessed" ? <button className="button button-secondary" type="button" disabled={isBusy} onClick={() => submitResearch({ retryEvidence: true })}>Retry evidence assessment</button> : null}
               <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} requestedMode={state.reportMarketMode ?? state.marketMode} now={clock} onRefresh={() => { if (!validatePlan(state.plan)) return; invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market refresh requested." }); track("live_refresh_requested", { marketMode: "live" }); submitResearch({ marketMode: "live", forceMarketRefresh: true }); }} isRefreshing={isBusy} /></div>
               <ScenarioTable report={state.report} />
@@ -1309,14 +1499,9 @@ export default function Workbench() {
             </>
           ) : <EmptyReport onReplay={replayCapturedExample} />}
 
-          <form className="follow-up" onSubmit={applyFollowUp}>
-            <label htmlFor="follow-up">Follow-up edit</label>
-            <div className="follow-up-row"><input id="follow-up" maxLength={2000} value={followUpDraft} onChange={(event) => { invalidateFollowUp(); setFollowUpDraft(event.target.value); }} placeholder="Try: Halve the amount" /><button className="button button-secondary" type="submit" disabled={isBusy || followUpPending || !followUpDraft.trim()}><IconText icon={<ArrowClockwise size={16} weight="bold" />}>{followUpPending ? "Applying edit" : "Apply edit"}</IconText></button></div>
-            <span className="field-help">Supported edits update only the fields they name. Ambiguous percentage references ask for clarification.</span>
-          </form>
         </section>
       </div>
-      <footer className="app-footer"><span>ThesisGate is a conditional research tool.</span><span>Market snapshots are not fills.</span><span>Model and source status stays visible.</span></footer>
+      <footer className="app-footer"><span>ThesisGate is a research tool, not a broker or a forecast.</span><span>Order-book snapshots are not fills.</span><span>Every source, timestamp and assumption stays visible.</span></footer>
     </main>
   );
 }

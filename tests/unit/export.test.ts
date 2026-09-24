@@ -48,6 +48,8 @@ function report(): ResearchResult {
     instrument,
     snapshot,
     recomputeToken: null,
+    headlineIds: [],
+    marketContext: null,
     sources: [
       {
         id: "src_test1234",
@@ -102,7 +104,7 @@ describe("deterministic export", () => {
     expect(md).toContain("Invalidation:");
     expect(md).toContain("Visible entry capacity");
     expect(md).toContain("Visible exit capacity");
-    expect(md).toContain("What could change this assessment");
+    expect(md).toContain("What would change this");
   });
 
   it("json export retains all validated audit data while stripping a real recompute token", () => {

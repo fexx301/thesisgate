@@ -49,6 +49,7 @@ yarn-error.log*
 !/evals/practitioner-validation-sheet.md
 !/evals/scoring-rubric.md
 !/public/finished-brief/nvda-captured.md
+!/deploy/README.md
 
 # Publish reviewed evidence only; raw eval runs and credentials stay ignored.
 /evidence/*
@@ -82,3 +83,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# production secrets for the self-hosted deploy stay on the server
+/deploy/production.env
+/deploy/*.secret

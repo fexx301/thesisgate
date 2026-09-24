@@ -49,3 +49,15 @@ describe("local rate limits", () => {
     expect(() => checkRouteRateLimit("overflow", "telemetry")).not.toThrow();
   });
 });
+
+describe("quota endpoint transport", () => {
+  it("allows plain HTTP only to hosts that are not reachable from the public internet", async () => {
+    const { isPrivateServiceHost } = await import("../../src/server/quota");
+    expect(isPrivateServiceHost("quota")).toBe(true);
+    expect(isPrivateServiceHost("127.0.0.1")).toBe(true);
+    expect(isPrivateServiceHost("localhost")).toBe(true);
+    expect(isPrivateServiceHost("quota.example.com")).toBe(false);
+    expect(isPrivateServiceHost("10.0.0.5")).toBe(false);
+    expect(isPrivateServiceHost("203.0.113.9")).toBe(false);
+  });
+});

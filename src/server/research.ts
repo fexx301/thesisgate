@@ -2,19 +2,24 @@ import "server-only";
 
 import {
   FORMULA_VERSION,
-  PROMPT_VERSION,
+  MAX_MODEL_SOURCE_COUNT,
   ResearchResultSchema,
   SCHEMA_VERSION,
   type PartialError,
   type ResearchRequest,
   type ResearchResult,
+  type SourceDocument,
 } from "@/domain/contracts";
+import { buildMarketContext } from "@/domain/priced-in";
 import { calculateEconomics, missingEconomics } from "@/domain/economics";
 import { economicsInputHash, evidenceInputHash } from "@/domain/revisions";
 import { withMarketModeLimitations } from "@/domain/limitations";
 import { getMarket, MarketAdapterError } from "./bitget";
 import { newId } from "./identifiers";
-import { assessClaims, ModelAdapterError, unavailableEvidence } from "./model";
+import { sourceFromHeadline } from "./articles";
+import { cachedHeadline } from "./feeds";
+import { assessClaims, claimPromptFor, ModelAdapterError, unavailableEvidence } from "./model";
+import { CAPTURED_AT_UTC, getUnderlyingQuote } from "./underlying";
 import { assertRecomputeSigningConfigured, createRecomputeToken } from "./recompute";
 import { createPastedSourceDocument, sourceUrlStatus } from "./sources";
 import type { RequestContext } from "./http";
@@ -37,13 +42,33 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
   const source = request.sourceText
     ? createPastedSourceDocument({ text: request.sourceText, originalUrl: request.sourceUrl, fetchedAt: generatedAt })
     : null;
-  const sources = source ? [source] : [];
   const partialErrors: PartialError[] = [];
-  if (!source) {
+  const retrievedSources: SourceDocument[] = [];
+  const headlineIds: string[] = [];
+  const retrievals = await Promise.all(request.headlineIds.map(async (id) => {
+    const headline = cachedHeadline(id);
+    if (!headline || headline.asset !== request.plan.asset || headline.mode !== request.marketMode) return { id, result: null };
+    return { id, result: await sourceFromHeadline(headline, generatedAt) };
+  }));
+  for (const { id, result } of retrievals) {
+    if (!result) {
+      partialErrors.push(errorFor(
+        "source_unavailable",
+        "A selected headline is no longer available on the server or belongs to another asset or data mode.",
+        "Reload the headlines and select the evidence again.",
+      ));
+      continue;
+    }
+    headlineIds.push(id);
+    retrievedSources.push(result.source);
+    if (result.warning) partialErrors.push(errorFor("source_unavailable", result.warning, "The summary is labeled as such; open the article to read the full text."));
+  }
+  const sources = [...(source ? [source] : []), ...retrievedSources].slice(0, MAX_MODEL_SOURCE_COUNT);
+  if (!sources.length) {
     partialErrors.push(errorFor(
       "source_missing",
-      "No usable source text was supplied, so the evidence assessment is not available.",
-      "Paste the relevant source text. A URL alone is not fetched in this first slice.",
+      "No evidence was supplied, so the claim review is not available.",
+      "Select one or more headlines, or paste the relevant source text.",
     ));
   }
   if (request.sourceUrl) {
@@ -56,7 +81,7 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
       ));
     }
   }
-  if (request.sourceUrl && !source) {
+  if (request.sourceUrl && !source && !retrievedSources.length) {
     partialErrors.push(errorFor(
       "source_unavailable",
       "The source URL was retained as an unverified reference, but URL retrieval is disabled.",
@@ -77,18 +102,18 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
       "Add a horizon such as 'until tomorrow evening' for a complete brief. The static book does not model time.",
     ));
   }
-  if (source?.truncated) {
+  if (sources.some((item) => item.truncated)) {
     partialErrors.push(errorFor(
       "source_unavailable",
-      "The pasted source exceeded 15,000 characters and was truncated before assessment.",
+      "A source exceeded 15,000 characters and was truncated before assessment.",
       "Paste the most relevant bounded passage, or split sources so cited sections are fully included.",
     ));
   }
 
   let evidence = unavailableEvidence(
-    source
+    sources.length
       ? "Runtime claim assessment is not available until the server model adapter is configured. The supplied source remains visible and economics is independent."
-      : "Evidence cannot be assessed without usable source text and a thesis.",
+      : "Evidence cannot be assessed without a selected headline or pasted source, and a thesis.",
   );
   let claims = [] as ResearchResult["claims"];
   let modelId: string | null = null;
@@ -106,15 +131,24 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
       return { market: null, error, durationMs: Date.now() - marketStartedAt };
     }
   })();
-  const evidencePromise = (async () => {
-    if (!source || !request.plan.thesis.trim()) return { result: null, error: null };
+  const underlyingPromise = (async () => {
     try {
-      return { result: await assessClaims(request.plan, sources, context), error: null };
+      return { quote: await getUnderlyingQuote(request.plan.asset, request.marketMode, new Date()), warning: null };
+    } catch (error) {
+      return { quote: null, warning: `Underlying quote unavailable: ${error instanceof Error ? error.message : "request failed"}` };
+    }
+  })();
+  const evidencePromise = (async () => {
+    if (!sources.length || !request.plan.thesis.trim()) return { result: null, error: null };
+    try {
+      // A captured replay is judged as of its capture instant, so "today" in a thesis means that day.
+      const asOf = request.marketMode === "captured_real" ? new Date(CAPTURED_AT_UTC) : new Date();
+      return { result: await assessClaims(request.plan, sources, context, asOf), error: null };
     } catch (error) {
       return { result: null, error };
     }
   })();
-  const [marketOutcome, evidenceOutcome] = await Promise.all([marketPromise, evidencePromise]);
+  const [marketOutcome, evidenceOutcome, underlyingOutcome] = await Promise.all([marketPromise, evidencePromise, underlyingPromise]);
 
   let instrument = null;
   let snapshot = null;
@@ -187,13 +221,23 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     evidence = unavailableEvidence(adapterError.message);
   }
 
-  const evidenceHash = await evidenceInputHash(request.plan, sources, PROMPT_VERSION, modelId ?? "runtime-model-unavailable");
+  const promptVersion = evidenceOutcome.result?.promptVersion ?? claimPromptFor(request.plan, sources).version;
+  const evidenceHash = await evidenceInputHash(request.plan, sources, promptVersion, modelId ?? "runtime-model-unavailable");
+  const marketContext = buildMarketContext({
+    asset: request.plan.asset,
+    mode: request.marketMode,
+    // Captured replay is judged at its capture instant, so the session reflects that moment.
+    observedAt: snapshot && request.marketMode === "captured_real" ? snapshot.receivedAt : new Date().toISOString(),
+    underlying: underlyingOutcome.quote,
+    snapshot,
+    warnings: underlyingOutcome.warning ? [underlyingOutcome.warning] : [],
+  });
   const economicsHash = instrument && snapshot
     ? await economicsInputHash(request.plan, instrument, snapshot, FORMULA_VERSION)
     : null;
   const recomputeToken = instrument && snapshot ? createRecomputeToken(instrument, snapshot) : null;
   const limitations = withMarketModeLimitations(BASE_LIMITATIONS, request.marketMode);
-  if (source?.provenance === "user_pasted_unverified") {
+  if (source) {
     limitations.push("Pasted source text is user-supplied and unverified, even when an official-looking URL is present.");
   }
   if (!modelId) {
@@ -206,7 +250,7 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     reportRevision: request.inputRevision,
     schemaVersion: SCHEMA_VERSION,
     formulaVersion: FORMULA_VERSION,
-    promptVersion: PROMPT_VERSION,
+    promptVersion,
     evidenceInputHash: evidenceHash,
     economicsInputHash: economicsHash,
     modelId,
@@ -215,6 +259,8 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     snapshot,
     recomputeToken,
     sources,
+    headlineIds,
+    marketContext,
     claims,
     evidence,
     economics,

@@ -386,10 +386,10 @@ export function calculateEconomics(input: EconomicsInput): EconomicsResult {
   // Out-of-range notice: thresholds beyond the ±3% preset band were computed, not simulated row-by-row.
   const SUPPORTED_SHIFT = new Decimal("0.03");
   if (breakEvenShift.abs().gt(SUPPORTED_SHIFT)) {
-    warnings.push(`Break-even shift ${breakEvenShift.toString()} is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
+    warnings.push(`Break-even shift ${breakEvenShift.mul(100).toDecimalPlaces(2).toString()}% is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
   }
   if (requiredGoalShift !== null && requiredGoalShift.abs().gt(SUPPORTED_SHIFT)) {
-    warnings.push(`Goal threshold ${requiredGoalShift.toString()} is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
+    warnings.push(`Goal threshold ${requiredGoalShift.mul(100).toDecimalPlaces(2).toString()}% is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
   }
 
   return {

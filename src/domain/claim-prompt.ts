@@ -33,3 +33,47 @@ export function claimAssessmentPrompt(plan: Plan, sources: SourceDocument[]) {
     sourcePacket,
   ].join("\n\n");
 }
+
+function provenanceNote(provenance: SourceDocument["provenance"]) {
+  switch (provenance) {
+    case "retrieved_official":
+      return "full text retrieved by the application from the issuer's official newsroom";
+    case "captured_official_excerpt":
+      return "full text captured earlier from the issuer's official newsroom";
+    case "retrieved_feed_summary":
+      return "headline and feed summary only, retrieved by the application; the full article was not read";
+    case "user_pasted_unverified":
+      return "pasted by the user; origin not verified";
+    default:
+      return "synthetic test text";
+  }
+}
+
+/**
+ * Used when the application retrieved sources itself. It keeps every rule of the frozen benchmark
+ * prompt and adds dated provenance, so the model can separate an old announcement that is circulating
+ * again from a new event, and can weigh a feed summary below an official release.
+ */
+export function multiSourceClaimPrompt(plan: Plan, sources: SourceDocument[], now = new Date()) {
+  const sourcePacket = sources
+    .map((source) => [
+      `SOURCE_ID: ${source.id}`,
+      `SOURCE_PUBLISHER: ${source.publisher}`,
+      `SOURCE_PUBLISHED: ${source.publicationDate ?? "unknown"}`,
+      `SOURCE_PROVENANCE: ${source.provenance} (${provenanceNote(source.provenance)})`,
+      "SOURCE_TEXT_START",
+      source.cleanedText,
+      "SOURCE_TEXT_END",
+    ].join("\n"))
+    .join("\n\n");
+  const base = claimAssessmentPrompt(plan, []).split("\n\n");
+  const rules = base.slice(0, base.findIndex((line) => line.startsWith("THESIS:")));
+  return [
+    ...rules,
+    `Today is ${now.toISOString().slice(0, 10)}. Compare each source's publication date with the thesis. If the thesis treats an announcement as new but the source was published earlier, say the source shows an earlier announcement; do not call it a new event.`,
+    "Each exactText must be a complete, self-contained sentence a trader can read alone, for example \"The announcement will cause rNVDA to rise before Monday's open\", never a fragment such as \"so\".",
+    "When sources disagree, keep the claim-level disagreement visible instead of averaging it away. Prefer the issuer's official text over a feed summary for what the issuer stated, and say when only a headline summary was available.",
+    `THESIS:\n${plan.thesis}`,
+    sourcePacket,
+  ].join("\n\n");
+}

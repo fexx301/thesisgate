@@ -1,19 +1,19 @@
 {
-  "reportId": "report_aaf22109-2f90-46bd-a6d0-81cbfa8c2e5b",
-  "inputRevision": 1,
-  "reportRevision": 1,
-  "schemaVersion": "research-v2",
+  "reportId": "report_c7404330-05b1-417c-9af5-72c638212c6b",
+  "inputRevision": 5,
+  "reportRevision": 5,
+  "schemaVersion": "research-v3",
   "formulaVersion": "economics-v1",
-  "promptVersion": "claims-v4",
-  "evidenceInputHash": "e476758f",
-  "economicsInputHash": "8c01d1c0",
-  "modelId": null,
+  "promptVersion": "claims-v5-multisource",
+  "evidenceInputHash": "evidence-v2:sha256:12e9c93b3c64dc15b6dcc46f47d081d9fdea3d010a388a9d926b50279e6d501c",
+  "economicsInputHash": "economics-v2:sha256:d582251021464c64eef8b7958d371e994d0b6aecae432a0bdf5e0e708b393d16",
+  "modelId": "openai/gpt-5.6-luna",
   "confirmedPlan": {
     "asset": "NVDA",
     "category": "SPOT",
     "side": "long",
     "quoteCurrency": "USDT",
-    "thesis": "The NVIDIA and AWS announcement means rNVDA will rise enough by tomorrow evening to make 100 USDT net profit.",
+    "thesis": "NVIDIA and AWS announced 2 million more GPUs today, so rNVDA will rise enough by tomorrow evening to make 100 USDT net profit.",
     "purchaseNotionalExcludingFee": "10000",
     "horizon": {
       "originalText": "until tomorrow evening",
@@ -473,36 +473,136 @@
   },
   "sources": [
     {
-      "id": "src_a8b570d3-c5e2-475e-a9ce-6b468fca8b9f",
+      "id": "src_326449a6-abe8-4dc3-9bf7-dc973ea4d637",
       "originalUrl": "https://nvidianews.nvidia.com/news/aws-and-nvidia-to-deliver-2-million-additional-gpus-and-next-generation-infrastructure-for-agentic-and-physical-ai",
-      "finalApprovedUrl": null,
-      "title": "NVIDIA and AWS announced a planned expansion of AI infrastructure on August 26, 2026. The announcement describes additional NVIDIA GPU deployments across AWS da",
-      "publisher": "nvidianews.nvidia.com",
-      "publicationDate": null,
-      "publicationDatePrecision": "unknown",
+      "finalApprovedUrl": "https://nvidianews.nvidia.com/news/aws-and-nvidia-to-deliver-2-million-additional-gpus-and-next-generation-infrastructure-for-agentic-and-physical-ai",
+      "title": "AWS and NVIDIA to Deliver 2 Million Additional GPUs and Next-Generation Infrastructure for Agentic and Physical AI",
+      "publisher": "NVIDIA Newsroom",
+      "publicationDate": "2026-08-26",
+      "publicationDatePrecision": "day",
       "eventDate": null,
-      "fetchedAt": "2026-09-16T15:01:32.112Z",
-      "cleanedText": "NVIDIA and AWS announced a planned expansion of AI infrastructure on August 26, 2026. The announcement describes additional NVIDIA GPU deployments across AWS data centers, with further systems planned for 2027 to 2028. The source describes planned infrastructure and future deployment. It does not state that the deployment is already producing revenue or provide a price forecast.",
-      "textHash": "e9498953ce8e7707a7984d5404557bb34cf1c2171ea7a85475a01b767af33c49",
-      "provenance": "user_pasted_unverified",
+      "fetchedAt": "2026-09-24T14:20:00Z",
+      "cleanedText": "Amazon Web Services (AWS), an Amazon.com, Inc. company (NASDAQ: AMZN), and NVIDIA (NASDAQ: NVDA) today announced a major expansion of their strategic collaboration to meet surging global demand for AI infrastructure as demand continues to accelerate. Building on already-rapid customer adoption of NVIDIA-accelerated compute on AWS, the companies plan to deploy 2 million additional NVIDIA GPUs across AWS’s global infrastructure and deepen their work together across AI factories, CPUs, networking, open models, data processing and robotics, delivering co-engineered AI solutions that enable customers to accelerate AI development and deployment at unprecedented scale.\n\nAI workloads are scaling at a swift pace, from how models are trained and run, to how data is processed, indexed and used to power intelligent applications. Customers are moving from pilot to production and scaling workloads across agentic AI, scientific discovery, enterprise automation and robotics. They need broader model choice, faster data pipelines and new capabilities for emerging use cases like physical AI. They also need confidence that the underlying infrastructure can keep pace with their own ability to innovate while maintaining the highest level of security and reliability for mission-critical workloads.\n\nTo meet this surging demand from frontier labs, global enterprises, startups and governments, AWS and NVIDIA are building on 16 years of joint innovation to expand AI compute capacity and bring new co-engineered solutions to customers faster. As part of the expanded collaboration, the companies are working to:\n\n- Deploy 2 million additional NVIDIA GPUs across AWS’s global infrastructure in 2027-2028\n\n- Bring NVIDIA Vera CPU‑based infrastructure to AWS\n\n- Extend NVIDIA NVLink Fusion™ with custom NVIDIA high‑bandwidth memory (NVHBM)\n\n- Build AI factories for the U.S. government, including 100,000 GPUs on secure AWS infrastructure for running federal and national‑security workloads\n\n- Integrate the NVIDIA platform with the AWS Nitro System and Elastic Fabric Adapter (EFA) for enhanced security and reliability\n\n- Continue to support NVIDIA Nemotron™ open models on Amazon Bedrock and Amazon SageMaker, giving customers more open model choice\n\n- Accelerate data processing and vector indexing on Amazon EMR and Amazon OpenSearch with NVIDIA cuDF and cuVS CUDA-X™ libraries for faster, more cost‑efficient analytics and AI applications\n\n- Further advance robotics workloads through Amazon Robotics’ adoption of NVIDIA’s physical AI platform, speeding innovation in warehouse automation and next‑generation robots\n\n“Customers want the freedom to choose the best tools for their AI workloads, and they want confidence that everything works seamlessly together,” said Matt Garman, CEO of AWS. “That’s why we’ve invested deeply with NVIDIA to make AWS the best place to run NVIDIA AI technologies, optimizing performance across our infrastructure from networking and security to deployment. This expanded collaboration gives frontier labs, enterprises and governments even more ways to build and deploy AI on AWS.”\n\n“NVIDIA and AWS have built one of the great growth engines of the AI era, and demand is running ahead of every forecast,” said Jensen Huang, founder and CEO of NVIDIA. “For 16 years, we have scaled NVIDIA computing in the cloud together. Now, we are expanding our partnership across the full stack — GPUs, CPUs, networking, open models and software — to make agentic and physical AI real at an unprecedented pace and scale that only AWS and NVIDIA can deliver. This expansion reflects customers’ demand for NVIDIA’s platform on AWS.”\n\nMassive Expansion of AI Compute Capacity\n\nAWS offers the widest range of GPU-based instances of any cloud provider to power a diverse set of AI and machine learning workloads. At NVIDIA GTC 2026, AWS announced plans to add more than 1 million NVIDIA GPUs starting in 2026. Since then, demand has exceeded those expectations. AWS plans to deploy an additional 2 million NVIDIA Blackwell Ultra, Rubin and Rubin Ultra GPUs in 2027-2028 across AWS Global Infrastructure, including AI factories. This additional capacity will help power customer workloads ranging from agentic AI and scientific discovery to enterprise automation and physical AI. In addition, AWS will expand NVIDIA Blackwell capacity, including NVIDIA RTX PRO™ 4500 Blackwell Server Edition GPUs for Amazon EC2 G7 instances. G7 instances deliver 4.6x AI inference performance and 2.1x graphics performance compared to previous-generation G6 instances. AWS is the first major cloud provider to offer compute instances accelerated by RTX PRO 4500. AWS and NVIDIA are also collaborating on NVIDIA Spectrum™ networking to further optimize network performance for large-scale AI training workloads across GPU clusters.\n\nSupport for NVIDIA Vera CPUs on AWS\n\nAWS and NVIDIA are working to bring Vera CPU-based infrastructure to AWS, providing an additional option to support agentic AI workloads that require high-performance CPU compute alongside accelerated infrastructure. Purpose-built for the next generation of AI, Vera complements AWS’s strategy to offer the broadest choice of compute — from AWS custom silicon to the latest accelerators and CPUs from partners.\n\nHeterogeneous AI Infrastructure Using NVIDIA NVLink Fusion With NVHBM\n\nAt re:Invent 2025, AWS announced support for NVIDIA NVLink Fusion high-speed chip interconnect technology in next-generation Trainium chips. NVIDIA and Amazon’s Annapurna Labs are expanding that support to work on NVIDIA’s new custom high-bandwidth memory (NVHBM) technology, in partnership with memory suppliers, which would give Trainium access to faster, more power-efficient memory. Combined with NVLink Fusion, Annapurna Labs can now tap NVIDIA’s custom memory technology and scale-up architecture to enhance performance and efficiency for AI workloads while seamlessly integrating Trainium and GPUs within a common rack-scale architecture.\n\nPowering Federal AI at the Highest Levels of Security\n\nGovernment agencies need secure AI infrastructure to keep pace with the demands of national security. AWS and NVIDIA plan to build AI factories for the U.S. government, delivering NVIDIA’s AI stack, including plans to deliver 100,000 GPUs on AWS’s secure infrastructure for federal and national-security workloads. This collaboration puts AWS and NVIDIA at the center of federal AI advancement for national security, enabling government agencies to deploy AI at scale for workloads classified at Impact Level 6 (IL6) and above.\n\nThese new commitments build on a foundation of deep technical integrations between AWS and NVIDIA that are already delivering results for customers today, including:\n\n- Enhanced security and reliability with AWS Nitro System and EFA — Across this expanded collaboration, all NVIDIA GPU-based and Trainium-based EC2 instances — including those leveraging NVLink Fusion — are built on the AWS Nitro System and interconnected through EFA. Both GPU-accelerated and Trainium-based EC2 instances will continue to be built on the Nitro System and scaled out through EFA. Together, Nitro and EFA help ensure that as AWS expands its NVIDIA GPU fleet and integrates new interconnect technologies, customers retain the security, reliability and network performance they depend on for production AI workloads at scale.\n\n- NVIDIA Nemotron models on AWS — As part of AWS’s commitment to offering customers the broadest choice of AI models, NVIDIA’s Nemotron family of open models is available on Amazon Bedrock as fully managed, serverless models and on Amazon SageMaker for customers who want to deploy and fine-tune on their own infrastructure. This integration gives customers access to NVIDIA’s latest open models with the security, scalability and operational tooling of AWS.\n\n- GPU-accelerated data processing and vector indexing — As data volumes grow, workloads such as feature engineering, large-scale ETL and real-time analytics require increasingly faster processing. AWS and NVIDIA are collaborating to deliver GPU-accelerated data processing on Amazon EMR using Amazon EC2 G7 instances and the NVIDIA cuDF library, delivering up to 3.7x faster processing speeds and a 30% better price performance compared to CPU-based configurations. Separately, as AI applications, retrieval-augmented generation pipelines and semantic search push vector databases to billions of records, index building and tuning becomes a bottleneck. GPU-accelerated vector indexing on Amazon OpenSearch Service offloads index construction onto dedicated GPUs, delivering up to 9x faster vector indexing at a quarter of the cost — available across both managed clusters and Amazon OpenSearch Serverless.\n\n- Physical AI for robotics — Amazon Robotics is collaborating with NVIDIA to accelerate the development of next-generation robots integrating NVIDIA’s full-stack physical AI platform, including the NVIDIA Jetson™ platform, NVIDIA Omniverse™ libraries and the NVIDIA Isaac™ open robotics development platform. The collaboration spans simulation, synthetic data generation, robot training, route optimization, functional safety and real-to-sim validation — all running on GPU-accelerated Amazon EC2 instances. Together, AWS and NVIDIA are helping advance the capabilities that robotics workloads require at scale: massive simulation, diverse training data and continuous real-world validation.",
+      "textHash": "2addc2b62f16a04aaea339900f999f045a77f33ef44da5189ca5039a8672b16c",
+      "provenance": "captured_official_excerpt",
       "truncated": false
     }
   ],
-  "claims": [],
+  "headlineIds": [
+    "hl_630544480cb72cfe"
+  ],
+  "marketContext": {
+    "asset": "NVDA",
+    "mode": "captured_real",
+    "observedAt": "2026-09-08T21:51:19Z",
+    "session": {
+      "state": "post_market",
+      "underlyingOpen": false,
+      "label": "US after-hours: thin extended-hours trading only",
+      "nextRegularOpenAt": "2026-09-09T13:30:00.000Z"
+    },
+    "underlying": {
+      "symbol": "NVDA",
+      "lastClose": "225.73",
+      "lastCloseSessionDate": "2026-09-08",
+      "lastCloseAt": "2026-09-08T20:00:00.000Z",
+      "latestPrice": "225.64",
+      "latestAt": "2026-09-08T21:50:00Z",
+      "source": "captured_yahoo_finance_chart"
+    },
+    "rToken": {
+      "bestBid": "225.62",
+      "bestAsk": "225.66",
+      "mid": "225.64",
+      "at": "2026-09-08T21:51:19.332Z"
+    },
+    "moveSinceClose": "-0.00039870641917334869",
+    "basisVsLatest": "0",
+    "warnings": []
+  },
+  "claims": [
+    {
+      "claimId": "c1",
+      "exactText": "NVIDIA and AWS announced the 2 million additional GPUs today.",
+      "distinction": "factual",
+      "materiality": "material",
+      "status": "contradicted",
+      "explanation": "The supplied NVIDIA Newsroom source was published on 2026-08-26, before today, 2026-09-08, and describes the announcement as occurring in that earlier publication context. It therefore shows an earlier announcement rather than a new announcement today.",
+      "citations": [
+        {
+          "sourceId": "src_326449a6-abe8-4dc3-9bf7-dc973ea4d637",
+          "excerpt": "Amazon Web Services (AWS), an Amazon.com, Inc. company (NASDAQ: AMZN), and NVIDIA (NASDAQ: NVDA) today announced a major expansion of their strategic collaboration",
+          "startOffset": 0,
+          "endOffset": 163
+        }
+      ],
+      "missingEvidence": null
+    },
+    {
+      "claimId": "c2",
+      "exactText": "NVIDIA and AWS plan to deploy 2 million additional NVIDIA GPUs across AWS's global infrastructure in 2027-2028.",
+      "distinction": "factual",
+      "materiality": "material",
+      "status": "supported",
+      "explanation": "The issuer's official text explicitly describes the GPU deployment as a plan for 2027-2028, not as completed deployment or realized revenue.",
+      "citations": [
+        {
+          "sourceId": "src_326449a6-abe8-4dc3-9bf7-dc973ea4d637",
+          "excerpt": "Deploy 2 million additional NVIDIA GPUs across AWS’s global infrastructure in 2027-2028",
+          "startOffset": 1612,
+          "endOffset": 1699
+        },
+        {
+          "sourceId": "src_326449a6-abe8-4dc3-9bf7-dc973ea4d637",
+          "excerpt": "AWS plans to deploy an additional 2 million NVIDIA Blackwell Ultra, Rubin and Rubin Ultra GPUs in 2027-2028 across AWS Global Infrastructure, including AI factories.",
+          "startOffset": 3975,
+          "endOffset": 4140
+        }
+      ],
+      "missingEvidence": null
+    },
+    {
+      "claimId": "c3",
+      "exactText": "The NVIDIA-AWS GPU announcement will cause rNVDA to rise enough by tomorrow evening to make the trade profitable.",
+      "distinction": "causal",
+      "materiality": "material",
+      "status": "insufficient",
+      "explanation": "The source describes planned infrastructure deployment and collaboration, but does not establish a causal effect on rNVDA's price or profitability by tomorrow evening.",
+      "citations": [
+        {
+          "sourceId": "src_326449a6-abe8-4dc3-9bf7-dc973ea4d637",
+          "excerpt": "the companies plan to deploy 2 million additional NVIDIA GPUs across AWS’s global infrastructure",
+          "startOffset": 333,
+          "endOffset": 429
+        }
+      ],
+      "missingEvidence": "Evidence linking this earlier announcement to a specific rNVDA price movement by tomorrow evening."
+    },
+    {
+      "claimId": "c4",
+      "exactText": "The trade will make 100 USDT net profit by tomorrow evening.",
+      "distinction": "forecast",
+      "materiality": "material",
+      "status": "insufficient",
+      "explanation": "The supplied source does not establish a future profit amount, price target, probability, or timing outcome.",
+      "citations": [],
+      "missingEvidence": "Evidence establishing that the trade will generate 100 USDT net profit by tomorrow evening."
+    }
+  ],
   "evidence": {
-    "status": "unavailable",
-    "assessmentOrigin": "unavailable",
-    "verdict": "not_assessed",
+    "status": "assessed",
+    "assessmentOrigin": "runtime_model",
+    "verdict": "mixed",
     "scope": "by the supplied evidence",
-    "mostConsequentialUnknown": "Runtime claim assessment is disabled. Economics can still be calculated; the supplied source remains visible.",
-    "summary": "Runtime claim assessment is disabled. Economics can still be calculated; the supplied source remains visible."
+    "mostConsequentialUnknown": "Whether the earlier announcement will affect rNVDA's price by tomorrow evening and produce 100 USDT net profit is not established by the supplied source.",
+    "summary": "The supplied source records support an earlier announcement of a plan to deploy 2 million additional GPUs in 2027-2028, but do not establish that the announcement occurred today, that rNVDA will rise by tomorrow evening, or that the trade will produce 100 USDT net profit."
   },
   "economics": {
     "computationStatus": "calculated",
     "goalComparison": "below",
     "snapshotId": "snapshot_7de5ee043d0e35d42d9f7974",
-    "planRevision": 1,
-    "scenarioRevision": 1,
+    "planRevision": 5,
+    "scenarioRevision": 5,
     "units": {
       "quoteCurrency": "USDT",
       "baseAsset": "rNVDA"
@@ -583,29 +683,26 @@
     ]
   },
   "performance": {
-    "totalDurationMs": 7,
-    "marketDurationMs": 3,
-    "modelDurationMs": null,
-    "modelCalls": 0,
-    "modelRunStatus": "not_attempted",
-    "modelUsage": null,
+    "totalDurationMs": 13047,
+    "marketDurationMs": 1,
+    "modelDurationMs": 13042,
+    "modelCalls": 1,
+    "modelRunStatus": "provider_call",
+    "modelUsage": {
+      "promptTokens": 2410,
+      "completionTokens": 1097,
+      "totalTokens": 3507,
+      "costUsd": "0.00191875"
+    },
     "reusedEvidence": false
   },
-  "partialErrors": [
-    {
-      "kind": "model_unconfigured",
-      "message": "Runtime claim assessment is disabled. Economics can still be calculated; the supplied source remains visible.",
-      "recovery": "Configure the server-only model variables in .env.local, then retry."
-    }
-  ],
-  "generatedAt": "2026-09-16T15:01:32.112Z",
+  "partialErrors": [],
+  "generatedAt": "2026-09-24T14:42:20.515Z",
   "limitations": [
     "This is a conditional research brief, not a buy or sell instruction.",
     "The scenario uses one displayed order-book snapshot. It is not a firm quote, an execution promise, or a forecast.",
     "The model does not estimate how price, depth, or returns evolve over the holding horizon.",
     "A supplied source can support what an issuer stated without proving future revenue or price direction.",
-    "Captured market mode is historical replay data from the selection spike. It is not current market data.",
-    "Pasted source text is user-supplied and unverified, even when an official-looking URL is present.",
-    "No runtime model assessment was recorded for this report."
+    "Captured market mode is historical replay data from the selection spike. It is not current market data."
   ]
 }

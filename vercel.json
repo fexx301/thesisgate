@@ -1,17 +1,38 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "functions": {
-    "src/app/api/research/route.ts": { "maxDuration": 30 },
-    "src/app/api/market/route.ts": { "maxDuration": 15 },
-    "src/app/api/intent/route.ts": { "maxDuration": 10 },
-    "src/app/api/recompute/route.ts": { "maxDuration": 10 }
+    "src/app/api/research/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/market/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/intent/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/recompute/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/radar/route.ts": {
+      "maxDuration": 20
+    },
+    "src/app/api/chat/route.ts": {
+      "maxDuration": 25
+    }
   },
   "headers": [
     {
       "source": "/api/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ]
 }

@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { ResearchResultSchema, type ResearchResult } from "./contracts";
+import { pricedInView } from "./priced-in";
 
 function value(value: string | null) {
   return value ?? "Not available";
@@ -89,6 +90,28 @@ export function toMarkdown(report: ResearchResult) {
         })
         .join("\n\n")
     : "No runtime claim assessments were recorded.";
+  const openClaim = validated.claims.find((claim) => claim.materiality === "material" && claim.status !== "supported")
+    ?? validated.claims.find((claim) => claim.status !== "supported");
+  const context = validated.marketContext;
+  const view = pricedInView(context, economics);
+  const level = (item: { level: string; vsClose: string | null } | null) => item
+    ? `${new Decimal(item.level).toFixed(4)} USDT top bid (${item.vsClose ? `${percent(item.vsClose)} vs close` : "close unavailable"})`
+    : "Not available";
+  const contextLines = context ? [
+    `- Data mode: ${context.mode}; observed at ${context.observedAt}`,
+    `- US session: ${context.session.label} (${context.session.state})${context.session.nextRegularOpenAt ? `; next regular open ${context.session.nextRegularOpenAt}` : ""}`,
+    `- Underlying last close: ${context.underlying ? `${context.underlying.symbol} ${context.underlying.lastClose} USD on ${context.underlying.lastCloseSessionDate} (${context.underlying.lastCloseAt}; source ${context.underlying.source})` : "Not available"}`,
+    `- Underlying latest print: ${context.underlying?.latestPrice ? `${context.underlying.latestPrice} USD at ${context.underlying.latestAt}` : "Not available"}`,
+    `- rToken book: ${context.rToken ? `bid ${context.rToken.bestBid} / ask ${context.rToken.bestAsk} / mid ${context.rToken.mid} USDT at ${context.rToken.at}` : "Not available"}`,
+    `- rToken move since the underlying close: ${percent(context.moveSinceClose)}`,
+    `- rToken versus latest underlying print: ${context.basisVsLatest === null ? "Not claimed (no fresh underlying print)" : percent(context.basisVsLatest)}`,
+    `- Break-even level: ${level(view.breakEven)}`,
+    `- Goal level: ${level(view.goal)}`,
+    `- Scenario level: ${level(view.scenario)}`,
+    `- Share of the goal's move from the close already made: ${view.shareOfGoalAlreadyMoved === null ? "Not applicable" : percent(view.shareOfGoalAlreadyMoved)}`,
+    "- Levels are the best bid moved by the whole-book threshold: an indicator, not a fill price. One rToken is assumed to track one underlying share.",
+    ...context.warnings.map((warning) => `- Warning: ${warning}`),
+  ].join("\n") : "- Market context was not recorded for this report.";
   const scenarioLines = economics.scenarioTable
     .map((row) => `| ${row.label} | ${percent(row.bidPriceShift)} | ${row.effectivePriceShift ? percent(row.effectivePriceShift) : "Not available"} | ${value(row.netPnl)} USDT | ${row.goalComparison} | ${row.status} |`)
     .join("\n");
@@ -140,6 +163,10 @@ export function toMarkdown(report: ResearchResult) {
     "",
     claimLines,
     "",
+    "## Priced in since the close?",
+    "",
+    contextLines,
+    "",
     "## Economics under the assumptions",
     "",
     `- Computation status: ${statusLabel(economics.computationStatus)}`,
@@ -183,12 +210,14 @@ export function toMarkdown(report: ResearchResult) {
     "",
     "## Sources and dates",
     "",
+    `Selected radar headlines: ${validated.headlineIds.length ? validated.headlineIds.join(", ") : "None"}`,
+    "",
     sourceLines,
     "",
-    "## What could change this assessment",
+    "## What would change this",
     "",
-    `- Evidence condition: ${validated.claims.length ? `a validated passage addressing "${validated.claims[0].exactText.slice(0, 120)}" (currently ${validated.claims[0].status}) could change the ${validated.evidence.verdict} verdict` : "a validated source passage confirming or contradicting the exact causal or forecast claim could change the verdict"}.`,
-    `- Numerical condition: ${validated.economics.requiredGoalShift ? `a snapshot where the required ${percent(validated.economics.requiredGoalShift)} bid shift is met, or exit depth above ${validated.economics.exitDepthMultiplier} of snapshot ${validated.economics.snapshotId ?? "unknown"}, could change the ${validated.economics.goalComparison} outcome` : "a new order-book snapshot or a different explicit exit-depth assumption could change the threshold"}. These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.`,
+    `- Evidence to look for: ${openClaim ? `${openClaim.missingEvidence ?? `a source that directly establishes "${openClaim.exactText.slice(0, 160)}"`} (claim currently ${openClaim.status})` : validated.claims.length ? `every assessed claim is supported; a dated source contradicting "${validated.claims[0].exactText.slice(0, 140)}" would change that` : "select a headline or paste a source so the claims can be checked"}.`,
+    `- Price levels that matter: ${economics.requiredGoalShift ? `the goal needs a ${percent(economics.requiredGoalShift)} bid-book shift (${level(view.goal)}); break-even needs ${percent(economics.breakEvenShift)}` : economics.breakEvenShift ? `break-even needs a ${percent(economics.breakEvenShift)} bid-book shift` : "a usable order-book snapshot is needed before thresholds can be calculated"}. Thinner exit liquidity raises both. These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.`,
     "",
     "## Limitations",
     "",

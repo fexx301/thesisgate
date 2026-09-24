@@ -74,3 +74,42 @@ describe("research route", () => {
     expect(result.partialErrors).toContainEqual(expect.objectContaining({ kind: "model_invalid_output" }));
   });
 });
+
+describe("research with retrieved headlines", () => {
+  it("assesses a captured official release selected by ID and adds the priced-in context", async () => {
+    const { capturedHeadlines } = await import("../../src/server/feeds");
+    const [headline] = capturedHeadlines("NVDA");
+    const response = await POST(new Request("http://localhost/api/research", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...requestBody, sourceText: null, headlineIds: [headline.id] }),
+    }));
+    expect(response.status).toBe(200);
+    const report = await response.json();
+    expect(report.headlineIds).toEqual([headline.id]);
+    expect(report.sources).toHaveLength(1);
+    expect(report.sources[0].provenance).toBe("captured_official_excerpt");
+    expect(report.sources[0].publicationDate).toBe("2026-08-26");
+    expect(report.promptVersion).toBe("claims-v5-multisource");
+    expect(report.marketContext.session.state).toBe("post_market");
+    expect(report.marketContext.underlying.lastClose).toBe("225.73");
+    expect(report.partialErrors.some((error: { kind: string }) => error.kind === "source_missing")).toBe(false);
+  });
+
+  it("rejects headline text smuggled in place of an ID and reports an unknown ID as a partial", async () => {
+    const smuggled = await POST(new Request("http://localhost/api/research", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...requestBody, headlineIds: ["Nvidia confirms record revenue"] }),
+    }));
+    expect(smuggled.status).toBe(400);
+    const unknown = await POST(new Request("http://localhost/api/research", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...requestBody, headlineIds: ["hl_0000000000000000"] }),
+    }));
+    const report = await unknown.json();
+    expect(report.headlineIds).toEqual([]);
+    expect(report.partialErrors.some((error: { message: string }) => error.message.includes("no longer available"))).toBe(true);
+  });
+});

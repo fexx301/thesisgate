@@ -2,155 +2,106 @@
 
 ## In plain English
 
-ThesisGate helps you test whether the pasted passage supports a trading idea and whether a stock-linked crypto token trade still works after fees and limited liquidity.
+Bitget's rNVDA and rTSLA stock tokens trade 24/7, including nights, weekends and US holidays when Wall Street is closed. That is exactly when a headline lands and the token's order book is the only place the trade exists, usually at its thinnest.
 
-Paste the source passage, describe what you think it means, choose rNVDA or rTSLA, and review two separate parts of the brief:
+ThesisGate is a research copilot for that moment. Describe the trade you're weighing in plain language, for example *"Jensen says the AI boom won't slow for 2–3 years, I think rNVDA bounces before Monday's open, thinking 3k, want about 60 USDT"*, and it:
 
-1. **Evidence:** what the words you supplied support, contradict, or leave unanswered.
-2. **Trade math:** what the displayed market data would require after fees, order-book depth, quantity steps, and your chosen what-if price scenario.
+1. **Turns the message into a precise plan**: token, amount, horizon, goal, and any what-if you ask for. Follow-ups such as *"what if I only put in 1,500?"* or *"what if exit liquidity halves?"* edit the same plan.
+2. **Pulls the evidence itself**: current company headlines, the issuer's official newsroom (full text of NVIDIA releases), and optionally SEC 8-K filings. You can also paste your own passage.
+3. **Checks what the sources actually support**, claim by claim, with quotes verified against the source text and publication dates compared with your thesis. An old announcement circulating again is flagged as old, not new.
+4. **Shows what is already priced in**: where the rToken trades against the underlying stock's last US close, whether the US market is open, and where your break-even and goal sit relative to that close.
+5. **Works out the trade math** from the live order book: fees, quantity steps, depth, the break-even move and your goal's threshold.
 
-You make the decision. ThesisGate does not place orders, predict prices, treat an rToken as the underlying stock, or promise that displayed liquidity will still be available.
+You make the decision. ThesisGate never places orders, predicts prices, or tells you to buy or sell. The evidence verdict and the trade math are separate conclusions, and neither is a forecast.
 
-> **Prototype status:** The current slice supports Reality SPOT rNVDA and rTSLA. It is a research and scenario tool, not a broker, execution bot, portfolio manager, or investment recommendation.
+> **Status:** a working prototype for Reality SPOT rNVDA and rTSLA, long only. It is a research tool, not a broker, execution bot or investment recommendation.
 
 ## Start here
 
 ### Run the app locally
 
-Use Node `>=24` for the app and contributor workflow. The repository's `.nvmrc` pins Node `24.14.0`; with nvm installed, run `nvm install && nvm use` before installing dependencies.
-
-From a cloned or downloaded copy of the repository, open a terminal in the project root and run:
+Use Node `>=24`. The repository's `.nvmrc` pins Node `24.14.0`; with nvm, run `nvm install && nvm use` first.
 
 ~~~bash
 npm ci
 npm run dev
 ~~~
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>. The app opens in **Live** mode: the after-hours radar loads current headlines, the Bitget book and the US quote.
 
-For the first successful run:
+- **Try it with no setup:** click **Replay captured example**. It replays the real Sep 8, 2026 after-hours book with the NVIDIA/AWS release as evidence, and needs no network or AI key.
+- **Try the conversation:** type a trade idea in **Describe the trade**, or click a suggestion. The full conversational layer and the claim review need a model key (see [Optional local claim model](#optional-local-claim-model)). Without one, the chat still applies simple edits (amounts like "3k", switching token, horizons, profit goals, "assume bids rise 1%", halving depth or amount, refreshing prices) and says it is in simple-edit mode.
 
-1. Click **Replay captured example**.
-2. Review the brief that appears on the right.
-3. Change one input, such as the budget, objective, or price scenario.
-4. Click **Stress-test my thesis** again.
-
-On narrower screens, a completed plan collapses after the brief is built. Use **Edit plan** to reopen the inputs and **View report** to return to the conclusions.
-
-After the first brief, edits to the budget, objective, fees, depth, haircut, or scenario recompute the economics without another model call, including when evidence was not assessed. A source-URL reference edit updates provenance without reassessing the pasted text. A market-mode change or live refresh requests a new market snapshot. A thesis, horizon, or source-text change requires a new evidence assessment.
-
-The captured example is historical replay data. It is included so the economics can be demonstrated without a live network request or an AI provider key.
-
-The captured example calculates conditional economics without a model key. The evidence section may show **Assessment unavailable** when the optional local claim model is disabled, unavailable, or fails to return a valid assessment. In exported data, this state is retained as `not_assessed` for auditability. It means no usable claim assessment is available; it is not a negative verdict.
-
-### Test your own idea
-
-1. In **What do you think will happen?**, write the exact claim you want to examine.
-2. Paste the relevant passage into **Source text**.
-3. Optionally add the source URL as a reference.
-4. Choose `rNVDA` or `rTSLA`.
-5. Enter the amount in `USDT`, your holding horizon, and an objective.
-6. Choose a price scenario, such as `+1%`.
-7. Choose **Captured example** or **Attempt live data**.
-8. Click **Stress-test my thesis**.
-
-The app reads the text you paste. It does not fetch the URL or treat an official-looking URL as proof that the pasted text is authentic.
+After a brief exists, economics-only changes (amount, goal, fees, depth, scenario) recompute without another model call. Changing the thesis, horizon, token or evidence selection re-runs the claim review.
 
 ## How to read the brief
 
-The brief opens with the source-evidence status and the selected scenario's net result together. These remain separate conclusions: source support does not predict a profitable trade. Follow the summary links to the claim review or trade math. Source rows expand to show the original title, dates, and provenance.
+| Section | Question it answers |
+| --- | --- |
+| **At a glance** | Evidence verdict, plus the scenario result (or, with no scenario, what your goal needs). |
+| **Priced in since the close?** | Where the rToken trades against the underlying's last regular-session close, the US session state, and your break-even and goal as price levels versus that close. |
+| **Evidence behind your thesis** | Each claim in your thesis (factual, causal, forecast) marked supported, contradicted or insufficient, with verified quotes. |
+| **Economics under your assumptions** | Entry VWAP, fees, friction, break-even shift, goal threshold and scenario PnL from the displayed book. |
+| **What would change this?** | The specific evidence to look for, and the price levels that matter. |
+| **Sources and provenance** | Publisher, publication date, how the text was obtained, and a text hash for each source. |
 
-### Evidence behind your thesis
+**Assessment unavailable** (`not_assessed` in exports) means no model result exists (disabled, over budget, or failed). It is not a negative verdict. If the model quotes text that cannot be found in the source, that claim is downgraded to *insufficient* with an explanation, instead of being trusted.
 
-This section asks whether the supplied words support the exact claim. It does not decide whether the trade will make money.
-
-If the status reads **Assessment unavailable** (`not_assessed` in exported data), no usable claim assessment is available: the model may be disabled, unavailable, or have failed. That is not the same as “unsupported” or “contradicted.” The text remains visible, and the economics can still be calculated.
-
-To explicitly try failed or unavailable evidence again, choose **Retry evidence assessment**, or submit an unchanged plan with **Stress-test my thesis**. Economics-only edits do not silently retry the model. With the model disabled, a retry still reports **Assessment unavailable** (`not_assessed` in exported data); it does not invent an assessment.
-
-### Economics under your assumptions
-
-This section models a hypothetical entry and exit using the displayed order book, fees, quantity rules, available depth, and your chosen scenario.
-
-The **break-even shift** is the conditional movement in displayed bid prices needed to cover modeled costs. It is not a forecast, a probability, a native-stock return, or a promise of execution.
-
-A stale snapshot is flagged but may still produce conditional math. Missing or insufficient depth can make whole-position profit or loss unavailable, and the report preserves that limitation instead of inventing a result.
-
-Live results show when the snapshot was received and its current age. Use **Refresh live snapshot** when the age is no longer appropriate for your decision. The button requests a new book and reuses the existing evidence review.
-
-### Unknowns and provenance
-
-Read the timestamps, source label, market mode, warnings, and assumptions before interpreting a number. A live result is a request-time snapshot. A captured result is historical replay data. Neither is a fill or a guarantee that the same depth will remain available.
+The price levels in the priced-in card are the best bid moved by the whole-book threshold. They indicate where the market must trade; they are not fill prices. One rToken is assumed to track one underlying share; the live tracking basis is shown when a fresh US print exists.
 
 ## What the terms mean
 
 | Term | Simple meaning |
 | --- | --- |
-| **rToken** | A crypto token designed to be linked to a stock. It is not the stock itself, and its rights, liquidity, and risks can differ. |
-| **Thesis** | Your reason for considering the trade, written as a claim that can be examined. |
-| **SPOT** | Buying or selling the token itself, without leverage or a derivative position in this tool. |
-| **USDT** | The dollar-denominated crypto unit used for the trade budget and goals in this app. |
-| **Order book** | The prices and quantities currently shown by buyers and sellers. |
-| **Bid** | A price a buyer is offering. |
-| **Ask** | A price a seller is offering. |
-| **Depth** | How much quantity is available across nearby prices. Limited depth can make a larger trade receive worse average prices. |
-| **Snapshot** | A copy of the market data at one point in time. |
-| **PnL** | Profit or loss after the costs included in the calculation. |
-| **Threshold** | The conditional price movement required to reach the selected objective under the displayed assumptions. |
-| **Scenario** | A user-selected “what if,” not a prediction of what will happen. |
+| **rToken** | A crypto token designed to track a stock. It is not the stock itself, and its rights, liquidity and risks can differ. |
+| **Last close** | The underlying stock's official close from the latest completed US regular session. |
+| **Moved since close** | rToken mid-price versus that close: how much the 24/7 venue has already moved. |
+| **Thesis** | Your reason for the trade, written as claims that can be checked. |
+| **Bid / ask** | Prices buyers are offering / sellers are asking. |
+| **Depth** | Quantity available near the best prices. Thin depth makes large trades fill worse. |
+| **Break-even shift** | How far the bid book must rise to cover fees and spread on your size. |
+| **Goal threshold** | How far the bid book must rise for your stated profit or return. |
+| **Scenario** | A what-if you choose, not a prediction. |
 
-## Market data modes
+## Data sources
 
-### Captured example
+| Source | Used for | Mode |
+| --- | --- | --- |
+| Bitget public API (`/api/v3/market/*`) | rToken instrument rules, ticker, 50-level order book | Live; captured Sep 8 fixture for replay |
+| Yahoo Finance chart endpoint | Underlying last regular close and latest extended-hours print | Live; captured values for replay |
+| Yahoo Finance ticker RSS | Company headlines and summaries (filtered to stories naming the company) | Live |
+| NVIDIA Newsroom RSS and release pages | Official releases; full text retrieved from the allowlisted host | Live; captured release for replay |
+| SEC EDGAR 8-K Atom feed | Regulatory filings | Live, only when `THESIS_SEC_USER_AGENT` is set (SEC requires a contact) |
 
-Uses a historical public API capture from the selection spike. It is deterministic, useful for demos and tests, and clearly labeled as historical. It avoids a live network request.
-
-### Attempt live data
-
-Requests a public Bitget market snapshot at run time for the fixed `RNVDAUSDT` or `RTSLAUSDT` allowlist.
-
-- It is a request-time snapshot, not a streaming feed.
-- It uses public market endpoints, so no private Bitget key is needed.
-- It reads instrument rules, ticker context, and order-book levels.
-- It validates the symbol and market category before using the data.
-- It does not silently fall back to the historical fixture if the live request fails.
-- It does not place an order or confirm that the displayed liquidity is executable for you.
+All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts, body caps and no cross-host redirects. The browser only ever sends headline **IDs**; the server resolves them from its own cache, so a browser cannot inject text labeled as a retrieved source. Yahoo endpoints are public but unofficial. Check their terms before any commercial use.
 
 ## Boundaries that matter
 
-- **Source text:** You must paste the passage. The optional URL is attribution only; URL retrieval is disabled in this slice.
-- **Evidence:** Pasted text is labeled `user_pasted_unverified`. A source verdict is not independent fact-checking.
-- **Market data:** Numbers describe one captured or request-time book. They can become stale immediately.
-- **Scenario:** A bid-price shift is an explicit assumption, not a price target or forecast.
-- **AI:** Claim assessment is optional, server-side, and visibly marked **Assessment unavailable** when it is unavailable. Exports retain the `not_assessed` status for auditability.
-- **Trade scope:** The supported plan is long-only SPOT, meaning buy the token and later model selling it. Leverage, short positions, derivatives, and portfolio behavior are out of scope.
-- **Defaults:** The starting fee assumption is 0.1% on entry and 0.1% on exit. It is a published standard assumption, not an account-tier lookup. Exit depth starts at 100% and the extra price haircut starts at 0%; both can be changed.
-- **Horizon:** The holding-horizon text provides context only. The static order book does not model how price, depth, or returns change over time.
-- **Source size:** Text is canonicalized and limited to 15,000 characters before hashing and optional claim assessment.
-- **Trading:** There are no order placement, custody, or account endpoints.
+- **Evidence:** a verdict means "by the supplied sources". Feed summaries are labeled as summaries; pasted text is labeled unverified.
+- **Market data:** one request-time or captured book. It can go stale immediately, and live requests never fall back to the fixture.
+- **Scenario:** a bid-price shift is an explicit assumption, not a target or forecast.
+- **Horizon:** context only. The static book does not model time.
+- **Defaults:** 0.1% fee each side (a published standard, not your account tier), 100% exit depth, 0% haircut. All editable.
+- **Trade scope:** long-only SPOT. No leverage, shorts, derivatives, orders, custody or account access.
+- **Calendar:** US session logic covers the NYSE calendar for 2026–2027 and must be extended after that.
 
 ## Current status
 
 ### Built
 
-- A source-bounded research brief for Reality SPOT `rNVDA` and `rTSLA`.
-- Captured replay mode that recomputes production economics from the raw fixture.
-- Live Bitget instrument, ticker, and order-book requests with a fixed symbol allowlist.
-- Input validation, bounded source text, provenance labels, timestamps, warnings, and hashes.
-- Decimal.js arithmetic for fees, quantity steps, entry sweeps, exit sweeps, depth, and haircuts.
-- Deterministic Markdown and JSON exports from the current validated report, including partial reports with missing market data; unavailable economics and the requested market mode remain explicit.
-- A math-only recomputation path that avoids repeat claim-model calls for economics changes.
-- Visible run details for model name, market and model duration, model-call count, evidence reuse, and provider-reported cost.
-- Browser-local draft save and restore controls, including incomplete numeric input while editing. Draft text is not sent anywhere by the draft feature; restore does not validate or run the draft automatically.
-- Optional privacy-preserving success telemetry for submit, completion, failure, follow-up, refresh, export, and draft events.
-- Unit, integration, browser, and evaluation-gate test coverage.
-- Current local verification: typecheck, lint, 124 unit/integration tests across 17 files, production build, and 24 Chromium/mobile browser journeys pass. The durable quota ledger's unit and authenticated HTTP contract tests are included. The dry-run evaluator covers all 12 benchmark cases with 22 planned provider calls and makes zero provider calls.
+- Conversational plan builder: one bounded JSON-mode model call per message returns a plan patch, evidence selection and action. The patch is applied by a pure, schema-validated applier (`src/domain/plan-patch.ts`) that cannot touch protected fields. A deterministic fallback handles common edits when the model is unavailable.
+- After-hours radar: live company headlines, official newsroom full text, optional SEC 8-K filings, US session state, and the rToken's move since the last close.
+- Multi-source claim review with dated provenance, recirculation detection, tolerant but verified citation matching, and honest downgrading of unverifiable quotes.
+- Priced-in card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
+- Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the priced-in context and selected headlines.
+- Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
+- Current local verification: typecheck, lint, 159 unit/integration tests across 22 files, production build, and 26 Chromium/mobile browser journeys pass.
 
 ### Not ready for public AI use
 
 - **UNVERIFIED — real trader validation:** No five-trader study has been completed. The [practitioner validation sheet](evals/practitioner-validation-sheet.md) is a protocol, not results; code, automated tests, and developer review do not satisfy it.
 - **UNVERIFIED — production model spending controls:** A reference durable quota service now exists in `quota-service/`, with transactional ledger tests, but runtime claim assessment stays disabled until that service is actually deployed with a persistent volume, backup/restore, TLS, concurrent multi-instance checks, and a real provider/account hard cap. Local code and passing tests cannot prove those external controls are active.
-- URL retrieval stays disabled until its server-side request-forgery protections are complete.
+- Arbitrary URL retrieval stays disabled; only the fixed feeds and the allowlisted newsroom host are fetched.
 - A public deployment is not implied by this repository. The local app and public source repository are separate from a hosted service.
 
 ## For developers
@@ -198,7 +149,9 @@ THESIS_LLM_REASONING_EFFORT=low
 
 The adapter accepts an explicit `openai_chat` or `openai_responses` protocol. It does not infer a protocol from the URL, browse source URLs, call tools, or place trades. Model availability and aliases can change, so use the provider's current model identifier.
 
-When enabled, the server sends the thesis and canonicalized pasted source text to the configured model provider for claim assessment. Do not submit confidential material unless that provider's data terms are acceptable for it.
+When enabled, the server sends the thesis, the selected source texts, and (for the conversation) the last few chat messages, the current plan and the radar's headline titles to the configured model provider. Do not submit confidential material unless that provider's data terms are acceptable for it.
+
+Set `THESIS_SEC_USER_AGENT` (for example `YourApp you@example.com`) to add SEC EDGAR 8-K filings to the radar. SEC requires a declared contact; the feed is skipped when it is unset.
 
 The reproducible benchmark configuration is frozen in [evals/benchmark-manifest.json](evals/benchmark-manifest.json). A different provider, model, prompt, or reasoning setting is a different experiment and must not be presented as the same benchmark run.
 
@@ -229,18 +182,18 @@ The provider hard limit must still be enforced by the provider account or an eff
 
 `THESIS_RECOMPUTE_SIGNING_SECRET` is a separate production requirement even when the model is disabled and all quota variables are unset. Research and market responses carry a server-signed receipt for their validated instrument and snapshot; `/api/recompute` rejects browser-substituted market data. The receipt authenticates origin, not freshness. Use the visible exchange age and refresh control when current data matters. Keep one strong secret consistent across serving instances; rotating it invalidates previously issued receipts and requires a fresh research or market request.
 
-For local development, the quota service is not required. The optional `THESIS_LLM_LOCAL_MAX_CONCURRENT` variable limits simultaneous local model calls in the running process. All POST routes also enforce a single-process per-visitor guard (30 requests/minute per route; model analyses 5 per visitor per 10 minutes with a 200/day global cap). This is defense in depth only: multi-instance production enforcement remains the durable `THESIS_LLM_QUOTA_URL` reservation service.
+For local development, the quota service is not required. The optional `THESIS_LLM_LOCAL_MAX_CONCURRENT` variable limits simultaneous local model calls in the running process. All POST routes also enforce a single-process per-visitor guard (30 requests/minute per route; claim analyses 5 per visitor per 10 minutes with a 200/day global cap; chat turns have a separate 20 per 10 minutes and 600/day bucket). This is defense in depth only: multi-instance production enforcement remains the durable `THESIS_LLM_QUOTA_URL` reservation service.
 
-### Deploying a production replay demo
+### Deploying a production demo
 
-This checklist deploys a **model-disabled captured-replay walkthrough**. It does not enable paid AI or certify a hosted service. The app still exposes **Attempt live data**; `THESIS_LLM_ENABLED=false` disables model calls, not public market requests. Use **Captured example** for the no-provider, no-live-market walkthrough.
+This checklist deploys a **model-disabled** demo. It does not enable paid AI or certify a hosted service. The app opens in **Live** mode and calls the public market and news endpoints; `THESIS_LLM_ENABLED=false` disables model calls only. Use **Captured replay** for the no-provider, no-network walkthrough. Some exchanges and data providers restrict datacenter or regional traffic, so confirm the live radar actually loads from the chosen host region.
 
 1. Import this repository into a Next.js-capable host. For Vercel, select the directory containing `package.json` as the project root, the Next.js framework preset, Node 24, install command `npm ci`, and build command `npm run build`. The included `vercel.json` sets API `Cache-Control: no-store` and function durations. On a Node host, build with `npm ci && npm run build`, then serve with `npm run start` behind HTTPS.
 2. Assign the intended HTTPS domain before exposing the app. Set `THESIS_PUBLIC_ORIGINS` in that deployment's server environment to its **exact origin**, such as `https://demo.example` (illustrative only), or a comma-separated list of exact origins. Include a preview origin only if that deployment must accept it. Do not include paths, trailing slashes, wildcard hosts, or the example domain. Missing or mismatched origins make production POST requests fail closed.
 3. Generate a unique secret with `openssl rand -hex 32` and store its output in the host's secret store as `THESIS_RECOMPUTE_SIGNING_SECRET`. It is **mandatory for production replay and economics reuse**, independently of model quota settings. Do not commit it or expose it through a `NEXT_PUBLIC_` variable.
 4. Set `THESIS_LLM_ENABLED=false`, `NEXT_PUBLIC_TELEMETRY_ENABLED=false`, and `THESIS_TELEMETRY_ENABLED=false`. Leave the model key, endpoint, model, and model-only quota variables unset. `.env.example` separates these groups; local development does not require the production origin or signing-secret settings.
 5. Build and deploy with those environment values. `NEXT_PUBLIC_` settings are baked into the browser bundle, so changing telemetry requires rebuilding. Do not enable model assessment merely because deployment succeeds.
-6. In a logged-out browser on the actual allowed HTTPS origin, select **Replay captured example**. Confirm historical captured provenance, visible **Assessment unavailable** evidence, and conditional economics. Change the budget or scenario and submit; confirm economics recompute while evidence is reused. Export Markdown and JSON and check unavailable fields remain unavailable. Save an incomplete draft, restore it, and confirm its text survives without an automatic request.
+6. In a logged-out browser on the actual allowed HTTPS origin, select **Replay captured example**. Confirm historical captured provenance, visible **Assessment unavailable** evidence (the model is off), the priced-in card, and conditional economics. Send a chat message such as "use 3k" and confirm simple-edit mode applies it. Change the budget or scenario and submit; confirm economics recompute while evidence is reused. Export Markdown and JSON and check unavailable fields remain unavailable. Save an incomplete draft, restore it, and confirm its text survives without an automatic request.
 7. Record the real deployed URL and the observed smoke-test outcome before sharing it. No hosted link or successful production smoke test is claimed in this README. A replay demo does not resolve the external model-budget gates or real five-trader validation.
 
 ### Drafts and validation telemetry
@@ -252,15 +205,20 @@ Telemetry is disabled by default. To enable the client events and server sink, s
 ### Architecture
 
 ~~~text
-Browser workbench
-  -> strict POST /api/research
-      -> server-only source normalization
-      -> server-only Bitget adapter or explicit captured replay
-      -> pure Decimal.js economics
-      -> optional server-only claim adapter
+Browser workbench (chat, radar, plan, brief)
+  -> POST /api/radar   headlines (Yahoo RSS, NVIDIA newsroom, SEC 8-K) + Bitget book + US quote
+                       -> buildMarketContext (session, move since close, tracking basis)
+  -> POST /api/chat    one bounded model call -> plan patch + headline IDs + action
+                       -> pure applyPlanPatch (schema-validated) | rule-based fallback
+  -> POST /api/research
+      -> headline IDs resolved from the server cache -> official full text or labeled feed summary
+      -> pasted text (optional, labeled unverified)
+      -> Bitget adapter or captured replay -> pure Decimal.js economics
+      -> US quote -> market context
+      -> claim adapter (claims-v4 for pasted-only, claims-v5-multisource with dated provenance)
           -> durable quota-service reserve/settle when production AI is enabled
-      -> validated canonical ResearchResult (`research-v2`)
-  -> /api/recompute for economics-only changes
+      -> validated ResearchResult (`research-v3`)
+  -> POST /api/recompute for economics-only changes
   -> deterministic Markdown or JSON export
 ~~~
 
@@ -276,10 +234,12 @@ All money and quantity arithmetic uses Decimal.js. `null` means unavailable; it 
 
 ### API surface
 
-- `POST /api/research` builds the validated evidence and economics brief.
-- `POST /api/market` retrieves either captured or live market data.
+- `POST /api/radar` returns headlines and the priced-in market context for an asset and mode.
+- `POST /api/chat` turns a conversation turn into a validated plan patch, evidence selection and action.
+- `POST /api/research` builds the validated evidence, market-context and economics brief.
+- `POST /api/market` retrieves captured or live market data plus the market context.
 - `POST /api/recompute` recalculates economics from an already returned instrument and snapshot without calling the claim model.
-- `POST /api/intent` applies a bounded follow-up edit such as changing the budget or requesting a market refresh.
+- `POST /api/intent` applies a strict single-command edit (kept for API compatibility; the chat uses it as its first fallback).
 - `POST /api/telemetry` accepts only the small validated event envelope when telemetry is enabled.
 
 All POST routes validate input. Browser-origin checks apply to production POST requests. Provider keys are read only on the server.
@@ -336,6 +296,8 @@ The historical verifier exits `0` for valid artifact integrity, or `2` for inval
 ## Public evidence and fixtures
 
 - [fixtures/selection-probe.json](fixtures/selection-probe.json) is a historical public API capture used for deterministic replay.
+- [fixtures/captured-context.json](fixtures/captured-context.json) holds the underlying closes and extended-hours prints for the same Sep 8 moment, and the NVIDIA/AWS release text (published Aug 26, 2026) used as replay evidence.
+- [public/finished-brief/](public/finished-brief/) is a brief exported from a real model run of the captured replay.
 - [fixtures/synthetic-book-v1.json](fixtures/synthetic-book-v1.json) supports deterministic calculator tests.
 - The [evidence/](evidence/) records are sanitized smoke and catalog artifacts. They show reachability, normalization, or a recorded integration result, not execution quality or future liquidity.
 

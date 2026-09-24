@@ -1,6 +1,9 @@
 import Decimal from "decimal.js";
 import { z } from "zod";
 
+// Declared before the schemas that use it; module constants are evaluated in order.
+const MAX_SELECTED_HEADLINES_LIMIT = 4;
+
 const DECIMAL_PATTERN = /^-?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:e[+-]?\d+)?$/i;
 
 function isFiniteDecimal(value: string) {
@@ -189,7 +192,7 @@ export const SourceDocumentSchema = z
     fetchedAt: z.string().datetime({ offset: true }),
     cleanedText: z.string().min(1),
     textHash: z.string().min(8),
-    provenance: z.enum(["retrieved_official", "user_pasted_unverified", "captured_official_excerpt", "synthetic_test"]),
+    provenance: z.enum(["retrieved_official", "retrieved_feed_summary", "user_pasted_unverified", "captured_official_excerpt", "synthetic_test"]),
     truncated: z.boolean(),
   })
   .strict();
@@ -308,6 +311,68 @@ export const PartialErrorSchema = z
   })
   .strict();
 
+export const HeadlineSchema = z
+  .object({
+    id: z.string().regex(/^hl_[a-f0-9]{16}$/),
+    asset: AssetSchema,
+    title: z.string().trim().min(1).max(400),
+    summary: z.string().trim().max(2_000),
+    url: z.string().url(),
+    publisher: z.string().trim().min(1).max(120),
+    // Exact instant when the feed states one; otherwise only the publication day is known.
+    publishedAt: z.string().datetime({ offset: true }).nullable(),
+    publishedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+    feed: z.enum(["issuer_newsroom", "yahoo_finance_ticker", "sec_edgar_8k"]),
+    kind: z.enum(["issuer_official", "regulatory_filing", "news_aggregator"]),
+    fullTextAvailable: z.boolean(),
+    mode: z.enum(["live", "captured_real"]),
+  })
+  .strict();
+
+export const SessionStateSchema = z.enum(["regular", "pre_market", "post_market", "overnight", "weekend", "holiday"]);
+
+export const MarketContextSchema = z
+  .object({
+    asset: AssetSchema,
+    mode: z.enum(["live", "captured_real"]),
+    observedAt: z.string().datetime({ offset: true }),
+    session: z
+      .object({
+        state: SessionStateSchema,
+        underlyingOpen: z.boolean(),
+        label: z.string().min(1),
+        nextRegularOpenAt: z.string().datetime({ offset: true }).nullable(),
+      })
+      .strict(),
+    underlying: z
+      .object({
+        symbol: z.string().min(1),
+        lastClose: PositiveDecimalStringSchema,
+        lastCloseSessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        lastCloseAt: z.string().datetime({ offset: true }),
+        latestPrice: PositiveDecimalStringSchema.nullable(),
+        latestAt: z.string().datetime({ offset: true }).nullable(),
+        source: z.enum(["yahoo_finance_chart", "captured_yahoo_finance_chart"]),
+      })
+      .strict()
+      .nullable(),
+    rToken: z
+      .object({
+        bestBid: PositiveDecimalStringSchema,
+        bestAsk: PositiveDecimalStringSchema,
+        mid: PositiveDecimalStringSchema,
+        at: z.string().datetime({ offset: true }),
+      })
+      .strict()
+      .nullable(),
+    // rToken mid versus the underlying's last regular-session close: what the 24/7 venue has already moved.
+    moveSinceClose: DecimalStringSchema.nullable(),
+    // rToken mid versus the freshest underlying print (regular or extended hours), only when that print is fresh.
+    basisVsLatest: DecimalStringSchema.nullable(),
+    warnings: z.array(z.string()),
+  })
+  .strict();
+
 export const ResearchResultSchema = z
   .object({
     reportId: z.string().min(8),
@@ -324,6 +389,8 @@ export const ResearchResultSchema = z
     snapshot: MarketSnapshotSchema.nullable(),
     recomputeToken: z.string().regex(/^v1\.[a-f0-9]{64}\.[A-Za-z0-9_-]{43}$/).nullable(),
     sources: z.array(SourceDocumentSchema),
+    headlineIds: z.array(z.string()).max(MAX_SELECTED_HEADLINES_LIMIT).default([]),
+    marketContext: MarketContextSchema.nullable().default(null),
     claims: z.array(ClaimAssessmentSchema).max(5),
     evidence: EvidenceResultSchema,
     economics: EconomicsResultSchema,
@@ -339,8 +406,86 @@ export const ResearchRequestSchema = z
     plan: PlanSchema,
     sourceText: z.string().trim().max(60_000).nullable(),
     sourceUrl: z.string().trim().max(2_000).nullable(),
+    headlineIds: z.array(z.string().regex(/^hl_[a-f0-9]{16}$/)).max(MAX_SELECTED_HEADLINES_LIMIT).default([]),
     marketMode: z.enum(["captured_real", "live"]),
     inputRevision: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const RadarRequestSchema = z
+  .object({
+    asset: AssetSchema,
+    mode: z.enum(["captured_real", "live"]),
+  })
+  .strict();
+
+export const RadarResultSchema = z
+  .object({
+    asset: AssetSchema,
+    mode: z.enum(["captured_real", "live"]),
+    headlines: z.array(HeadlineSchema).max(30),
+    marketContext: MarketContextSchema,
+    feedWarnings: z.array(z.string()),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
+// A plan patch is the only way the conversational layer can change the plan. Percent fields are
+// human percentages ("1.5" = 1.5%); the pure applier converts them and re-validates the whole plan.
+export const PlanPatchSchema = z
+  .object({
+    asset: AssetSchema.optional(),
+    thesis: z.string().trim().min(1).max(4000).optional(),
+    purchaseNotional: PositiveDecimalStringSchema.optional(),
+    horizonText: z.string().trim().max(240).optional(),
+    goal: z
+      .discriminatedUnion("kind", [
+        z.object({ kind: z.literal("break_even") }).strict(),
+        z.object({ kind: z.literal("profit_usdt"), amount: NonNegativeDecimalStringSchema }).strict(),
+        z.object({ kind: z.literal("net_return_percent"), percent: NonNegativeDecimalStringSchema }).strict(),
+        z.object({ kind: z.literal("none") }).strict(),
+      ])
+      .optional(),
+    scenarioBidShiftPercent: DecimalStringSchema.nullable().optional(),
+    invalidation: z.string().trim().max(800).nullable().optional(),
+    exitDepthPercent: NonNegativeDecimalStringSchema.optional(),
+    exitHaircutPercent: NonNegativeDecimalStringSchema.optional(),
+    feeInPercent: NonNegativeDecimalStringSchema.optional(),
+    feeOutPercent: NonNegativeDecimalStringSchema.optional(),
+  })
+  .strict();
+
+export const ChatMessageSchema = z
+  .object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().trim().min(1).max(2_000),
+  })
+  .strict();
+
+export const ChatRequestSchema = z
+  .object({
+    messages: z.array(ChatMessageSchema).min(1).max(12),
+    plan: PlanSchema,
+    marketMode: z.enum(["captured_real", "live"]),
+    headlines: z
+      .array(z.object({ id: z.string().regex(/^hl_[a-f0-9]{16}$/), title: z.string().max(400), publisher: z.string().max(120), publishedAt: z.string().nullable() }).strict())
+      .max(30),
+    selectedHeadlineIds: z.array(z.string().regex(/^hl_[a-f0-9]{16}$/)).max(MAX_SELECTED_HEADLINES_LIMIT),
+    hasSourceText: z.boolean(),
+    briefSummary: z.string().max(1_500).nullable(),
+  })
+  .strict();
+
+export const ChatResultSchema = z
+  .object({
+    reply: z.string().trim().min(1).max(1_200),
+    plan: PlanSchema,
+    changed: z.array(z.string().max(200)).max(12),
+    selectHeadlineIds: z.array(z.string().regex(/^hl_[a-f0-9]{16}$/)).max(MAX_SELECTED_HEADLINES_LIMIT).nullable(),
+    action: z.enum(["none", "run_brief", "refresh_market"]),
+    marketMode: z.enum(["captured_real", "live"]).nullable(),
+    origin: z.enum(["model", "rules"]),
+    modelId: z.string().nullable(),
   })
   .strict();
 
@@ -400,10 +545,23 @@ export type ScenarioRow = z.infer<typeof ScenarioRowSchema>;
 export type ResearchRequest = z.infer<typeof ResearchRequestSchema>;
 export type RecomputeRequest = z.infer<typeof RecomputeRequestSchema>;
 export type RecomputeResult = z.infer<typeof RecomputeResultSchema>;
+export type Headline = z.infer<typeof HeadlineSchema>;
+export type SessionState = z.infer<typeof SessionStateSchema>;
+export type MarketContext = z.infer<typeof MarketContextSchema>;
+export type RadarResult = z.infer<typeof RadarResultSchema>;
+export type PlanPatch = z.infer<typeof PlanPatchSchema>;
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+export type ChatRequest = z.infer<typeof ChatRequestSchema>;
+export type ChatResult = z.infer<typeof ChatResultSchema>;
 
 export const RESEARCH_REQUEST_MAX_BYTES = 120_000;
+export const CHAT_REQUEST_MAX_BYTES = 60_000;
 export const MAX_SOURCE_CHARS = 15_000;
-export const MAX_MODEL_SOURCE_COUNT = 3;
+export const MAX_MODEL_SOURCE_COUNT = 5;
+export const MAX_SELECTED_HEADLINES = MAX_SELECTED_HEADLINES_LIMIT;
 export const FORMULA_VERSION = "economics-v1";
-export const SCHEMA_VERSION = "research-v2";
+export const SCHEMA_VERSION = "research-v3";
+// Pasted-source-only briefs keep the frozen benchmark prompt; retrieved sources add dated provenance.
 export const PROMPT_VERSION = "claims-v4";
+export const MULTI_SOURCE_PROMPT_VERSION = "claims-v5-multisource";
+export const CHAT_PROMPT_VERSION = "chat-v1";

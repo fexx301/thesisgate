@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { assessClaims, unavailableEvidence } from "../../src/server/model";
+import { assessClaims, locateExcerpt, unavailableEvidence } from "../../src/server/model";
 import type { Plan } from "../../src/domain/contracts";
 import { createPastedSourceDocument } from "../../src/server/sources";
 import { claimAssessmentPrompt } from "../../src/domain/claim-prompt";
@@ -84,6 +84,43 @@ describe("model availability boundary", () => {
     expect(result.claims[0]?.citations[0]?.startOffset).toBe(20);
     expect(result.performance.modelDurationMs).toBeGreaterThanOrEqual(0);
     expect(result.performance.modelUsage?.costUsd).toBe("0.0012");
+  });
+
+  it("downgrades a supported claim whose quote cannot be found instead of failing the whole brief", async () => {
+    if (!source) throw new Error("test source was not created");
+    vi.stubEnv("THESIS_LLM_ENABLED", "true");
+    vi.stubEnv("THESIS_LLM_API_KEY", "test-key");
+    vi.stubEnv("THESIS_LLM_BASE_URL", "http://127.0.0.1:9999/v1/chat/completions");
+    vi.stubEnv("THESIS_LLM_MODEL", "test-model");
+    vi.stubEnv("THESIS_LLM_PROTOCOL", "openai_chat");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      model: "test-model",
+      choices: [{ message: { content: JSON.stringify({
+        summary: "Mixed.",
+        mostConsequentialUnknown: null,
+        claims: [
+          { claimId: "claim-1", exactText: "The issuer described planned deployment.", distinction: "factual", materiality: "material", status: "supported", explanation: "Quoted.", citations: [{ sourceId: source.id, excerpt: "planned   deployment." }], missingEvidence: null },
+          { claimId: "claim-2", exactText: "Revenue is already realized.", distinction: "factual", materiality: "material", status: "contradicted", explanation: "Invented quote.", citations: [{ sourceId: source.id, excerpt: "revenue was booked in full last quarter" }], missingEvidence: null },
+        ],
+      }) } }],
+    }), { headers: { "content-type": "application/json" } })));
+
+    const result = await assessClaims(plan, [source]);
+    // Whitespace differences still verify, and the stored excerpt is the exact source text.
+    expect(result.claims[0].status).toBe("supported");
+    expect(result.claims[0].citations[0].excerpt).toBe("planned deployment.");
+    expect(result.claims[1].status).toBe("insufficient");
+    expect(result.claims[1].citations).toEqual([]);
+    expect(result.claims[1].explanation).toContain("could not verify the quoted text");
+    expect(result.evidence.verdict).toBe("mixed");
+  });
+
+  it("locates quotes across typographic quotes and dashes", () => {
+    const text = "AWS\u2019s plan \u2014 2 million GPUs in 2027\u20132028.";
+    const located = locateExcerpt("AWS's plan - 2 million GPUs in 2027-2028", text);
+    expect(located).not.toBeNull();
+    expect(text.slice(located!.startOffset, located!.endOffset)).toBe("AWS\u2019s plan \u2014 2 million GPUs in 2027\u20132028");
+    expect(locateExcerpt("short", text)).toBeNull();
   });
 
   it("keeps production model calls closed without durable quota controls", async () => {

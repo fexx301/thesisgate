@@ -8,6 +8,8 @@ export type WorkbenchState = {
   plan: Plan;
   sourceText: string;
   sourceUrl: string;
+  // Server-issued headline IDs selected as evidence; changing them invalidates the evidence result.
+  selectedHeadlineIds: string[];
   marketMode: MarketMode;
   // Market mode the current report was requested for, independent of snapshot availability,
   // so partial reports with failed market data are not falsely called stale.
@@ -27,6 +29,7 @@ export type WorkbenchAction =
   | { type: "set-plan"; plan: Plan; changedMessage: string; evidenceChanged: boolean }
   | { type: "set-source-text"; sourceText: string }
   | { type: "set-source-url"; sourceUrl: string }
+  | { type: "set-headlines"; headlineIds: string[]; changedMessage: string | null }
   | { type: "request-success"; requestId: number; report: ResearchResult; requestedMarketMode: MarketMode }
   | { type: "set-market-mode"; marketMode: MarketMode; changedMessage?: string }
   | { type: "restore-draft"; plan: Plan; sourceText: string; sourceUrl: string; marketMode: MarketMode; changedMessage: string }
@@ -62,6 +65,15 @@ export function revisionReducer(state: WorkbenchState, action: WorkbenchAction):
         planRevision: state.planRevision + 1,
         thesisRevision: state.thesisRevision + 1,
         changedMessage: "Source URL changed. The reference remains unverified until retrieval is enabled.",
+      };
+    case "set-headlines":
+      if (JSON.stringify(action.headlineIds) === JSON.stringify(state.selectedHeadlineIds)) return state;
+      return {
+        ...state,
+        selectedHeadlineIds: action.headlineIds,
+        planRevision: state.planRevision + 1,
+        thesisRevision: state.thesisRevision + 1,
+        changedMessage: action.changedMessage,
       };
     case "set-market-mode":
       return { ...state, marketMode: action.marketMode, changedMessage: action.changedMessage ?? null };

@@ -36,7 +36,7 @@ function partialReport(): ResearchResult {
     schemaVersion: SCHEMA_VERSION, formulaVersion: FORMULA_VERSION, promptVersion: PROMPT_VERSION,
     evidenceInputHash: "evidence-hash", economicsInputHash: null, modelId: null,
     confirmedPlan: plan, instrument: null, snapshot: null, recomputeToken: null,
-    sources: [source], claims: [],
+    sources: [source], headlineIds: [], marketContext: null, claims: [],
     evidence: {
       status: "unavailable", assessmentOrigin: "unavailable", verdict: "not_assessed",
       scope: "by the supplied evidence", mostConsequentialUnknown: "Evidence not assessed", summary: "Evidence unavailable",
@@ -55,6 +55,7 @@ const state: WorkbenchState = {
   plan,
   sourceText: "source",
   sourceUrl: "",
+  selectedHeadlineIds: [],
   marketMode: "captured_real",
   reportMarketMode: null,
   planRevision: 1,

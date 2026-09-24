@@ -4,6 +4,7 @@ import {
   ClaimAssessmentSchema,
   EvidenceResultSchema,
   ModelUsageSchema,
+  MULTI_SOURCE_PROMPT_VERSION,
   PROMPT_VERSION,
   type ClaimAssessment,
   type EvidenceResult,
@@ -11,7 +12,7 @@ import {
   type Plan,
   type SourceDocument,
 } from "@/domain/contracts";
-import { claimAssessmentPrompt } from "@/domain/claim-prompt";
+import { claimAssessmentPrompt, multiSourceClaimPrompt } from "@/domain/claim-prompt";
 import {
   acquireModelSlot,
   assertProductionBudgetControls,
@@ -260,7 +261,7 @@ function extractContent(response: unknown, protocol: ModelConfig["protocol"]) {
   return stringValue(message.content);
 }
 
-async function callModel(config: ModelConfig, prompt: string, context: { requestId: string; visitorKey: string }) {
+async function callModel(config: ModelConfig, prompt: string, context: { requestId: string; visitorKey: string }, options: { system: string; maxTokens: number; kind?: "analysis" | "chat" }) {
   const startedAt = Date.now();
   let providerStarted = false;
   let releaseSlot: (() => void) | null = null;
@@ -272,7 +273,7 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
   try {
     // Local 5/10min + daily guard runs before the durable production reservation.
     try {
-      checkLocalModelRateLimit(context.visitorKey);
+      checkLocalModelRateLimit(context.visitorKey, options.kind ?? "analysis");
     } catch (error) {
       throw new ModelAdapterError("model_budget", error instanceof Error ? error.message : "Model budget denied.");
     }
@@ -290,16 +291,17 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
             ...(reasoning ? { reasoning } : {}),
             input: prompt,
             temperature: 0.1,
-            max_output_tokens: 2200,
+            instructions: options.system,
+            max_output_tokens: options.maxTokens,
           }
         : {
             model: config.model,
             ...(reasoning ? { reasoning } : {}),
             temperature: 0.1,
-            max_tokens: 2200,
+            max_tokens: options.maxTokens,
             response_format: { type: "json_object" },
             messages: [
-              { role: "system", content: `You are a source-bounded claim assessor. Prompt version: ${PROMPT_VERSION}.` },
+              { role: "system", content: options.system },
               { role: "user", content: prompt },
             ],
           };
@@ -362,26 +364,73 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
   return { ...result, modelId, durationMs: Date.now() - startedAt };
 }
 
+const EQUIVALENT_CHARACTERS: Record<string, string> = { "\u2018": "'", "\u2019": "'", "\u201c": "\"", "\u201d": "\"", "\u2013": "-", "\u2014": "-", "\u00a0": " " };
+
+/** Folds typographic quotes, dashes and whitespace runs, keeping a map back to original offsets. */
+function foldForMatching(text: string) {
+  let folded = "";
+  const origin: number[] = [];
+  let lastWasSpace = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = EQUIVALENT_CHARACTERS[text[index]] ?? text[index];
+    if (/\s/.test(character)) {
+      if (lastWasSpace) continue;
+      folded += " ";
+      origin.push(index);
+      lastWasSpace = true;
+      continue;
+    }
+    folded += character;
+    origin.push(index);
+    lastWasSpace = false;
+  }
+  return { folded, origin };
+}
+
+/**
+ * Locates a model quote in the canonical text. Exact matches win; otherwise typographic and whitespace
+ * differences are tolerated and the citation records the exact source substring, never the model's text.
+ */
+export function locateExcerpt(excerpt: string, text: string): { startOffset: number; endOffset: number } | null {
+  const exact = text.indexOf(excerpt);
+  if (exact >= 0) return { startOffset: exact, endOffset: exact + excerpt.length };
+  const needle = foldForMatching(excerpt.trim()).folded;
+  if (needle.length < 12) return null;
+  const haystack = foldForMatching(text);
+  const found = haystack.folded.indexOf(needle);
+  if (found < 0) return null;
+  return { startOffset: haystack.origin[found], endOffset: haystack.origin[found + needle.length - 1] + 1 };
+}
+
 function validateCitations(claim: ModelClaim, sources: SourceDocument[]) {
-  const citations = claim.citations.map((citation) => {
+  let unverified = 0;
+  const citations = claim.citations.flatMap((citation) => {
     const source = sources.find((candidate) => candidate.id === citation.sourceId);
+    // An invented source ID is fabrication, so the whole assessment is rejected.
     if (!source) throw new Error(`Unknown citation source ID: ${citation.sourceId}`);
     if (citation.excerpt.length > 360) throw new Error("Citation excerpt is too long");
-    const startOffset = source.cleanedText.indexOf(citation.excerpt);
-    if (startOffset < 0 || source.cleanedText.indexOf(citation.excerpt, startOffset + 1) >= 0) {
-      throw new Error("Citation excerpt did not match exactly once in the canonical source text");
+    const located = locateExcerpt(citation.excerpt, source.cleanedText);
+    if (!located) {
+      unverified += 1;
+      return [];
     }
-    return {
+    return [{
       sourceId: source.id,
-      excerpt: citation.excerpt,
-      startOffset,
-      endOffset: startOffset + citation.excerpt.length,
-    };
+      excerpt: source.cleanedText.slice(located.startOffset, located.endOffset).slice(0, 360),
+      startOffset: located.startOffset,
+      endOffset: Math.min(located.endOffset, located.startOffset + 360),
+    }];
   });
+  // A verdict that loses every verifiable quote is not trusted: it is downgraded, and the reason is shown.
   if ((claim.status === "supported" || claim.status === "contradicted") && !citations.length) {
-    throw new Error("Supported and contradicted claims require a validated citation");
+    return {
+      citations,
+      status: "insufficient" as const,
+      explanation: `${claim.explanation} (ThesisGate could not verify the quoted text in the source, so this claim is treated as unverified rather than ${claim.status}.)`.slice(0, 900),
+      unverified,
+    };
   }
-  return citations;
+  return { citations, status: claim.status, explanation: claim.explanation, unverified };
 }
 
 function overallVerdict(claims: ClaimAssessment[]): EvidenceResult["verdict"] {
@@ -402,9 +451,27 @@ export function unavailableEvidence(summary: string): EvidenceResult {
   });
 }
 
-export async function assessClaims(plan: Plan, sources: SourceDocument[], context: { requestId: string; visitorKey: string } = { requestId: "local-request", visitorKey: "local-visitor" }) {
+/**
+ * One bounded JSON-mode call for the conversational layer. It shares the claim assessor's
+ * configuration, rate limits, durable budget reservation, timeout and body cap.
+ */
+export async function callJsonModel(system: string, prompt: string, context: { requestId: string; visitorKey: string }, maxTokens = 900) {
   const config = configuredModel();
-  const result = await callModel(config, claimAssessmentPrompt(plan, sources), context);
+  const result = await callModel(config, prompt, context, { system, maxTokens, kind: "chat" });
+  return { parsed: result.parsed, modelId: result.modelId ?? config.model, usage: result.usage, durationMs: result.durationMs };
+}
+
+export function claimPromptFor(plan: Plan, sources: SourceDocument[], asOf = new Date()) {
+  const retrieved = sources.some((source) => source.provenance !== "user_pasted_unverified");
+  return retrieved
+    ? { prompt: multiSourceClaimPrompt(plan, sources, asOf), version: MULTI_SOURCE_PROMPT_VERSION }
+    : { prompt: claimAssessmentPrompt(plan, sources), version: PROMPT_VERSION };
+}
+
+export async function assessClaims(plan: Plan, sources: SourceDocument[], context: { requestId: string; visitorKey: string } = { requestId: "local-request", visitorKey: "local-visitor" }, asOf = new Date()) {
+  const config = configuredModel();
+  const { prompt, version } = claimPromptFor(plan, sources, asOf);
+  const result = await callModel(config, prompt, context, { system: `You are a source-bounded claim assessor. Prompt version: ${version}.`, maxTokens: 2200 });
   let parsed;
   try {
     parsed = parseModelClaims(result.parsed);
@@ -419,11 +486,16 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
 
   let claims: ClaimAssessment[];
   try {
-    claims = parsed.claims.map((claim, index) => ClaimAssessmentSchema.parse({
-      ...claim,
-      claimId: claim.claimId || `claim-${index + 1}`,
-      citations: validateCitations(claim, sources),
-    }));
+    claims = parsed.claims.map((claim, index) => {
+      const validated = validateCitations(claim, sources);
+      return ClaimAssessmentSchema.parse({
+        ...claim,
+        claimId: claim.claimId || `claim-${index + 1}`,
+        status: validated.status,
+        explanation: validated.explanation,
+        citations: validated.citations,
+      });
+    });
   } catch (error) {
     throw new ModelAdapterError(
       "model_invalid_output",
@@ -447,6 +519,7 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
   return {
     evidence,
     claims,
+    promptVersion: version,
     modelId: result.modelId ?? config.model,
     performance: {
       modelDurationMs: result.durationMs,
