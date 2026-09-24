@@ -95,7 +95,7 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - Priced-in card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
 - Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the priced-in context and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
-- Current local verification: typecheck, lint, 159 unit/integration tests across 22 files, production build, and 26 Chromium/mobile browser journeys pass.
+- Current local verification: typecheck, lint, 162 unit/integration tests across 22 files, production build, and 26 Chromium/mobile browser journeys pass.
 
 ### Not ready for public AI use
 

@@ -1,0 +1,37 @@
+name: Live demo uptime
+
+# Checks the public demo every 30 minutes through judging. Makes no model calls, so it costs nothing;
+# a failed run triggers GitHub's standard failure email to the repository owner.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE: https://thesisgate.duckdns.org
+    steps:
+      - name: Page loads over HTTPS
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$SITE/")
+          echo "page: $code"; test "$code" = "200"
+
+      - name: App and captured replay respond
+        run: |
+          body=$(curl -s --max-time 30 -X POST "$SITE/api/radar" -H "content-type: application/json" -H "origin: $SITE" \
+            -d '{"asset":"NVDA","mode":"captured_real"}')
+          echo "$body" | head -c 300; echo
+          echo "$body" | grep -q '"marketContext"'
+
+      - name: Live market data and headlines respond
+        run: |
+          body=$(curl -s --max-time 45 -X POST "$SITE/api/radar" -H "content-type: application/json" -H "origin: $SITE" \
+            -d '{"asset":"TSLA","mode":"live"}')
+          echo "$body" | head -c 300; echo
+          echo "$body" | grep -q '"rToken":{' || { echo "Live rToken book missing: Bitget may be unreachable from the server."; exit 1; }
