@@ -6,7 +6,7 @@ The live demo runs on an existing EC2 instance at **https://thesisgate.duckdns.o
 
 ```sh
 aws ssm send-command --region us-east-1 --instance-ids i-03b8a54e47308e5f6 --document-name AWS-RunShellScript \
-  --parameters 'commands=["cd /opt/thesisgate && git fetch -q origin stronger-after-hours && git checkout -q -B stronger-after-hours origin/stronger-after-hours && bash deploy/aws-upgrade.sh stronger-after-hours \"thesisgate.duckdns.org, 54-84-91-138.sslip.io\" \"https://thesisgate.duckdns.org,https://54-84-91-138.sslip.io\""]'
+  --parameters 'commands=["cd /opt/thesisgate && git fetch -q origin +refs/heads/stronger-after-hours:refs/remotes/origin/stronger-after-hours && git checkout -q -B stronger-after-hours origin/stronger-after-hours && bash deploy/aws-upgrade.sh stronger-after-hours \"thesisgate.duckdns.org, 54-84-91-138.sslip.io\" \"https://thesisgate.duckdns.org,https://54-84-91-138.sslip.io\""]'
 ```
 
 - The OpenRouter key is read from the SecureString parameter `/thesisgate/openrouter-api-key` at deploy time and is written only to the root-only `deploy/production.env` on the host.

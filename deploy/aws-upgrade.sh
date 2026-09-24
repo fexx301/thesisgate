@@ -30,7 +30,7 @@ mkdir -p /opt/thesisgate-backup
 for f in .dockerignore; do
   if [ -f "$f" ] && ! git ls-files --error-unmatch "$f" >/dev/null 2>&1; then mv "$f" "/opt/thesisgate-backup/$f.$(date +%s)"; fi
 done
-git fetch --quiet origin "$BRANCH"
+git fetch --quiet origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
 git checkout --quiet -B "$BRANCH" "origin/$BRANCH"
 echo "Code at $(git log --oneline -1)"
 
