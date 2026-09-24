@@ -1,0 +1,163 @@
+{
+  "caseId": "X02",
+  "pack": "captured-2026-09-08",
+  "asOf": "2026-09-08T21:51:19Z",
+  "message": "The AWS deal means NVIDIA is already booking revenue from those 2M GPUs, so rNVDA should pop before the open. 10k in, I want a 1% net return.",
+  "truth": {
+    "isNewEvent": null,
+    "eventNote": "The deployment is planned for 2027-2028; nothing in the release reports current revenue from it.",
+    "claims": [
+      {
+        "claim": "NVIDIA is already booking revenue from the 2 million GPUs",
+        "expected": "insufficient"
+      },
+      {
+        "claim": "The deployment is a plan for 2027-2028",
+        "expected": "supported"
+      },
+      {
+        "claim": "rNVDA will pop before the open",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.4292319577867521,
+      "goalMovePercent": 1.4335242773646197,
+      "moveSinceClosePercent": -0.039870641917334866
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The source says AWS and NVIDIA plan to deploy 2 million additional GPUs in 2027–2028. It does not establish that NVIDIA is already booking revenue from those GPUs or that rNVDA will rise before the open.\nMost consequential unknown: The supplied source does not say whether NVIDIA has recognized or is currently booking revenue attributable to the planned 2 million GPUs.\n- [insufficient, factual] NVIDIA is already booking revenue from the 2 million GPUs in the AWS deal.: The source describes a future deployment plan, not current revenue recognition. It does not state whether NVIDIA is already booking revenue from these GPUs. Quote: \"AWS plans to deploy an additional 2 million NVIDIA Blackwell Ultra, Rubin and Rubin Ultra GPUs in 2027-2028 across AWS Global Infrastructure, including AI factories.\"\n- [insufficient, causal] The AWS deal means NVIDIA is already booking revenue from those 2 million GPUs.: The source establishes a planned deployment but does not establish that the deal has caused NVIDIA to book revenue already.\n- [supported, factual] AWS and NVIDIA plan to deploy 2 million additional NVIDIA GPUs across AWS infrastructure in 2027–2028.: The issuer's official announcement states that the companies plan the additional deployment in 2027–2028; this is a plan, not a claim that deployment has already occurred. Quote: \"AWS plans to deploy an additional 2 million NVIDIA Blackwell Ultra, Rubin and Rubin Ultra GPUs in 2027-2028 across AWS Global Infrastructure, including AI factories.\"\n- [insufficient, forecast] rNVDA should pop before the open.: The announcement does not establish a future share-price direction or timing outcome.\nPriced in since the close: US after-hours: thin extended-hours trading only. rNVDA mid 225.64 USDT versus NVDA last close 225.73 USD (2026-09-08): -0.04% since the close.\nYour goal needs rNVDA bids near 228.85 USDT, +1.38% versus NVDA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 225.76691195528001915 USDT; immediate friction 42.78 USDT; break-even needs the bid book +0.43%; your goal needs +1.43%.\nWarning: Visible ask capacity is 1170548.833666 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.4292319577867521,
+      "goalMovePercent": 1.4335242773646197,
+      "moveSinceClosePercent": -0.039870641917334866
+    },
+    "claimLatencyMs": 6465,
+    "plan": {
+      "asset": "NVDA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "The AWS deal means NVIDIA is already booking revenue from those 2M GPUs, and rNVDA should pop before the open.",
+      "purchaseNotionalExcludingFee": "10000",
+      "horizon": {
+        "originalText": "before the open",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "net_return",
+        "fractionOfEntryCash": "0.01"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve set the rNVDA thesis, amount, 1% net-return goal, and “before the open” horizon, and selected the AWS/NVIDIA headline as related evidence. The brief will check the claim; the headline does not itself confirm that revenue is already being booked.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The source supports a **large planned expansion**, not the claim that NVIDIA is already booking revenue from the additional 2 million GPUs. AWS and NVIDIA say they **plan to deploy** those GPUs in 2027–2028. The announcement also says AWS had previously planned to add more than 1 million GPUs starting in 2026, and that demand has exceeded expectations. But it gives no purchase price, binding order terms, delivery schedule by GPU, or revenue-recognition details. It therefore does not establish that the new 2 million are already shipped, paid for, or recognized as NVIDIA revenue.\n\nFor your trade:\n\n- **$10,000 × 1% = $100.** A 1% rise in the position’s value would be about **$100 gross**, before trading costs, spread, taxes, or any product-specific fees. To net $100, the required move must exceed 1% by enough to cover those costs.\n- I can’t calculate the exact break-even or net target without knowing what **rNVDA** is, its entry price, leverage or other payoff rules, and your costs. If it is not a straightforward share position, a 1% move in NVDA may not mean a 1% move in your instrument.\n- The source is dated **August 26, 2026**, so it is not a new announcement relative to the stated current date of September 8. The source alone also can’t tell us whether the news was already priced in, or whether NVDA will rise before the open. No closing price or instrument quote was provided, so the move since close is unknown.\n\nDon’t treat the headline GPU count as near-term recognized revenue or as a reliable premarket price signal.\n\n```json\n{\"breakEvenMovePercent\":null,\"goalMovePercent\":1,\"moveSinceClosePercent\":null,\"isNewEvent\":false}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.00039814,
+    "latencyMs": 8317,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The announcement supports **future planned deployment, not revenue already being booked from the 2 million GPUs**. AWS and NVIDIA say the additional GPUs are planned for **2027–2028**; the release describes demand and collaboration, but gives no present shipment, revenue-recognition, or earnings figures for that commitment. It was published **August 26**, so it is not a new announcement as of the September 8 snapshot.\n\nFor a **10,000 USDT ask sweep** at the supplied book, with the 0.1% entry fee added:\n\n- **Estimated fill:** 44.2934 rNVDA, using about 9,999.98 USDT of notional. Entry cash including fee is about **10,009.98 USDT**.\n- **Estimated current-book exit:** selling that quantity into the supplied bids yields about **9,953.05 USDT before** the 0.1% exit fee, or **9,943.09 USDT after** it.\n- **Break-even move:** the bids would need to rise about **0.67%** for the after-fee sale proceeds to recover entry cash.\n- **Move for a 1% net gain on 10,000 USDT** (100 USDT profit after both fees): about **1.58%** from the supplied bid levels.\n- **Move since the underlying’s last regular-session close:** using the rNVDA book midpoint of 225.64 versus NVDA’s 225.73 close, about **−0.04%**.\n\nThese are estimates from a single order-book snapshot, not a forecast. The market is in thin after-hours trading; prices, depth, and execution can change, and the source does not establish that rNVDA will rise before the open.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.67,\n  \"goalMovePercent\": 1.58,\n  \"moveSinceClosePercent\": -0.04,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.00065217,
+    "latencyMs": 12413,
+    "isNewEvent": false
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.022822,
+    "order": [
+      "thesisgate",
+      "chatbot_with_data",
+      "chatbot"
+    ],
+    "judgement": {
+      "thesisgate": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags insufficient claims, gives already-moved (-0.04%) and correct break-even/goal figures, clearly labeled non-advice."
+      },
+      "chatbot_with_data": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags revenue claim as unsupported, notes plan is future, gives move-since-close, numbers differ slightly from reference but are estimates not fabrications."
+      },
+      "chatbot": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags revenue claim as unsupported and explicitly notes inability to determine price move without data, no forecast given."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.4292319577867521,
+        "goalMovePercent": 1.4335242773646197,
+        "moveSinceClosePercent": -0.039870641917334866
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 1,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "wrong",
+      "goal": "wrong",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.67,
+        "goalMovePercent": 1.58,
+        "moveSinceClosePercent": -0.04
+      }
+    }
+  }
+}

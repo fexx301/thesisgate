@@ -1,0 +1,159 @@
+{
+  "caseId": "X09",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "Tesla just dropped earnings and they crushed it. Putting 10k into rTSLA, want 150 USDT.",
+  "truth": {
+    "isNewEvent": false,
+    "eventNote": "Tesla's latest results filing (8-K Item 2.02) is dated 2026-07-22, about two months before the as-of date. The filing entry does not describe the results.",
+    "claims": [
+      {
+        "claim": "Tesla just reported earnings",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "The earnings crushed expectations",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.48267688717827206,
+      "goalMovePercent": 1.9884128419177312,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): insufficient. The supplied record shows a Tesla 8-K filing concerning results of operations dated July 22, 2026, but does not establish that Tesla has just reported earnings or that the result was strong.\nMost consequential unknown: The supplied record contains no earnings results or performance measures with which to assess whether Tesla's reported result was strong.\n- [insufficient, factual] Tesla has just reported earnings.: The source records a July 22, 2026 filing concerning results of operations. As the thesis is assessed on September 24, 2026, that record shows an earlier filing, not that earnings were just reported; the supplied material does not establish whether another report was issued more recently. Quote: \"Filed: 2026-07-22\"\n- [insufficient, factual] Tesla's reported earnings were strong.: The feed summary identifies a filing concerning results of operations but provides no earnings figures, comparisons, or other results that would establish whether the earnings were strong. Quote: \"Tesla 8-K filing: Item 2.02: Results of Operations and Financial Condition; Item 9.01: Financial Statements and Exhibits\"\nPriced in since the close: US regular session is open. rTSLA mid 377.895 USDT versus TSLA last close 380.12 USD (2026-09-23): -0.59% since the close.\nYour goal needs rTSLA bids near 385.40 USDT, +1.39% versus TSLA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 377.9 USDT; immediate friction 48.08 USDT; break-even needs the bid book +0.48%; your goal needs +1.99%.\nWarning: Visible ask capacity is 531331.68742 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.48267688717827206,
+      "goalMovePercent": 1.9884128419177312,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "claimLatencyMs": 9690,
+    "plan": {
+      "asset": "TSLA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "Tesla has just reported earnings, which the user characterizes as a strong result.",
+      "purchaseNotionalExcludingFee": "10000",
+      "horizon": {
+        "originalText": "",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "150"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the plan for rTSLA, treating the $10k as USDT and the 150 USDT as your profit goal. I selected the Tesla 8-K headline as evidence and will run the brief.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "insufficient"
+  },
+  "chatbot": {
+    "text": "The source **doesn’t establish that Tesla “crushed it.”** It identifies a Tesla 8-K filed **July 22, 2026**, under Items 2.02 and 9.01, but gives no earnings figures, comparison with expectations, or market reaction. And that filing is about two months old as of **September 24, 2026**, so it does not support treating this as a fresh earnings catalyst.\n\nAssuming you mean **make 150 USDT profit** on a 10,000 USDT position:\n\n- **Target return:** 150 ÷ 10,000 = **1.5%**, before fees, spreads, and tracking differences.\n- **Required rTSLA move:** about **+1.5%** only if rTSLA tracks Tesla 1:1 and you’re buying spot with no material costs. The actual required move can’t be determined from the information provided.\n- **Break-even move and move since close:** can’t be calculated without the entry price, current price, relevant close, and trading costs.\n\nBefore placing the trade, check what **rTSLA** specifically represents, how it tracks Tesla, its liquidity and spread, and any issuer, redemption, or trading-hour restrictions. A strong earnings report—or a claim that it was strong—doesn’t guarantee the token will rise; expectations may already be priced in.\n\n```json\n{\"breakEvenMovePercent\":null,\"goalMovePercent\":1.5,\"moveSinceClosePercent\":null,\"isNewEvent\":false}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0003165,
+    "latencyMs": 7610,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The cited SEC filing does **not** support the claim that Tesla “just dropped earnings” or “crushed it.” It is a July 22, 2026 8-K, and the description only identifies earnings-related filing items—it gives no results or comparison with expectations. It is also about two months old relative to the market data provided, so it does not establish a new earnings event today.\n\n**For a $10,000 USDT buy**, assuming the goal is **$150 net profit**:\n\n- The best ask is **377.90 USDT**. The order-book quantity step leaves you buying **26.461 rTSLA** for **9,999.52 USDT**; the entry fee is about **10.00 USDT**. Total cash outlay: **10,009.52 USDT**.\n- Sweeping the bids to sell all 26.461 rTSLA would yield about **9,971.50 USDT before the exit fee**, or **9,961.53 USDT after it**, at the displayed prices.\n- **Break-even move:** about **+0.482%** across the bids, after fees and the modeled entry/exit slippage.\n- **Move needed for $150 net profit:** about **+1.988%** across the bids, on the same assumptions.\n- **Move since the last regular-session close:** about **−0.585%**, using the rTSLA midpoint of 377.895 versus TSLA’s 380.12 USD close.\n\nThese are order-book snapshots, not guaranteed fills or forecasts; prices and available depth can change. rTSLA’s stated one-for-one tracking does not remove token, venue, or execution risks.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.4818,\n  \"goalMovePercent\": 1.9875,\n  \"moveSinceClosePercent\": -0.5853,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0007613,
+    "latencyMs": 13808,
+    "isNewEvent": false
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.01176,
+    "order": [
+      "chatbot",
+      "chatbot_with_data",
+      "thesisgate"
+    ],
+    "judgement": {
+      "chatbot": {
+        "label": "A",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags old, unsupported filing and mentions pricing-in without giving numeric move."
+      },
+      "chatbot_with_data": {
+        "label": "B",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags old/unsupported earnings claim and computes move since close and breakeven consistent with reference figures."
+      },
+      "thesisgate": {
+        "label": "C",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly labels claims insufficient, notes -0.59% move since close and matches reference calculations."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.48267688717827206,
+        "goalMovePercent": 1.9884128419177312,
+        "moveSinceClosePercent": -0.585341471114385
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 1.5,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.4818,
+        "goalMovePercent": 1.9875,
+        "moveSinceClosePercent": -0.5853
+      }
+    }
+  }
+}

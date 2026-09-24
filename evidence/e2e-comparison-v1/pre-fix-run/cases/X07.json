@@ -1,0 +1,159 @@
+{
+  "caseId": "X07",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "Tesla's EU sales jumped 53%, so Tesla is winning Europe and beating the Chinese EV makers. 5k in rTSLA, I want a 1% return.",
+  "truth": {
+    "isNewEvent": true,
+    "eventNote": "Same-day article about August data.",
+    "claims": [
+      {
+        "claim": "Tesla's EU registrations rose about 53% in August",
+        "expected": "supported"
+      },
+      {
+        "claim": "Tesla is beating the Chinese EV makers in Europe",
+        "expected": "contradicted"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.47263907201635685,
+      "goalMovePercent": 1.4773654627365205,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The supplied feed summary says Tesla’s EU registrations rose nearly 53% in August, but it also says Chinese EV rivals grew much faster. It does not establish that Tesla is winning in Europe.\nMost consequential unknown: The source provides only a headline and feed summary, not underlying registration figures or a comparison of Tesla’s performance against individual Chinese EV makers across Europe.\n- [insufficient, factual] Tesla’s EU registrations jumped 53% in August.: The available summary reports a rise of nearly 53%, not an exact 53% figure. The source is only a headline and feed summary. Quote: \"Tesla’s EU Registrations Jump Nearly 53% In August\"\n- [contradicted, factual] Tesla is beating Chinese EV makers in Europe.: The feed summary says Chinese EV rivals grew much faster, which contradicts the claim that Tesla beat them on growth in August. The summary does not establish a broader comparison of market position. Quote: \"Chinese EV Rivals Grow Much Faster\"\n- [insufficient, causal] Tesla is winning in Europe.: A rise in Tesla registrations alone does not establish that Tesla is winning in Europe. The summary says the broader EU, EFTA and UK market grew more slowly, but also says Chinese EV rivals grew much faster. Quote: \"growth across the broader EU, EFTA and UK market was much slower at 4%.\"\nPriced in since the close: US regular session is open. rTSLA mid 377.895 USDT versus TSLA last close 380.12 USD (2026-09-23): -0.59% since the close.\nYour goal needs rTSLA bids near 383.47 USDT, +0.88% versus TSLA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 377.9 USDT; immediate friction 23.54 USDT; break-even needs the bid book +0.47%; your goal needs +1.48%.\nWarning: Visible ask capacity is 531331.68742 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.47263907201635685,
+      "goalMovePercent": 1.4773654627365205,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "claimLatencyMs": 7531,
+    "plan": {
+      "asset": "TSLA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "Tesla’s EU registrations jumped 53% in August. The user interprets this as Tesla winning in Europe and beating Chinese EV makers.",
+      "purchaseNotionalExcludingFee": "5000",
+      "horizon": {
+        "originalText": "",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "net_return",
+        "fractionOfEntryCash": "0.01"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve set the rTSLA thesis, amount, and 1% net-return goal, and selected the available headline as evidence. The headline also says Chinese EV rivals grew faster, so the brief can assess that alongside your interpretation.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The source **does not support the claim that Tesla is beating Chinese EV makers**. It reports Tesla registrations up nearly 53% in August, but says Chinese EV rivals grew faster. It also says the broader EU, EFTA and UK market grew only 4%—so Tesla’s result looks strong against that market, but one month of registrations doesn’t establish a lasting lead or market-share trend.\n\nFor a **$5,000 position**, a 1% gain is **$50 before fees, spreads, taxes, and any tracking effects**. If you mean a long position in an ordinary, unleveraged Tesla share, that requires roughly a **1% rise**; the gross break-even move is 0%. But I can’t identify what “rTSLA” refers to from the information provided. If it’s a leveraged or otherwise structured product, the move needed in Tesla shares may differ, and daily leverage products can diverge over time. I also don’t have the instrument’s price or a prior-close quote, so I can’t calculate its move since the close.\n\nThe article was published today, but it reports August registrations; that makes it newly reported information, not proof of a new competitive shift. Consider checking the exact instrument, its leverage and fees, and the underlying registration figures before sizing the trade.\n\n```json\n{\n  \"breakEvenMovePercent\": 0,\n  \"goalMovePercent\": 1,\n  \"moveSinceClosePercent\": null,\n  \"isNewEvent\": true\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0004439,
+    "latencyMs": 12036,
+    "isNewEvent": true
+  },
+  "chatbotWithData": {
+    "text": "The headline **doesn’t show Tesla beating Chinese EV makers**: it says Tesla’s EU registrations rose nearly 53% in August, but Chinese rivals grew faster. The broader EU, EFTA and UK market grew 4%, so Tesla’s increase was much faster than the overall market—but the figures alone don’t establish market-share gains, overall European leadership, or why registrations changed.\n\n**For the 5,000 USDT rTSLA spot buy**, using the supplied book:\n\n- The buy fits entirely at the best ask of **377.90**. Rounding down to the 0.0001 quantity step gives **13.2310 rTSLA**, costing **4,999.9949 USDT** before the **5.00 USDT** entry fee.\n- Selling that quantity against the displayed bids would use three bid levels. After the **0.1% exit fee**, the estimated proceeds at unchanged prices are about **4,981.45 USDT**.\n- **Break-even move: about +0.473%** across the bids, relative to the entry cash including fees.\n- **Move needed for a 1% return on entry cash: about +1.477%** across the bids, after fees.\n- The rTSLA midpoint is **377.895**, about **0.585% below** TSLA’s last regular-session close of 380.12.\n\nThese are estimates from the supplied snapshot, not guaranteed execution prices; the book can change. Also, the snapshot is timestamped about 16 seconds after the stated current time. A newly published report may be timely, but it discusses **August** registrations, not a live measure of current sales momentum.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.473,\n  \"goalMovePercent\": 1.477,\n  \"moveSinceClosePercent\": -0.585,\n  \"isNewEvent\": true\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.000862925,
+    "latencyMs": 16436,
+    "isNewEvent": true
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.012886,
+    "order": [
+      "chatbot",
+      "chatbot_with_data",
+      "thesisgate"
+    ],
+    "judgement": {
+      "chatbot": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags contradiction, but declines to use provided-like reasoning on price move (acceptable since claims no data)."
+      },
+      "chatbot_with_data": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags contradiction, matches reference calcs, and notes move vs close without giving advice."
+      },
+      "thesisgate": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Accurately flags contradiction, matches reference math, addresses price move, and avoids forecasting."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.47263907201635685,
+        "goalMovePercent": 1.4773654627365205,
+        "moveSinceClosePercent": -0.585341471114385
+      }
+    },
+    "chatbot": {
+      "breakEven": "wrong",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": 0,
+        "goalMovePercent": 1,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.473,
+        "goalMovePercent": 1.477,
+        "moveSinceClosePercent": -0.585
+      }
+    }
+  }
+}

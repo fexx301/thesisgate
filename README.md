@@ -274,6 +274,19 @@ The final report validator requires:
 
 The paid-run controls are `THESISGATE_EVAL_MODE`, `THESISGATE_EVAL_CASES`, `THESISGATE_ALLOW_PAID_EVAL`, and `THESISGATE_EVAL_MAX_CALLS`. The public benchmark inputs and schema are [evals/cases.json](evals/cases.json), [evals/benchmark-manifest.json](evals/benchmark-manifest.json), and [evals/report.template.json](evals/report.template.json). Do not replace case evidence with aggregate counters or placeholder artifacts.
 
+#### End-to-end comparison against a general chatbot
+
+[`evidence/e2e-comparison-v1/`](evidence/e2e-comparison-v1/) compares the whole product with how a trader would otherwise ask an AI, on 12 real trader messages built from captured Bitget books, US quotes, headlines, NVIDIA Newsroom posts and SEC filings. All systems use GPT-6 Luna. A blind Claude Sonnet 5 judge scores the evidence handling, and code scores the numbers.
+
+| | ThesisGate | Chatbot (sources only) | Chatbot + same data |
+| --- | --- | --- | --- |
+| Answers with a misleading evidence error | 1/12 | 1/12 | 1/12 |
+| Addressed the move since the US close | 12/12 | 3/12 | 12/12 |
+| Break-even move correct | 12/12 | 1/12 | 9/12 |
+| Goal move correct | 12/12 | 0/12 | 9/12 |
+
+On reading evidence, a well-prompted general chatbot ties ThesisGate. The measurable advantage is reliable trade math. Even with the full order book, the same model got 3/12 thresholds wrong, including a +1.39% break-even that is really +0.51% and one trade that ignored Bitget's 200-token position cap. Without the book, a chatbot cannot give the thresholds at all. The evaluation also caught and fixed a real bug: the chat step could drop "today" from a thesis. See [`AUDIT.md`](evidence/e2e-comparison-v1/AUDIT.md) for every judgement call and limitation. To re-run: `npm run eval:capture` (a new live pack), then `THESISGATE_COMPARE_PAID=1 npm run eval:compare`. It costs about $0.20.
+
 #### Current re-run (research-gate-v4, GPT-6 Luna)
 
 [`evidence/benchmark-gate-v4/`](evidence/benchmark-gate-v4/) is a paid re-run of the same 12 cases on the current code with `openai/gpt-6-luna`: 22 provider calls, $0.0066 in total. With builder scoring (assistant-assisted, not independent), it has 11/12 complete-correct cases (E11 has no model call by design), every numeric check passing, no material fabrication, and **0 unique omissions corrected** versus the same model with a strong general prompt. `RESEARCH_GATE=failed`, because the gate needs at least 3.

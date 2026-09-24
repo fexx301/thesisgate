@@ -1,0 +1,163 @@
+{
+  "caseId": "X12",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "Tesla won the biggest electric truck order ever, 2,500 trucks, so rTSLA should climb overnight. 20k, want 200 USDT.",
+  "truth": {
+    "isNewEvent": true,
+    "eventNote": "Published 2026-09-23 20:07 UTC, just after the last US close; a regular session has traded since. The source says Tesla won the lead role in the order, not the whole order.",
+    "claims": [
+      {
+        "claim": "The 2,500-truck order is the largest US electric truck order to date",
+        "expected": "supported"
+      },
+      {
+        "claim": "Tesla won the whole 2,500-truck order",
+        "expected": "insufficient"
+      },
+      {
+        "claim": "rTSLA will climb overnight",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.5073386145195908,
+      "goalMovePercent": 1.5114081388389256,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): insufficient. The feed summary reports Tesla taking a lead role in a 2,500-truck electric Class 8 order, but does not establish that Tesla won the entire order. It does not establish whether rTSLA will climb overnight.\nMost consequential unknown: Whether Tesla was awarded the full order or only a lead role, and whether the reported announcement will affect rTSLA overnight.\n- [insufficient, factual] Tesla won a 2,500-truck electric Class 8 order.: The feed summary says Tesla won a lead role in the order, not that it won the entire order. The source is a headline and feed summary only; the full article was not read. Quote: \"Tesla wins lead role in 2,500-truck electric Class 8 order\"\n- [insufficient, forecast] The thesis expects rTSLA to climb overnight.: The supplied feed summary does not establish an overnight price outcome for rTSLA.\nPriced in since the close: US regular session is open. rTSLA mid 377.895 USDT versus TSLA last close 380.12 USD (2026-09-23): -0.59% since the close.\nYour goal needs rTSLA bids near 383.60 USDT, +0.92% versus TSLA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 377.9024495074985309 USDT; immediate friction 101.06 USDT; break-even needs the bid book +0.51%; your goal needs +1.51%.\nWarning: Visible ask capacity is 531331.68742 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.5073386145195908,
+      "goalMovePercent": 1.5114081388389256,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "claimLatencyMs": 5865,
+    "plan": {
+      "asset": "TSLA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "Tesla won a 2,500-truck electric Class 8 order. The thesis expects rTSLA to climb overnight.",
+      "purchaseNotionalExcludingFee": "20000",
+      "horizon": {
+        "originalText": "overnight",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "200"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "Updated the brief for rTSLA; I’ve treated “20k” as 20,000 USDT and the 200 USDT target as profit. I selected the headline about Tesla’s truck order as evidence.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "insufficient"
+  },
+  "chatbot": {
+    "text": "The source supports that Tesla has a **lead role** in a reported 2,500-truck electric Class 8 order, described as the largest U.S. electric-truck order to date, with deployments planned across 10 freight hubs. It does **not** establish that Tesla will supply all 2,500 trucks, disclose Tesla’s share of the order or its financial value, or give delivery timing. So the headline alone doesn’t show how much revenue or profit Tesla gains—or whether the news is already priced in.\n\nFor your target, **200 USDT on 20,000 USDT of exposure is a 1% gross move**. Your actual required move would be higher after trading costs, and could differ with leverage, fees, spread, and funding. Those details—and the instrument’s current price—weren’t provided, so I can’t calculate a reliable break-even move or its move since the prior close. The article was published yesterday, so it may not be fresh news by the time you trade.\n\n```json\n{\"breakEvenMovePercent\":null,\"goalMovePercent\":1,\"moveSinceClosePercent\":null,\"isNewEvent\":true}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0003303,
+    "latencyMs": 9459,
+    "isNewEvent": true
+  },
+  "chatbotWithData": {
+    "text": "The article supports that Tesla has a lead role in a reported 2,500-truck electric Class 8 order, described as the largest U.S. order of its kind, with deployments across 10 freight hubs. It does **not** establish the order’s value to Tesla, delivery schedule, margins, or how much of the order Tesla will fulfill. Nor does it show that the market has not already priced in the news. The supplied quote shows TSLA at **$376.83**, below its prior close of **$380.12**; that alone doesn’t establish why it fell or predict an overnight rebound.\n\n**If you spend 20,000 USDT sweeping the asks:**\n- You buy approximately **52.9237 rTSLA** for **19,999.9959 USDT** notional, plus about **20.00 USDT** entry fee.\n- Estimated entry cash outlay: **20,019.9959 USDT**.\n- Using the supplied bids to estimate an immediate exit, after the 0.1% exit fee, proceeds would be about **19,918.94 USDT**. This reflects the unusually thin top bid levels and the resulting slippage—not just the quoted spread.\n- The bids would need to rise uniformly by about **0.507%** for an exit to recover entry cash after fees.\n- If “want 200 USDT” means **200 USDT net profit after fees**, the required uniform bid rise is about **1.511%**. This is a price-move target, not a likelihood estimate.\n- The rTSLA midpoint is **$377.895**, about **0.585% below** TSLA’s prior close. rTSLA is a token tracking a share, so its order book and execution can differ from the underlying stock.\n\nThe reported order is recent relative to the prior close, but it is not evidence that rTSLA will climb overnight. The market is currently open, and the quoted book is a snapshot; execution and prices can change.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.5073,\n  \"goalMovePercent\": 1.5113,\n  \"moveSinceClosePercent\": -0.5853,\n  \"isNewEvent\": true\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0008568,
+    "latencyMs": 15219,
+    "isNewEvent": true
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.01485,
+    "order": [
+      "chatbot_with_data",
+      "chatbot",
+      "thesisgate"
+    ],
+    "judgement": {
+      "chatbot_with_data": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags lead-role vs whole-order ambiguity, computes math, notes move since close."
+      },
+      "chatbot": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags uncertainty and lack of data, raises pricing-in question without data."
+      },
+      "thesisgate": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Properly labels claims insufficient, gives math and explicit already-moved percentage."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.5073386145195908,
+        "goalMovePercent": 1.5114081388389256,
+        "moveSinceClosePercent": -0.585341471114385
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 1,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.5073,
+        "goalMovePercent": 1.5113,
+        "moveSinceClosePercent": -0.5853
+      }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "runId": "20260924202233-a5cf55",
+  "cases": 12,
+  "contestantModel": "openai/gpt-6-luna",
+  "judgeModel": "anthropic/claude-sonnet-5",
+  "systems": {
+    "thesisgate": {
+      "misleadingAnswers": 2,
+      "oldNewsAsNew": "1/4",
+      "unsupportedAsEstablished": "0/12",
+      "missedContradiction": "2/7",
+      "fabrication": "0/12",
+      "adviceOrForecast": "0/12",
+      "addressesAlreadyMoved": "12/12",
+      "breakEven": {
+        "correct": 12,
+        "wrong": 0,
+        "missing": 0
+      },
+      "goal": {
+        "correct": 12,
+        "wrong": 0,
+        "missing": 0
+      },
+      "moveSinceClose": {
+        "correct": 12,
+        "wrong": 0,
+        "missing": 0
+      }
+    },
+    "chatbot": {
+      "misleadingAnswers": 1,
+      "oldNewsAsNew": "0/4",
+      "unsupportedAsEstablished": "0/12",
+      "missedContradiction": "1/7",
+      "fabrication": "0/12",
+      "adviceOrForecast": "0/12",
+      "addressesAlreadyMoved": "3/12",
+      "breakEven": {
+        "correct": 1,
+        "wrong": 1,
+        "missing": 10
+      },
+      "goal": {
+        "correct": 0,
+        "wrong": 10,
+        "missing": 2
+      },
+      "moveSinceClose": {
+        "correct": 0,
+        "wrong": 0,
+        "missing": 12
+      }
+    },
+    "chatbot_with_data": {
+      "misleadingAnswers": 2,
+      "oldNewsAsNew": "0/4",
+      "unsupportedAsEstablished": "0/12",
+      "missedContradiction": "1/7",
+      "fabrication": "1/12",
+      "adviceOrForecast": "0/12",
+      "addressesAlreadyMoved": "12/12",
+      "breakEven": {
+        "correct": 10,
+        "wrong": 1,
+        "missing": 1
+      },
+      "goal": {
+        "correct": 10,
+        "wrong": 1,
+        "missing": 1
+      },
+      "moveSinceClose": {
+        "correct": 11,
+        "wrong": 0,
+        "missing": 1
+      }
+    }
+  },
+  "thesisgateParse": {
+    "asset": 12,
+    "notional": 12,
+    "goal": 12,
+    "of": 12
+  },
+  "reportedCostUsdExcludingCandidate": 0.189223
+}

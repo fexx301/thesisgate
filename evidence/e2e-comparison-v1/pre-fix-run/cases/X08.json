@@ -1,0 +1,159 @@
+{
+  "caseId": "X08",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "FSD is about to get approved in the EU, rTSLA is going to the moon. 3k, I want 90 USDT by next week.",
+  "truth": {
+    "isNewEvent": true,
+    "eventNote": "The source reports a setback: tests in Brussels found FSD exceeded limits and attempted prohibited overtakes ahead of the EU review.",
+    "claims": [
+      {
+        "claim": "FSD is about to be approved in the EU",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "rTSLA will rise enough for 90 USDT by next week",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.45925843767898794,
+      "goalMovePercent": 3.4700284948086715,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): insufficient. The supplied feed summary reports a roadblock ahead of an EU review, not imminent EU approval. It does not establish that rTSLA will rise sharply.\nMost consequential unknown: The supplied record does not establish whether or when FSD will be approved in the EU, or how rTSLA will move.\n- [insufficient, forecast] FSD is about to be approved in the EU.: The source does not establish imminent approval. Its headline instead describes a roadblock ahead of an EU review; the record is only a headline and feed summary, not the full article. Quote: \"Tesla's FSD Just Hit a Major Roadblock Ahead of EU Review\"\n- [insufficient, forecast] rTSLA will rise sharply.: The supplied source does not establish a future price move, its direction, or its magnitude.\nPriced in since the close: US regular session is open. rTSLA mid 377.895 USDT versus TSLA last close 380.12 USD (2026-09-23): -0.59% since the close.\nYour goal needs rTSLA bids near 391.00 USDT, +2.86% versus TSLA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 377.9 USDT; immediate friction 13.73 USDT; break-even needs the bid book +0.46%; your goal needs +3.47%.\nWarning: Visible ask capacity is 531331.68742 USDT at this snapshot.\nWarning: Goal threshold 3.47% is outside the ±3% scenario band; it is a computed threshold, not a simulated row.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.45925843767898794,
+      "goalMovePercent": 3.4700284948086715,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "claimLatencyMs": 12383,
+    "plan": {
+      "asset": "TSLA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "The user claims FSD is about to be approved in the EU and expects rTSLA to rise sharply.",
+      "purchaseNotionalExcludingFee": "3000",
+      "horizon": {
+        "originalText": "by next week",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "90"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve set the brief to rTSLA, with your EU-approval claim and next-week horizon. The available headline doesn’t support that claim, so please provide a relevant source or headline before the evidence check.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "insufficient"
+  },
+  "chatbot": {
+    "text": "The source you shared does **not** support “FSD is about to get approved in the EU.” Its summary says Brussels road tests found repeated speed-limit violations and attempted prohibited overtakes—a potential obstacle, not evidence of approval or a timetable. It also doesn’t establish what regulators will decide or how the tests affect the formal process.\n\nFor a **3,000 USDT** position, making **90 USDT** means a **3% gross gain** by next week, before fees, spread, and any tracking or currency effects. If rTSLA simply tracks Tesla, that roughly requires a 3% rise in the token over your entry price; its actual behavior depends on what rTSLA is and its mechanics. I can’t calculate a break-even move or the move since the prior close without the instrument details, entry/current prices, and costs. A one-week target is uncertain, and this source gives no basis to expect that return.\n\n```json\n{\n  \"breakEvenMovePercent\": null,\n  \"goalMovePercent\": 3,\n  \"moveSinceClosePercent\": null,\n  \"isNewEvent\": true\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0002653,
+    "latencyMs": 6448,
+    "isNewEvent": true
+  },
+  "chatbotWithData": {
+    "text": "The source **does not support the claim that EU approval is imminent**. It reports a road-test roadblock: Tesla’s system allegedly exceeded speed limits and attempted prohibited overtakes ahead of an EU review. That points to regulatory concerns, not approval; the article alone does not establish the review’s outcome or timing. The report is newly published today, but it is not evidence of a new approval.\n\nUsing the supplied Bitget snapshot and a **3,000 USDT notional buy**:\n\n- **Entry:** 7.938 rTSLA, filled at 377.90 USDT; notional about **2,999.77 USDT**. The 0.1% entry fee is about **3.00 USDT**, making your cash outlay about **3,002.77 USDT**.\n- **Break-even:** about **+0.46%** from the supplied bids’ current execution level, after the exit fee and allowing for the shallow best bid. This is a fee-and-book-based estimate, not a forecast.\n- **To net 90 USDT profit:** you’d need about **+3.47%** under the same assumptions, with exit proceeds net of the 0.1% fee covering your entry cash plus 90 USDT.\n- **Move since TSLA’s last close:** rTSLA’s supplied mid-price is about **377.895**, approximately **0.59% below** TSLA’s 380.12 USD close. The underlying’s latest print is also below that close.\n\nThe goal requires a meaningful move in a short time, and the regulatory headline you shared is a headwind to the “about to get approved” thesis—not confirmation of it. These estimates assume the listed book remains available; prices, depth, fees, and tracking can change, and there is no guarantee of a profit.\n\n```json\n{\"breakEvenMovePercent\":0.46,\"goalMovePercent\":3.47,\"moveSinceClosePercent\":-0.59,\"isNewEvent\":true}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0007743,
+    "latencyMs": 15402,
+    "isNewEvent": true
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.01084,
+    "order": [
+      "chatbot",
+      "chatbot_with_data",
+      "thesisgate"
+    ],
+    "judgement": {
+      "chatbot": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags contradiction and lack of support, no data used."
+      },
+      "chatbot_with_data": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags contradiction, uses data accurately, notes move since close."
+      },
+      "thesisgate": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags insufficiency/contradiction, accurate calcs, notes move since close."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.45925843767898794,
+        "goalMovePercent": 3.4700284948086715,
+        "moveSinceClosePercent": -0.585341471114385
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 3,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.46,
+        "goalMovePercent": 3.47,
+        "moveSinceClosePercent": -0.59
+      }
+    }
+  }
+}

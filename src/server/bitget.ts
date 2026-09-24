@@ -141,16 +141,20 @@ function capturedRequest(probe: Probe, name: string) {
   return request.response;
 }
 
+/** Builds a validated instrument and snapshot from raw Bitget responses captured earlier (replay and evaluation). */
+export function marketFromCapturedResponses(asset: Asset, instrumentResponse: unknown, bookResponse: unknown, receivedAt: string, reference: string) {
+  const instrument = instrumentFromResponse(asset, instrumentResponse);
+  const snapshot = bookFromResponse(asset, instrument, bookResponse, receivedAt, reference);
+  return { instrument, snapshot: MarketSnapshotSchema.parse({ ...snapshot, mode: "captured_real" }) };
+}
+
 export function createCapturedMarket(asset: Asset) {
   try {
     const probe = selectionProbe as unknown as Probe;
     const suffix = asset.toLowerCase();
     const instrumentResponse = capturedRequest(probe, `${suffix}_spot_instrument`);
     const bookResponse = capturedRequest(probe, `${suffix}_spot_book`);
-    const instrument = instrumentFromResponse(asset, instrumentResponse);
-    const receivedAt = probe.capturedAtUTC;
-    const snapshot = bookFromResponse(asset, instrument, bookResponse, receivedAt, "fixture:selection-probe.json");
-    return { instrument, snapshot: MarketSnapshotSchema.parse({ ...snapshot, mode: "captured_real" }) };
+    return marketFromCapturedResponses(asset, instrumentResponse, bookResponse, probe.capturedAtUTC, "fixture:selection-probe.json");
   } catch (error) {
     throw new MarketAdapterError("market_invalid", error instanceof Error ? error.message : "Captured market fixture is invalid.");
   }

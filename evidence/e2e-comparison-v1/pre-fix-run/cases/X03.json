@@ -1,0 +1,159 @@
+{
+  "caseId": "X03",
+  "pack": "captured-2026-09-08",
+  "asOf": "2026-09-08T21:51:19Z",
+  "message": "rTSLA looks cheap after hours. Put 3k in and I want 50 USDT by tomorrow's open.",
+  "truth": {
+    "isNewEvent": null,
+    "eventNote": "No news source is involved; the question is only whether the trade math and the move since the close are understood.",
+    "claims": [
+      {
+        "claim": "rTSLA is cheap",
+        "expected": "insufficient"
+      },
+      {
+        "claim": "The trade will make 50 USDT by tomorrow's open",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.45736837519681567,
+      "goalMovePercent": 2.1299903985476694,
+      "moveSinceClosePercent": -0.33681008257279443
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence assessment unavailable: no sources were supplied.\nPriced in since the close: US after-hours: thin extended-hours trading only. rTSLA mid 366.92 USDT versus TSLA last close 368.16 USD (2026-09-08): -0.34% since the close.\nYour goal needs rTSLA bids near 374.68 USDT, +1.77% versus TSLA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 367.15548250498721071 USDT; immediate friction 13.67 USDT; break-even needs the bid book +0.46%; your goal needs +2.13%.\nWarning: Visible ask capacity is 643628.37375 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.45736837519681567,
+      "goalMovePercent": 2.1299903985476694,
+      "moveSinceClosePercent": -0.33681008257279443
+    },
+    "claimLatencyMs": 5,
+    "plan": {
+      "asset": "TSLA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "The user considers rTSLA cheap after hours.",
+      "purchaseNotionalExcludingFee": "3000",
+      "horizon": {
+        "originalText": "by tomorrow's open",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "50"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I set the plan for rTSLA, with your after-hours “looks cheap” view, amount, horizon, and USDT profit goal. No headlines or source are loaded, so add evidence to complete the brief.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": null
+  },
+  "chatbot": {
+    "text": "A $3,000 position needs a **1.67% gain** to make $50 **before fees, spread, and slippage**: $50 ÷ $3,000. Your actual required move will be higher if those costs apply.\n\nNothing you shared supports that rTSLA is cheap, gives its current price or move since the TSLA close, or identifies a new event that could move it by tomorrow’s open. I also can’t tell from “rTSLA” alone which product or venue you mean. If it’s a tokenized or synthetic TSLA product, check its issuer, tracking method, trading hours, liquidity, and spread; its price may not track regular-session TSLA perfectly. A $50 target by tomorrow is possible, but not something the information here can establish or guarantee.\n\n```json\n{\n  \"breakEvenMovePercent\": null,\n  \"goalMovePercent\": 1.6667,\n  \"moveSinceClosePercent\": null,\n  \"isNewEvent\": null\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0003292,
+    "latencyMs": 10137,
+    "isNewEvent": null
+  },
+  "chatbotWithData": {
+    "text": "The shared material contains **no sources supporting a catalyst or a claim that rTSLA is cheap**. The market snapshot shows rTSLA trading below TSLA’s last regular-session close, but after-hours trading is thin and the displayed order book is not a guarantee of execution. A gain by tomorrow’s open is uncertain.\n\nUsing the stated assumption that **3,000 USDT is the order notional** (with the entry fee paid on top):\n\n- Sweeping the asks buys **8.1709 rTSLA** for about **3,000 USDT**; the 0.1% entry fee adds about **3 USDT**.\n- Selling that quantity into the current displayed bids would return about **2,989.32 USDT after the exit fee**.\n- The bids would need to rise about **0.46%** for the sale to recover the entry cash, including both fees.\n- To finish **50 USDT ahead** after fees, the bids would need to rise about **2.13%** from the current levels.\n- The rTSLA midpoint is **366.92**, about **0.34% below** TSLA’s **368.16** regular-session close. That comparison is not evidence of a bargain: the close predates the latest underlying print, and the instruments and trading conditions may differ.\n\nThese are calculations from this snapshot, not a forecast; the book can change before an order executes.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.46,\n  \"goalMovePercent\": 2.13,\n  \"moveSinceClosePercent\": -0.34,\n  \"isNewEvent\": null\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.000742425,
+    "latencyMs": 13742,
+    "isNewEvent": null
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.011124,
+    "order": [
+      "chatbot_with_data",
+      "chatbot",
+      "thesisgate"
+    ],
+    "judgement": {
+      "chatbot_with_data": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags insufficient evidence, gives matching calculations, notes the -0.34% move."
+      },
+      "chatbot": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Gives a rough pre-fee calc, flags lack of data, but never addresses the after-hours move since close."
+      },
+      "thesisgate": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Uses full order-book data matching reference calculations, flags uncertainty and notes the -0.34% move since close."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.45736837519681567,
+        "goalMovePercent": 2.1299903985476694,
+        "moveSinceClosePercent": -0.33681008257279443
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 1.6667,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.46,
+        "goalMovePercent": 2.13,
+        "moveSinceClosePercent": -0.34
+      }
+    }
+  }
+}

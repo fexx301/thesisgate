@@ -72,3 +72,12 @@ describe("rule-based fallback", () => {
     expect(result.reply.length).toBeGreaterThan(20);
   });
 });
+
+describe("chat thesis restatement", () => {
+  it("instructs the model to keep timing words, attributed figures and the price expectation", async () => {
+    const { CHAT_SYSTEM_PROMPT } = await import("../../src/server/agent");
+    for (const phrase of ["\"today\"", "analysts say", "price expectation with its timeframe", "Never drop or soften"]) {
+      expect(CHAT_SYSTEM_PROMPT).toContain(phrase);
+    }
+  });
+});

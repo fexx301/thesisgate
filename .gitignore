@@ -15,6 +15,9 @@
 /test-results/
 /playwright-report/
 /evals/results/
+/evals/e2e/results/
+/evals/e2e/runs-archive/
+/evals/e2e/packs/*.json
 
 # next.js
 /.next/
@@ -50,12 +53,14 @@ yarn-error.log*
 !/evals/scoring-rubric.md
 !/public/finished-brief/nvda-captured.md
 !/deploy/README.md
+!/evidence/e2e-comparison-v1/**/*.md
 
 # Publish reviewed evidence only; raw eval runs and credentials stay ignored.
 /evidence/*
 !/evidence/benchmark-gate-final/
 !/evidence/x-post-validity.txt
 !/evidence/benchmark-gate-v4/
+!/evidence/e2e-comparison-v1/
 /evidence/benchmark-gate-final/*
 !/evidence/benchmark-gate-final/report.scored.json
 !/evidence/benchmark-gate-final/report.original.json

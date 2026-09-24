@@ -18,7 +18,9 @@
     "quota:start": "node --experimental-strip-types quota-service/server.ts",
     "eval": "node evals/run.mjs",
     "eval:packets": "node evals/print-packets.mjs",
-    "eval:runner": "node --experimental-strip-types evals/run-runner.mjs"
+    "eval:runner": "node --experimental-strip-types evals/run-runner.mjs",
+    "eval:compare": "vitest run --config evals/e2e/vitest.config.mts",
+    "eval:capture": "node evals/e2e/capture.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",

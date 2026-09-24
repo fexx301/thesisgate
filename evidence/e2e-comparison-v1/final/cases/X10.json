@@ -1,0 +1,158 @@
+{
+  "caseId": "X10",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "NVIDIA filed an 8-K today, something big is coming. 2k in rNVDA, I just need to break even.",
+  "truth": {
+    "isNewEvent": false,
+    "eventNote": "NVIDIA's latest 8-K is dated 2026-09-03 (Item 8.01 Other Events); nothing was filed on the as-of date, and the entry does not say what the event is.",
+    "claims": [
+      {
+        "claim": "NVIDIA filed an 8-K today",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "Something big is coming",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.3691009956266283,
+      "goalMovePercent": 0.3691009956266283,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The supplied record shows an NVIDIA 8-K filed on September 3, 2026, not today (September 24, 2026). It identifies Item 8.01, “Other Events,” but does not establish that something significant is coming.\nMost consequential unknown: The supplied record contains only a headline and feed summary, not the filing’s full contents, so it does not reveal what the filing says or whether it indicates a significant future event.\n- [contradicted, factual] NVIDIA filed an 8-K today.: The source reports that the filing was filed on September 3, 2026, earlier than today, September 24, 2026. It therefore shows an earlier filing, not a filing today. Quote: \"Filed: 2026-09-03\"\n- [insufficient, causal] NVIDIA's 8-K means something big is coming.: The record identifies an Item 8.01 filing but provides no evidence that it signals a significant future event. The source is a headline and feed summary only; the full filing was not read. Quote: \"Item 8.01: Other Events\"\nPriced in since the close: US regular session is open. rNVDA mid 222.575 USDT versus NVDA last close 225.51 USD (2026-09-23): -1.30% since the close.\nYour goal needs rNVDA bids near 223.39 USDT, -0.94% versus NVDA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 222.58 USDT; immediate friction 7.36 USDT; break-even needs the bid book +0.37%; your goal needs +0.37%.\nWarning: Visible ask capacity is 1102637.068353 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.3691009956266283,
+      "goalMovePercent": 0.3691009956266283,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "claimLatencyMs": 5521,
+    "plan": {
+      "asset": "NVDA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "NVIDIA filed an 8-K today. The thesis expects something big is coming.",
+      "purchaseNotionalExcludingFee": "2000",
+      "horizon": {
+        "originalText": "",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "break_even"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve set the rNVDA plan to use 2,000 USDT and break-even as the goal, and selected the available SEC 8-K headline. The thesis says NVIDIA filed an 8-K today and that something big is coming.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The source does **not** support “NVIDIA filed an 8-K today.” It says the filing was made **September 3, 2026**—21 days before the date of this conversation, September 24. The excerpt identifies **Item 8.01, “Other Events,”** but gives no description of the event itself. That label alone is not evidence that something big is coming. Check the full filing and its exhibits before trading on a headline.\n\nFor the **$2,000 in rNVDA**, the key break-even number depends on your entry cost and what “rNVDA” represents. If $2,000 is its current value, the required gain is:\n\n**(total cost basis − current value) ÷ current value × 100%**\n\nInclude fees and any tracking or leverage effects. If $2,000 is instead your cost basis, I still need the current position value to calculate the move required. I can’t determine the position’s break-even move or its move since the relevant close from the information provided. Don’t treat “I just need to break even” as a reason to hold: decide based on the position’s risks and your plan, not the amount you originally put in.\n\n```json\n{\n  \"breakEvenMovePercent\": null,\n  \"goalMovePercent\": null,\n  \"moveSinceClosePercent\": null,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0003373,
+    "latencyMs": 6827,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The source **does not support the claim that something big is coming**. It describes an NVIDIA 8-K under Item 8.01, “Other Events,” but the supplied excerpt gives no details about the event. More importantly, the filing date shown is **September 3**, not today, September 24. Nothing provided establishes a new filing today.\n\nAssuming “2k” means **2,000 USDT of buy notional**, and you sweep the asks shown:\n\n- You’d buy about **8.9846 rNVDA** for **1,999.79 USDT**; the quantity step leaves about 0.21 USDT unspent.\n- The 0.1% entry fee is about **2.00 USDT**, making your total entry cash about **2,001.79 USDT**.\n- Selling that quantity into the listed bids would currently return about **1,994.43 USDT after the exit fee**.\n- To break even on that round trip, **all bid prices would need to rise about 0.369%** from the captured book, assuming the book and fees otherwise stay unchanged. Since your stated goal is to break even, the goal move is the same.\n\nFor context, the rNVDA book midpoint is **222.575 USDT**, about **1.30% below** NVIDIA’s September 23 regular-session close of 225.51 USD. The underlying’s latest print is 222.1074 USD; these are different instruments and the rNVDA book is only a snapshot. rNVDA’s stated one-token-to-one-share tracking does not guarantee that its price or liquidity will match the underlying, and the break-even estimate can change as the order book moves.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.369,\n  \"goalMovePercent\": 0.369,\n  \"moveSinceClosePercent\": -1.302,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.00057811,
+    "latencyMs": 11274,
+    "isNewEvent": false
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.009392,
+    "order": [
+      "chatbot_with_data",
+      "thesisgate",
+      "chatbot"
+    ],
+    "judgement": {
+      "chatbot_with_data": {
+        "label": "A",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags old filing and insufficient claim, gives break-even calc without advice."
+      },
+      "thesisgate": {
+        "label": "B",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly identifies contradiction and insufficiency, includes move-since-close context."
+      },
+      "chatbot": {
+        "label": "C",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags old filing and insufficiency but fails to use given market data for move/break-even calc."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.3691009956266283,
+        "goalMovePercent": 0.3691009956266283,
+        "moveSinceClosePercent": -1.301494390492661
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "missing",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": null,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.369,
+        "goalMovePercent": 0.369,
+        "moveSinceClosePercent": -1.302
+      }
+    }
+  }
+}

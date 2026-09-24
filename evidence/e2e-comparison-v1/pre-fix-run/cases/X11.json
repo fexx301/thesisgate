@@ -1,0 +1,163 @@
+{
+  "caseId": "X11",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "NVIDIA just posted MLPerf results showing Rubin crushing inference, so rNVDA rises this week. 50k USDT, I want 1,000 USDT.",
+  "truth": {
+    "isNewEvent": false,
+    "eventNote": "The MLPerf post was published on 2026-09-16, eight days before the as-of date; only its title is in the evidence. The size is large relative to the book, so depth matters.",
+    "claims": [
+      {
+        "claim": "NVIDIA just posted the MLPerf results",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "Vera Rubin NVL72 delivered leading MLPerf inference performance",
+        "expected": "supported"
+      },
+      {
+        "claim": "rNVDA rises enough for 1,000 USDT this week",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": null,
+      "goalMovePercent": null,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "computationStatus": "invalid_instrument"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The available headline summary supports that NVIDIA announced leading MLPerf Inference v6.1 performance for Vera Rubin NVL72. It does not establish that rNVDA will rise this week.\nMost consequential unknown: Whether rNVDA will rise this week; the supplied source does not establish that future price outcome.\n- [supported, factual] NVIDIA posted MLPerf results showing Rubin leading inference performance.: The headline supports the claim that Vera Rubin NVL72 delivered leading performance in its MLPerf Inference v6.1 debut. The source is only a retrieved headline and feed summary, not the full article, and it was published on 2026-09-16, before today. Quote: \"NVIDIA Vera Rubin NVL72 Delivers Leading Performance in MLPerf Inference v6.1 Debut\"\n- [insufficient, forecast] rNVDA will rise this week.: The supplied source does not establish this future price outcome.\nPriced in since the close: US regular session is open. rNVDA mid 222.575 USDT versus NVDA last close 225.51 USD (2026-09-23): -1.30% since the close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status invalid_instrument; entry VWAP n/a USDT; immediate friction n/a USDT; break-even needs the bid book not available; your goal needs not available.\nWarning: Visible ask capacity is 1102637.068353 USDT at this snapshot.\nWarning: The rounded quantity exceeds the configured venue position maximum.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": null,
+      "goalMovePercent": null,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "claimLatencyMs": 6745,
+    "plan": {
+      "asset": "NVDA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "NVIDIA posted MLPerf results showing Rubin leading inference performance. The user expects rNVDA to rise this week.",
+      "purchaseNotionalExcludingFee": "50000",
+      "horizon": {
+        "originalText": "this week",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "1000"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the rNVDA brief with your MLPerf thesis, 50,000 USDT amount, and 1,000 USDT profit goal, and selected the matching NVIDIA headline. I’ve recorded “this week” as the horizon.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "You’re proposing a **long** rNVDA trade: deploy 50,000 USDT and make 1,000 USDT if it rises this week.\n\nThe source supports that NVIDIA reported a Vera Rubin NVL72 debut in MLPerf Inference v6.1 and described performance, scaling efficiency, and software optimization as drivers of inference economics. But the excerpt provides **no benchmark figures** to assess how large the advantage was. It also doesn’t establish that rNVDA will rise this week, quantify the effect on NVIDIA’s business, or show that rNVDA tracks NVIDIA shares closely.\n\nThe timing matters: the article was published **September 16**, eight days before the timestamp provided here. It may be relevant background, but it is not a new announcement today. The material provided also contains no rNVDA price, recent close, contract details, or fee information, so the price move since close and an exact break-even move after costs can’t be calculated.\n\n**Trade math, assuming 50,000 USDT is the position’s unlevered notional:** a 1,000 USDT gain requires a **2% rise**, before fees, funding, and slippage. If 50,000 USDT is collateral for a leveraged position, the required underlying move would be different. Check rNVDA’s product terms and current quote before placing the trade; the benchmark report alone doesn’t support a one-week price target.\n\n```json\n{\"breakEvenMovePercent\":null,\"goalMovePercent\":2,\"moveSinceClosePercent\":null,\"isNewEvent\":false}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0003542,
+    "latencyMs": 8181,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The MLPerf result is evidence of strong inference performance for NVIDIA’s Vera Rubin NVL72 system, and the article highlights performance, scaling efficiency, and software optimization as drivers of inference economics. It does **not** establish that NVDA—or rNVDA—will rise this week, quantify the effect on near-term earnings, or provide a price target. The report was published **September 16**, so it is not a new announcement today.\n\n**The requested 50,000 USDT notional exceeds the instrument’s 200 rNVDA maximum position.** At the current best ask of 222.58, 50,000 USDT would buy about 224.6383 rNVDA before the entry fee, which is over the limit. The maximum 200 rNVDA position would cost **44,516 USDT** at that ask, plus **44.516 USDT** entry fee.\n\nFor that permitted 200 rNVDA position, assuming the displayed book remains available:\n- Selling into the current bids would return about **44,376.99 USDT after the exit fee**.\n- Including the entry fee, break-even requires bids to rise about **0.414%**.\n- To net **1,000 USDT profit** over the entry cash and fees, bids would need to rise about **2.667%**.\n- rNVDA’s current midpoint is 222.575; versus NVDA’s September 23 close of 225.51, that is **about 1.301% lower**.\n\nThese are book-based estimates, not forecasts; the order book can change, and rNVDA’s tracking, trading, and execution risks remain.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.414,\n  \"goalMovePercent\": 2.667,\n  \"moveSinceClosePercent\": -1.301,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0009663,
+    "latencyMs": 16508,
+    "isNewEvent": false
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.014042,
+    "order": [
+      "chatbot_with_data",
+      "thesisgate",
+      "chatbot"
+    ],
+    "judgement": {
+      "chatbot_with_data": {
+        "label": "A",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": true,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags old news but invents specific position/quantity/fee figures despite reference showing status invalid_instrument with no real data."
+      },
+      "thesisgate": {
+        "label": "B",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags old news, invalid instrument, and insufficient forecast without inventing figures."
+      },
+      "chatbot": {
+        "label": "C",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags old news and lack of data, uses only generic hypothetical math without inventing observed values."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct_unavailable",
+      "goal": "correct_unavailable",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": null,
+        "moveSinceClosePercent": -1.301494390492661
+      }
+    },
+    "chatbot": {
+      "breakEven": "correct_unavailable",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 2,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "wrong",
+      "goal": "wrong",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.414,
+        "goalMovePercent": 2.667,
+        "moveSinceClosePercent": -1.301
+      }
+    }
+  }
+}

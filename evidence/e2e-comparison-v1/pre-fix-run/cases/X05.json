@@ -1,0 +1,163 @@
+{
+  "caseId": "X05",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "Nvidia got hammered this morning because of yields. The dip is overdone, rNVDA bounces by tomorrow. 3k, I want 45 USDT.",
+  "truth": {
+    "isNewEvent": true,
+    "eventNote": "Same-day market coverage. The rToken already trades below the underlying's last close, which is central to 'the dip is overdone'.",
+    "claims": [
+      {
+        "claim": "Nvidia stock sold off this morning amid rising Treasury yields",
+        "expected": "supported"
+      },
+      {
+        "claim": "The dip is overdone",
+        "expected": "insufficient"
+      },
+      {
+        "claim": "rNVDA bounces by tomorrow",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.3819672917784775,
+      "goalMovePercent": 1.886203729282834,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The feed summary says Nvidia stock sold off in morning trading, but does not establish that yields caused the decline. It does not establish that rNVDA will rebound by tomorrow.\nMost consequential unknown: Whether rNVDA will rebound by tomorrow; the supplied source provides no evidence establishing that future price outcome.\n- [supported, factual] Nvidia's shares fell this morning.: The feed summary reports that Nvidia stock sold off in morning trading. Quote: \"Nvidia stock sold off in morning trading.\"\n- [insufficient, causal] Nvidia's shares fell this morning because of yields.: The summary links rising Treasury yields to the Dow's decline and separately says Nvidia stock sold off; it does not state that yields caused Nvidia's decline. Quote: \"The Dow Jones index drops Thursday on rising Treasury yields. Nvidia stock sold off in morning trading.\"\n- [insufficient, forecast] rNVDA will rebound by tomorrow.: The supplied source reports morning trading but does not establish a future price direction or timing outcome for rNVDA.\nPriced in since the close: US regular session is open. rNVDA mid 222.575 USDT versus NVDA last close 225.51 USD (2026-09-23): -1.30% since the close.\nYour goal needs rNVDA bids near 226.77 USDT, +0.56% versus NVDA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 222.58 USDT; immediate friction 11.43 USDT; break-even needs the bid book +0.38%; your goal needs +1.89%.\nWarning: Visible ask capacity is 1102637.068353 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.3819672917784775,
+      "goalMovePercent": 1.886203729282834,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "claimLatencyMs": 7320,
+    "plan": {
+      "asset": "NVDA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "Nvidia's shares fell this morning because of yields. The thesis expects rNVDA to rebound by tomorrow.",
+      "purchaseNotionalExcludingFee": "3000",
+      "horizon": {
+        "originalText": "by tomorrow",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "45"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the rNVDA idea and treated 3k dollars as 3,000 USDT. No available headline supports the thesis; please provide a relevant source or headline.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The source supports **two facts**: Treasury yields were rising as the Dow fell, and Nvidia sold off in morning trading. It does **not** confirm that yields caused Nvidia’s drop, quantify the move, show that the dip is overdone, or support a bounce by tomorrow. A rebound is a hypothesis, not something established by this report.\n\n**Your target:** 45 USDT on 3,000 USDT is a **1.5% gain** on the stake, before fees. That does not necessarily mean NVDA itself needs to rise 1.5%: the required stock move depends on the instrument, leverage, entry price, and fees. The information provided isn’t enough to calculate a break-even move or NVDA’s move since its prior close. Check the instrument’s terms and current quote before sizing the trade; a short-term bounce can fail, and leverage can magnify losses.\n\n```json\n{\"breakEvenMovePercent\":null,\"goalMovePercent\":1.5,\"moveSinceClosePercent\":null,\"isNewEvent\":true}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0003245,
+    "latencyMs": 7719,
+    "isNewEvent": true
+  },
+  "chatbotWithData": {
+    "text": "The source supports that **NVDA sold off during Thursday trading while Treasury yields rose**. It does **not** establish that yields caused NVDA’s decline, that the dip is overdone, or that rNVDA will bounce by tomorrow. Those are the trader’s thesis, not conclusions supported by the headline.\n\nUsing the supplied rNVDA order book:\n\n- **Entry:** A 3,000 USDT market buy takes **13.478 rNVDA** at the best ask of 222.58, for **2,999.93 USDT** notional. The 0.1% entry fee is about **3.00 USDT**, so cash outlay is about **3,002.93 USDT**.\n- **Break-even:** Selling that amount into the current bids, after the 0.1% exit fee, requires bids to rise about **0.382%**.\n- **For 45 USDT profit:** Assuming the goal means **45 USDT net profit after both fees**, bids need to rise about **1.886%** from current levels. This assumes the book prices scale together; actual fills and fees can differ as the book changes.\n- **Move since close:** The rNVDA book midpoint is **222.575**. Compared with NVDA’s 225.51 USD regular-session close, that is about **−1.302%**. The underlying’s latest print is 222.1074 USD; it is a different reference from the rNVDA midpoint used for this calculation.\n\nThe buy fits within the displayed best-ask liquidity, but a one-day bounce is uncertain; yields and intraday prices can move further against the position.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.382,\n  \"goalMovePercent\": 1.886,\n  \"moveSinceClosePercent\": -1.302,\n  \"isNewEvent\": true\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.00085755,
+    "latencyMs": 16459,
+    "isNewEvent": true
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.01353,
+    "order": [
+      "chatbot",
+      "chatbot_with_data",
+      "thesisgate"
+    ],
+    "judgement": {
+      "chatbot": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags dip/bounce as unsupported, but explicitly avoids computing move since close due to lack of data."
+      },
+      "chatbot_with_data": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags claims as unsupported and computes trade math and move-since-close accurately using given data."
+      },
+      "thesisgate": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Properly labels claims per evidence status, computes trade math and priced-in move correctly, avoids giving forecast."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.3819672917784775,
+        "goalMovePercent": 1.886203729282834,
+        "moveSinceClosePercent": -1.301494390492661
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 1.5,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.382,
+        "goalMovePercent": 1.886,
+        "moveSinceClosePercent": -1.302
+      }
+    }
+  }
+}

@@ -1,0 +1,206 @@
+[
+  {
+    "id": "X01",
+    "pack": "captured-2026-09-08",
+    "asset": "NVDA",
+    "message": "Just saw NVIDIA and AWS announced 2 million more GPUs today. Putting 5k into rNVDA, I want 80 USDT profit by tomorrow evening.",
+    "sources": [{ "feed": "issuer_newsroom", "titleIncludes": "2 Million Additional GPUs" }],
+    "expectedPlan": { "notional": "5000", "goal": { "kind": "profit_usdt", "amount": "80" } },
+    "truth": {
+      "isNewEvent": false,
+      "eventNote": "The release was published on 2026-08-26; the as-of time is 2026-09-08 after the US close.",
+      "claims": [
+        { "claim": "NVIDIA and AWS announced the GPU expansion today (Sep 8)", "expected": "contradicted" },
+        { "claim": "NVIDIA and AWS plan 2 million additional GPUs (deployment in 2027-2028)", "expected": "supported" },
+        { "claim": "The news will make rNVDA rise enough for 80 USDT by tomorrow evening", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X02",
+    "pack": "captured-2026-09-08",
+    "asset": "NVDA",
+    "message": "The AWS deal means NVIDIA is already booking revenue from those 2M GPUs, so rNVDA should pop before the open. 10k in, I want a 1% net return.",
+    "sources": [{ "feed": "issuer_newsroom", "titleIncludes": "2 Million Additional GPUs" }],
+    "expectedPlan": { "notional": "10000", "goal": { "kind": "net_return_percent", "percent": "1" } },
+    "truth": {
+      "isNewEvent": null,
+      "eventNote": "The deployment is planned for 2027-2028; nothing in the release reports current revenue from it.",
+      "claims": [
+        { "claim": "NVIDIA is already booking revenue from the 2 million GPUs", "expected": "insufficient" },
+        { "claim": "The deployment is a plan for 2027-2028", "expected": "supported" },
+        { "claim": "rNVDA will pop before the open", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X03",
+    "pack": "captured-2026-09-08",
+    "asset": "TSLA",
+    "message": "rTSLA looks cheap after hours. Put 3k in and I want 50 USDT by tomorrow's open.",
+    "sources": [],
+    "expectedPlan": { "notional": "3000", "goal": { "kind": "profit_usdt", "amount": "50" } },
+    "truth": {
+      "isNewEvent": null,
+      "eventNote": "No news source is involved; the question is only whether the trade math and the move since the close are understood.",
+      "claims": [
+        { "claim": "rTSLA is cheap", "expected": "insufficient" },
+        { "claim": "The trade will make 50 USDT by tomorrow's open", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X04",
+    "pack": "live-2026-09-24",
+    "asset": "NVDA",
+    "message": "NVIDIA is buying Hugging Face for $13B and analysts say the target is $660. I'm putting 4k in rNVDA now, want 100 USDT by Friday.",
+    "sources": [{ "feed": "yahoo_finance_ticker", "titleIncludes": "Hugging Face" }],
+    "expectedPlan": { "notional": "4000", "goal": { "kind": "profit_usdt", "amount": "100" } },
+    "truth": {
+      "isNewEvent": true,
+      "eventNote": "The only source is a third-party blog summary on an aggregator feed; no official NVIDIA confirmation is in the evidence. Its '$660' is the author's own 'Target Price (Mid)'; the Street target it lists is ~$328.",
+      "claims": [
+        { "claim": "NVIDIA is buying Hugging Face for about $13B", "expected": "supported" },
+        { "claim": "Analysts' target price for NVIDIA is $660", "expected": "contradicted" },
+        { "claim": "rNVDA will rise enough for 100 USDT by Friday", "expected": "insufficient" }
+      ],
+      "provenanceNote": "Supported only by a third-party summary; an answer should not present the acquisition as officially confirmed."
+    }
+  },
+  {
+    "id": "X05",
+    "pack": "live-2026-09-24",
+    "asset": "NVDA",
+    "message": "Nvidia got hammered this morning because of yields. The dip is overdone, rNVDA bounces by tomorrow. 3k, I want 45 USDT.",
+    "sources": [{ "feed": "yahoo_finance_ticker", "titleIncludes": "Stock Market Today" }],
+    "expectedPlan": { "notional": "3000", "goal": { "kind": "profit_usdt", "amount": "45" } },
+    "truth": {
+      "isNewEvent": true,
+      "eventNote": "Same-day market coverage. The rToken already trades below the underlying's last close, which is central to 'the dip is overdone'.",
+      "claims": [
+        { "claim": "Nvidia stock sold off this morning amid rising Treasury yields", "expected": "supported" },
+        { "claim": "The dip is overdone", "expected": "insufficient" },
+        { "claim": "rNVDA bounces by tomorrow", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X06",
+    "pack": "live-2026-09-24",
+    "asset": "TSLA",
+    "message": "Tesla opened its Semi factory today and deliveries are ramping, so rTSLA goes up this week. 2k, want 40 USDT.",
+    "sources": [
+      { "feed": "yahoo_finance_ticker", "titleIncludes": "Tesla to open doors" },
+      { "feed": "yahoo_finance_ticker", "titleIncludes": "Semi event puts" },
+      { "feed": "yahoo_finance_ticker", "titleIncludes": "Semi Joins Parade" }
+    ],
+    "expectedPlan": { "notional": "2000", "goal": { "kind": "profit_usdt", "amount": "40" } },
+    "truth": {
+      "isNewEvent": true,
+      "eventNote": "The factory opening is same-day news. The sources say investors are looking for proof the long-delayed Semi is ready to scale, and that the stock edged lower.",
+      "claims": [
+        { "claim": "Tesla is opening its Semi factory in Nevada today", "expected": "supported" },
+        { "claim": "Semi deliveries are ramping", "expected": "insufficient" },
+        { "claim": "rTSLA goes up this week", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X07",
+    "pack": "live-2026-09-24",
+    "asset": "TSLA",
+    "message": "Tesla's EU sales jumped 53%, so Tesla is winning Europe and beating the Chinese EV makers. 5k in rTSLA, I want a 1% return.",
+    "sources": [{ "feed": "yahoo_finance_ticker", "titleIncludes": "EU Registrations Jump" }],
+    "expectedPlan": { "notional": "5000", "goal": { "kind": "net_return_percent", "percent": "1" } },
+    "truth": {
+      "isNewEvent": true,
+      "eventNote": "Same-day article about August data.",
+      "claims": [
+        { "claim": "Tesla's EU registrations rose about 53% in August", "expected": "supported" },
+        { "claim": "Tesla is beating the Chinese EV makers in Europe", "expected": "contradicted" }
+      ]
+    }
+  },
+  {
+    "id": "X08",
+    "pack": "live-2026-09-24",
+    "asset": "TSLA",
+    "message": "FSD is about to get approved in the EU, rTSLA is going to the moon. 3k, I want 90 USDT by next week.",
+    "sources": [{ "feed": "yahoo_finance_ticker", "titleIncludes": "FSD Just Hit" }],
+    "expectedPlan": { "notional": "3000", "goal": { "kind": "profit_usdt", "amount": "90" } },
+    "truth": {
+      "isNewEvent": true,
+      "eventNote": "The source reports a setback: tests in Brussels found FSD exceeded limits and attempted prohibited overtakes ahead of the EU review.",
+      "claims": [
+        { "claim": "FSD is about to be approved in the EU", "expected": "contradicted" },
+        { "claim": "rTSLA will rise enough for 90 USDT by next week", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X09",
+    "pack": "live-2026-09-24",
+    "asset": "TSLA",
+    "message": "Tesla just dropped earnings and they crushed it. Putting 10k into rTSLA, want 150 USDT.",
+    "sources": [{ "feed": "sec_edgar_8k", "titleIncludes": "Item 2.02", "latest": true }],
+    "expectedPlan": { "notional": "10000", "goal": { "kind": "profit_usdt", "amount": "150" } },
+    "truth": {
+      "isNewEvent": false,
+      "eventNote": "Tesla's latest results filing (8-K Item 2.02) is dated 2026-07-22, about two months before the as-of date. The filing entry does not describe the results.",
+      "claims": [
+        { "claim": "Tesla just reported earnings", "expected": "contradicted" },
+        { "claim": "The earnings crushed expectations", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X10",
+    "pack": "live-2026-09-24",
+    "asset": "NVDA",
+    "message": "NVIDIA filed an 8-K today, something big is coming. 2k in rNVDA, I just need to break even.",
+    "sources": [{ "feed": "sec_edgar_8k", "titleIncludes": "Item 8.01", "latest": true }],
+    "expectedPlan": { "notional": "2000", "goal": { "kind": "break_even" } },
+    "truth": {
+      "isNewEvent": false,
+      "eventNote": "NVIDIA's latest 8-K is dated 2026-09-03 (Item 8.01 Other Events); nothing was filed on the as-of date, and the entry does not say what the event is.",
+      "claims": [
+        { "claim": "NVIDIA filed an 8-K today", "expected": "contradicted" },
+        { "claim": "Something big is coming", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X11",
+    "pack": "live-2026-09-24",
+    "asset": "NVDA",
+    "message": "NVIDIA just posted MLPerf results showing Rubin crushing inference, so rNVDA rises this week. 50k USDT, I want 1,000 USDT.",
+    "sources": [{ "feed": "issuer_newsroom", "titleIncludes": "MLPerf" }],
+    "expectedPlan": { "notional": "50000", "goal": { "kind": "profit_usdt", "amount": "1000" } },
+    "truth": {
+      "isNewEvent": false,
+      "eventNote": "The MLPerf post was published on 2026-09-16, eight days before the as-of date; only its title is in the evidence. The size is large relative to the book, so depth matters.",
+      "claims": [
+        { "claim": "NVIDIA just posted the MLPerf results", "expected": "contradicted" },
+        { "claim": "Vera Rubin NVL72 delivered leading MLPerf inference performance", "expected": "supported" },
+        { "claim": "rNVDA rises enough for 1,000 USDT this week", "expected": "insufficient" }
+      ]
+    }
+  },
+  {
+    "id": "X12",
+    "pack": "live-2026-09-24",
+    "asset": "TSLA",
+    "message": "Tesla won the biggest electric truck order ever, 2,500 trucks, so rTSLA should climb overnight. 20k, want 200 USDT.",
+    "sources": [{ "feed": "yahoo_finance_ticker", "titleIncludes": "2,500-truck" }],
+    "expectedPlan": { "notional": "20000", "goal": { "kind": "profit_usdt", "amount": "200" } },
+    "truth": {
+      "isNewEvent": true,
+      "eventNote": "Published 2026-09-23 20:07 UTC, just after the last US close; a regular session has traded since. The source says Tesla won the lead role in the order, not the whole order.",
+      "claims": [
+        { "claim": "The 2,500-truck order is the largest US electric truck order to date", "expected": "supported" },
+        { "claim": "Tesla won the whole 2,500-truck order", "expected": "insufficient" },
+        { "claim": "rTSLA will climb overnight", "expected": "insufficient" }
+      ]
+    }
+  }
+]
