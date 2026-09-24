@@ -1,0 +1,115 @@
+{
+  "caseId": "E11",
+  "packetHash": "961c059dacad56f6f511f79686f324c2be99b11f76a86935c6a2b527573183e4",
+  "runType": "calculator",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:29:17.037Z",
+  "latencyMs": 4,
+  "attempts": 0,
+  "effectiveInputHash": "b1ce0415d50c39a5487e173670ae900b0b6d7c3150887f26ed90fc6d1401a3cb",
+  "inputProjectionHash": "2f54f4d07dfe1f94b9717b7b66d202e6098782ef25644da805024d0188451553",
+  "sourceHash": "15c10256470022a51d3ee17d7116a7473a558502b998daa5f468581e9f0a52d2",
+  "marketHash": "ccfc1e7256aaea793a283d92a4c11ff4f3b9a97fe05fa105e7572ababa77aff6",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E11_calculator_8e215150",
+  "transport": "local_pure_function",
+  "formulaVersion": "economics-v1",
+  "output": {
+    "results": [
+      {
+        "purchaseNotionalExcludingFee": "10000",
+        "computationStatus": "calculated",
+        "goalComparison": "below",
+        "snapshotId": "snapshot_9a916d90110f422293a4bc2b",
+        "planRevision": 0,
+        "scenarioRevision": 0,
+        "units": {
+          "quoteCurrency": "USDT",
+          "baseAsset": "rNVDA"
+        },
+        "requestedNotional": "10000",
+        "quantity": "44.2934",
+        "spentNotional": "9999.984138",
+        "entryCash": "10009.984122138",
+        "unspentNotional": "0.015862",
+        "entryVWAP": "225.76691195528001915",
+        "modeledExitVWAP": "225.25204400655628152",
+        "modeledExitGross": "9977.178886",
+        "modeledExitNet": "9967.201707114",
+        "netPnl": "-12.880809902658",
+        "netReturn": "-0.001286796237185921694",
+        "frictionProxy": "42.782415024",
+        "breakEvenShift": "0.0042923195778675211",
+        "requiredGoalShift": "0.0042923195778675211",
+        "scenarioBidPriceShift": "0.003",
+        "effectivePriceShift": "0.003",
+        "scenarioGross": "10007.110422658",
+        "scenarioNet": "9997.103312235342",
+        "matchedExitQuantity": "44.2934",
+        "unmatchedExitQuantity": "0",
+        "visibleEntryCapacity": "1170548.833666",
+        "visibleExitCapacity": "1118427.566941",
+        "exitDepthMultiplier": "1",
+        "exitPriceHaircut": "0",
+        "warnings": [
+          "Visible ask capacity is 1170548.833666 USDT at this snapshot."
+        ],
+        "scenarioTable": [
+          {
+            "label": "-3% downside",
+            "bidPriceShift": "-0.03",
+            "effectivePriceShift": "-0.03",
+            "netPnl": "-341.79846623742",
+            "netReturn": "-0.034145755084815896354",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "Flat",
+            "bidPriceShift": "0",
+            "effectivePriceShift": "0",
+            "netPnl": "-42.782415024",
+            "netReturn": "-0.0042739743142431921177",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+0.3%",
+            "bidPriceShift": "0.003",
+            "effectivePriceShift": "0.003",
+            "netPnl": "-12.880809902658",
+            "netReturn": "-0.001286796237185921694",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+1%",
+            "bidPriceShift": "0.01",
+            "effectivePriceShift": "0.01",
+            "netPnl": "56.88960204714",
+            "netReturn": "0.0056832859426143759611",
+            "goalComparison": "meets",
+            "status": "calculated"
+          },
+          {
+            "label": "+3%",
+            "bidPriceShift": "0.03",
+            "effectivePriceShift": "0.03",
+            "netPnl": "256.23363618942",
+            "netReturn": "0.025597806456329512119",
+            "goalComparison": "meets",
+            "status": "calculated"
+          }
+        ]
+      }
+    ],
+    "sourceProvenance": "synthetic_test",
+    "marketMode": "captured_real",
+    "fixtureReference": "fixtures/selection-probe.json",
+    "fallbackUsed": false,
+    "intent": null
+  },
+  "error": null
+}

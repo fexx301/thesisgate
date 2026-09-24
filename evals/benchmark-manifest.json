@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "research-gate-v3",
+  "manifestVersion": "research-gate-v4",
   "casesPath": "evals/cases.json",
   "caseProjectionVersion": "case-input-v1",
   "rubricVersion": "research-rubric-v1",
@@ -61,7 +61,7 @@
   "inferenceConfig": {
     "provider": "openrouter",
     "protocol": "openai_chat",
-    "modelAlias": "openai/gpt-5.6-luna",
+    "modelAlias": "openai/gpt-6-luna",
     "reasoningEffort": "low",
     "temperature": 0.1,
     "maxTokens": 2200,

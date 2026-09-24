@@ -1,0 +1,68 @@
+{
+  "caseId": "E01",
+  "packetHash": "c663fdf0e8cbce59c9fa01be904edbff5468f94d6b69d17433da4e81f4465a71",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:26:54.083Z",
+  "latencyMs": 8409,
+  "attempts": 1,
+  "effectiveInputHash": "8fe2a17a844b39fabc1e039352f85c0ca71da1a8e80ef6a426dea96d18968550",
+  "inputProjectionHash": "59e7f280860389bbc721291ea93cf08def6c4e8f87234166b75330376ef72d50",
+  "sourceHash": "cf73bba60deee57f6dd8af22e8c64726cca97341f6b6bbe07473a0052e60b3d5",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E01_general_baseline_e18edd1d",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source describes planned NVIDIA GPU deployments but gives no price forecast. It does not establish that rNVDA will rise enough by tomorrow evening to produce 100 USDT net profit.",
+      "mostConsequentialUnknown": "Whether rNVDA's price will rise enough by tomorrow evening to generate 100 USDT net profit; the source provides no price forecast or information sufficient to assess that outcome.",
+      "claims": [
+        {
+          "claimId": "claim_1",
+          "exactText": "The announcement supports planned deployment",
+          "distinction": "factual",
+          "materiality": "contextual",
+          "status": "supported",
+          "explanation": "The source says the announcement describes planned NVIDIA GPU deployments across AWS data centers, including further systems planned for 2027 to 2028.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "The announcement describes planned NVIDIA GPU deployments across AWS data centers, with further systems planned for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "claim_2",
+          "exactText": "rNVDA will rise enough by tomorrow evening to make 100 USDT net profit.",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source provides no price forecast and does not establish that rNVDA will rise by tomorrow evening or generate the specified net profit.",
+          "citations": [
+            {
+              "sourceId": "src_e01",
+              "excerpt": "It does not provide a price forecast."
+            }
+          ],
+          "missingEvidence": "A relevant price forecast and evidence establishing the likely price change by tomorrow evening and its net profit after applicable costs."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "5523e25b1c152dfc36b328d300d92a13bd491c69a96d9f8f640f244d6bab73a0",
+  "usage": {
+    "promptTokens": 274,
+    "completionTokens": 644,
+    "totalTokens": 918,
+    "costUsd": 0.0003494
+  },
+  "error": null
+}

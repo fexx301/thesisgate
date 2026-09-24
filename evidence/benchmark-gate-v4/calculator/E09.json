@@ -1,0 +1,201 @@
+{
+  "caseId": "E09",
+  "packetHash": "c5d0e95e2f2ee37e00a8309b5a17a9dbaad864d9b49f9abfdba0fd8380db685a",
+  "runType": "calculator",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:29:03.706Z",
+  "latencyMs": 6,
+  "attempts": 0,
+  "effectiveInputHash": "577ed5a63c6ba43dad770d0c8d780d8ec8d1d45f9aa74dc4674f5901fad2831c",
+  "inputProjectionHash": "4ad21806391de6dc190092fcf44eba63a170231388b4935b05d7d9f0a670ee39",
+  "sourceHash": "e0564f4fa620bb1b02d11e9ae7be8d097b36bad4cc696ceb8210dc7da17451e7",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E09_calculator_be96b912",
+  "transport": "local_pure_function",
+  "formulaVersion": "economics-v1",
+  "output": {
+    "results": [
+      {
+        "purchaseNotionalExcludingFee": "1000",
+        "computationStatus": "calculated",
+        "goalComparison": "below",
+        "snapshotId": "snapshot_9a916d90110f422293a4bc2b",
+        "planRevision": 0,
+        "scenarioRevision": 0,
+        "units": {
+          "quoteCurrency": "USDT",
+          "baseAsset": "rNVDA"
+        },
+        "requestedNotional": "1000",
+        "quantity": "4.4298",
+        "spentNotional": "999.979166",
+        "entryCash": "1000.979145166",
+        "unspentNotional": "0.020834",
+        "entryVWAP": "225.73912275949252788",
+        "modeledExitVWAP": "225.36042755880626665",
+        "modeledExitGross": "998.301622",
+        "modeledExitNet": "997.303320378",
+        "netPnl": "-0.683914826866",
+        "netReturn": "-0.00068324583001435178973",
+        "frictionProxy": "3.675824788",
+        "breakEvenShift": "0.0036857641129749585",
+        "requiredGoalShift": "0.0036857641129749585",
+        "scenarioBidPriceShift": "0.003",
+        "effectivePriceShift": "0.003",
+        "scenarioGross": "1001.296526866",
+        "scenarioNet": "1000.295230339134",
+        "matchedExitQuantity": "4.4298",
+        "unmatchedExitQuantity": "0",
+        "visibleEntryCapacity": "1170548.833666",
+        "visibleExitCapacity": "1118427.566941",
+        "exitDepthMultiplier": "1",
+        "exitPriceHaircut": "0",
+        "warnings": [
+          "Visible ask capacity is 1170548.833666 USDT at this snapshot."
+        ],
+        "scenarioTable": [
+          {
+            "label": "-3% downside",
+            "bidPriceShift": "-0.03",
+            "effectivePriceShift": "-0.03",
+            "netPnl": "-33.59492439934",
+            "netReturn": "-0.033562062268308994253",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "Flat",
+            "bidPriceShift": "0",
+            "effectivePriceShift": "0",
+            "netPnl": "-3.675824788",
+            "netReturn": "-0.0036722291425865920137",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+0.3%",
+            "bidPriceShift": "0.003",
+            "effectivePriceShift": "0.003",
+            "netPnl": "-0.683914826866",
+            "netReturn": "-0.00068324583001435178973",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+1%",
+            "bidPriceShift": "0.01",
+            "effectivePriceShift": "0.01",
+            "netPnl": "6.29720841578",
+            "netReturn": "0.0062910485659875420662",
+            "goalComparison": "meets",
+            "status": "calculated"
+          },
+          {
+            "label": "+3%",
+            "bidPriceShift": "0.03",
+            "effectivePriceShift": "0.03",
+            "netPnl": "26.24327482334",
+            "netReturn": "0.026217603983135810226",
+            "goalComparison": "meets",
+            "status": "calculated"
+          }
+        ]
+      },
+      {
+        "purchaseNotionalExcludingFee": "10000",
+        "computationStatus": "calculated",
+        "goalComparison": "below",
+        "snapshotId": "snapshot_9a916d90110f422293a4bc2b",
+        "planRevision": 0,
+        "scenarioRevision": 0,
+        "units": {
+          "quoteCurrency": "USDT",
+          "baseAsset": "rNVDA"
+        },
+        "requestedNotional": "10000",
+        "quantity": "44.2934",
+        "spentNotional": "9999.984138",
+        "entryCash": "10009.984122138",
+        "unspentNotional": "0.015862",
+        "entryVWAP": "225.76691195528001915",
+        "modeledExitVWAP": "225.25204400655628152",
+        "modeledExitGross": "9977.178886",
+        "modeledExitNet": "9967.201707114",
+        "netPnl": "-12.880809902658",
+        "netReturn": "-0.001286796237185921694",
+        "frictionProxy": "42.782415024",
+        "breakEvenShift": "0.0042923195778675211",
+        "requiredGoalShift": "0.0042923195778675211",
+        "scenarioBidPriceShift": "0.003",
+        "effectivePriceShift": "0.003",
+        "scenarioGross": "10007.110422658",
+        "scenarioNet": "9997.103312235342",
+        "matchedExitQuantity": "44.2934",
+        "unmatchedExitQuantity": "0",
+        "visibleEntryCapacity": "1170548.833666",
+        "visibleExitCapacity": "1118427.566941",
+        "exitDepthMultiplier": "1",
+        "exitPriceHaircut": "0",
+        "warnings": [
+          "Visible ask capacity is 1170548.833666 USDT at this snapshot."
+        ],
+        "scenarioTable": [
+          {
+            "label": "-3% downside",
+            "bidPriceShift": "-0.03",
+            "effectivePriceShift": "-0.03",
+            "netPnl": "-341.79846623742",
+            "netReturn": "-0.034145755084815896354",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "Flat",
+            "bidPriceShift": "0",
+            "effectivePriceShift": "0",
+            "netPnl": "-42.782415024",
+            "netReturn": "-0.0042739743142431921177",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+0.3%",
+            "bidPriceShift": "0.003",
+            "effectivePriceShift": "0.003",
+            "netPnl": "-12.880809902658",
+            "netReturn": "-0.001286796237185921694",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+1%",
+            "bidPriceShift": "0.01",
+            "effectivePriceShift": "0.01",
+            "netPnl": "56.88960204714",
+            "netReturn": "0.0056832859426143759611",
+            "goalComparison": "meets",
+            "status": "calculated"
+          },
+          {
+            "label": "+3%",
+            "bidPriceShift": "0.03",
+            "effectivePriceShift": "0.03",
+            "netPnl": "256.23363618942",
+            "netReturn": "0.025597806456329512119",
+            "goalComparison": "meets",
+            "status": "calculated"
+          }
+        ]
+      }
+    ],
+    "sourceProvenance": "synthetic_test",
+    "marketMode": "captured_real",
+    "fixtureReference": "fixtures/selection-probe.json",
+    "fallbackUsed": false,
+    "intent": null
+  },
+  "error": null
+}

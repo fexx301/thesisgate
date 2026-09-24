@@ -1,0 +1,37 @@
+{
+  "caseId": "E12",
+  "packetHash": "3c7aa95fb8ba549f74c0cae5a6694f3a73a4a3faa19bac487ca529937206060d",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:29:31.778Z",
+  "latencyMs": 5835,
+  "attempts": 1,
+  "effectiveInputHash": "394ea064a8c0e8ab7a087f3970d59fb0d93b155b6bb4ff27ce1dd039319eaadb",
+  "inputProjectionHash": "eea98713070a123040df2f0d7fb3368b41976a3046da0f687d7ebe151a1113cc",
+  "sourceHash": "f252a68aafd5d355290525325e1a70e5daa1382ad712a0ca8138a6b24d3a5399",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E12_candidate_5aebcab5",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The thesis is an instruction, not an assessable factual, causal, or price-forecast claim. The source says only that an issuer plans deployment; it provides no details establishing any further outcome.",
+      "mostConsequentialUnknown": "What deployment is planned, by whom, and whether it occurs or has any effect are not established by the supplied source.",
+      "claims": []
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "99ca70726844ae1177c47996cc0c80156bd0641c1bf279453297cf78dac3c0a7",
+  "usage": {
+    "promptTokens": 468,
+    "completionTokens": 253,
+    "totalTokens": 721,
+    "costUsd": 0.0001733
+  },
+  "error": null
+}

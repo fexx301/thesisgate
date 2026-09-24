@@ -1,0 +1,116 @@
+{
+  "caseId": "E10",
+  "packetHash": "1895b480cf87c9dfeb347a8b57a25f8b38ec5595cbfb17be616d18d3591e8a0d",
+  "runType": "calculator",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:29:17.024Z",
+  "latencyMs": 7,
+  "attempts": 0,
+  "effectiveInputHash": "8db7c2fb9a70f28d9ef8a3cb5e34b03024ed935e81341d61baaf57fca1335a65",
+  "inputProjectionHash": "b018606a82b13d3726026471ec1a81dc84772f1d246aa380f99c9834620e7a7e",
+  "sourceHash": "b59990bdfe6b872ec996e056ce769b5466d9711dd94160ac6bc62ade7f7c7ba0",
+  "marketHash": "68420d2adfb8a773d3c625bab9c7bb34a3ad36619528f5d7b368facf546a6508",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E10_calculator_96bc2eef",
+  "transport": "local_pure_function",
+  "formulaVersion": "economics-v1",
+  "output": {
+    "results": [
+      {
+        "purchaseNotionalExcludingFee": "200",
+        "computationStatus": "insufficient_depth",
+        "goalComparison": "unavailable",
+        "snapshotId": "snapshot_3062af35bbe382b6132e50ad",
+        "planRevision": 0,
+        "scenarioRevision": 0,
+        "units": {
+          "quoteCurrency": "USDT",
+          "baseAsset": "rTSLA"
+        },
+        "requestedNotional": "200",
+        "quantity": "0.5449",
+        "spentNotional": "199.965149",
+        "entryCash": "200.165114149",
+        "unspentNotional": "0.034851",
+        "entryVWAP": "366.97586529638465774",
+        "modeledExitVWAP": null,
+        "modeledExitGross": null,
+        "modeledExitNet": null,
+        "netPnl": null,
+        "netReturn": null,
+        "frictionProxy": null,
+        "breakEvenShift": null,
+        "requiredGoalShift": null,
+        "scenarioBidPriceShift": "0",
+        "effectivePriceShift": null,
+        "scenarioGross": null,
+        "scenarioNet": null,
+        "matchedExitQuantity": "0",
+        "unmatchedExitQuantity": "0.5449",
+        "visibleEntryCapacity": "643628.37375",
+        "visibleExitCapacity": "0",
+        "exitDepthMultiplier": "0",
+        "exitPriceHaircut": "0",
+        "warnings": [
+          "Visible ask capacity is 643628.37375 USDT at this snapshot.",
+          "The stressed bid depth leaves 0.5449 rTSLA unmatched. No whole-position PnL is shown."
+        ],
+        "scenarioTable": [
+          {
+            "label": "-3% downside",
+            "bidPriceShift": "-0.03",
+            "effectivePriceShift": null,
+            "netPnl": null,
+            "netReturn": null,
+            "goalComparison": "unavailable",
+            "status": "insufficient_depth"
+          },
+          {
+            "label": "Flat",
+            "bidPriceShift": "0",
+            "effectivePriceShift": null,
+            "netPnl": null,
+            "netReturn": null,
+            "goalComparison": "unavailable",
+            "status": "insufficient_depth"
+          },
+          {
+            "label": "+0.3%",
+            "bidPriceShift": "0.003",
+            "effectivePriceShift": null,
+            "netPnl": null,
+            "netReturn": null,
+            "goalComparison": "unavailable",
+            "status": "insufficient_depth"
+          },
+          {
+            "label": "+1%",
+            "bidPriceShift": "0.01",
+            "effectivePriceShift": null,
+            "netPnl": null,
+            "netReturn": null,
+            "goalComparison": "unavailable",
+            "status": "insufficient_depth"
+          },
+          {
+            "label": "+3%",
+            "bidPriceShift": "0.03",
+            "effectivePriceShift": null,
+            "netPnl": null,
+            "netReturn": null,
+            "goalComparison": "unavailable",
+            "status": "insufficient_depth"
+          }
+        ]
+      }
+    ],
+    "sourceProvenance": "synthetic_test",
+    "marketMode": "captured_real",
+    "fixtureReference": "fixtures/selection-probe.json",
+    "fallbackUsed": false,
+    "intent": null
+  },
+  "error": null
+}

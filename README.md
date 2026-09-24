@@ -274,6 +274,14 @@ The final report validator requires:
 
 The paid-run controls are `THESISGATE_EVAL_MODE`, `THESISGATE_EVAL_CASES`, `THESISGATE_ALLOW_PAID_EVAL`, and `THESISGATE_EVAL_MAX_CALLS`. The public benchmark inputs and schema are [evals/cases.json](evals/cases.json), [evals/benchmark-manifest.json](evals/benchmark-manifest.json), and [evals/report.template.json](evals/report.template.json). Do not replace case evidence with aggregate counters or placeholder artifacts.
 
+#### Current re-run (research-gate-v4, GPT-6 Luna)
+
+[`evidence/benchmark-gate-v4/`](evidence/benchmark-gate-v4/) is a paid re-run of the same 12 cases on the current code with `openai/gpt-6-luna`: 22 provider calls, $0.0066 in total. With builder scoring (assistant-assisted, not independent), it has 11/12 complete-correct cases (E11 has no model call by design), every numeric check passing, no material fabrication, and **0 unique omissions corrected** versus the same model with a strong general prompt. `RESEARCH_GATE=failed`, because the gate needs at least 3.
+
+What this shows: when both prompts get the same single pre-supplied passage, the claim prompt is not measurably better than a good general prompt. The baseline was slightly stronger on E06 (provenance) and E12 (injected return claim). The benchmark does not measure what the product now adds on top of that step: retrieving and dating sources, recirculation checks against publication dates, the priced-in comparison, the order-book math, and the conversation. Those need an end-to-end comparison, such as the planned trader study.
+
+Validate it with `THESISGATE_EVAL_REPORT=evidence/benchmark-gate-v4/report.scored.json npm run eval`.
+
 #### Historical artifacts are not the current gate
 
 The stored benchmark records describe a frozen historical implementation. The original builder grading reported 11/12 completeness, but that is neither independent grading nor proof of the current code. Paired review removed the four unsupported unique-omission credits (E01, E04, E05, E10), leaving **zero supported unique omissions**; the historical performance threshold is not met. No independent benchmark success or completed trader study is claimed.

@@ -1,0 +1,53 @@
+{
+  "caseId": "E06",
+  "packetHash": "f8502597282a51d5b6ae056b06493fdf66166551f779f8393307672bfb843bf1",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:28:14.397Z",
+  "latencyMs": 4891,
+  "attempts": 1,
+  "effectiveInputHash": "301c9680e7cec6e3d909e6f5921a49809a2285b8d4443b8c8a51d9d8a8b42e72",
+  "inputProjectionHash": "bef737b0b487402bb393e2aa70123fb399a20a56ba0dc386504f99400953cad9",
+  "sourceHash": "5d593e98028db1389853002db9ac8b6a329ef02f05b19ecc474dba725c5a5d25",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E06_candidate_a68a38d3",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied source says the URL is only a reference and does not authenticate the pasted passage, contradicting the thesis.",
+      "mostConsequentialUnknown": "Whether the pasted text is authenticated by any evidence not included in the supplied source record.",
+      "claims": [
+        {
+          "claimId": "claim1",
+          "exactText": "The URL proves the pasted text is an authenticated official source.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "contradicted",
+          "explanation": "The supplied source explicitly says the URL does not authenticate the pasted passage.",
+          "citations": [
+            {
+              "sourceId": "src_e06",
+              "excerpt": "The URL beside the text is only a reference and does not authenticate the pasted passage."
+            }
+          ],
+          "missingEvidence": null
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "9f7b6a5b2e11804c818ff39ac28eb97e1ad5f23e2873e9a2d5621d9f5caa0b11",
+  "usage": {
+    "promptTokens": 466,
+    "completionTokens": 274,
+    "totalTokens": 740,
+    "costUsd": 0.0001836
+  },
+  "error": null
+}

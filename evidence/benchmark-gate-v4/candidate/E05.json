@@ -1,0 +1,88 @@
+{
+  "caseId": "E05",
+  "packetHash": "eeddd1438edd7184d2a8865681ea6ae874b390f35ebc601aae899835266e4b9d",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:28:02.354Z",
+  "latencyMs": 9900,
+  "attempts": 1,
+  "effectiveInputHash": "209654ca3bdf28a37b1efd96a10ffacff43c151d03df109630eef85419aa190c",
+  "inputProjectionHash": "037fe310ae875ef7eb9713e852fd95575ff4af76355d6f47d729867e0c441a09",
+  "sourceHash": "3096980bc7d370e7cb5d9772b9155dc61ec16e2f4783810b370bec42213aad4e",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E05_candidate_e08c54cd",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source supports that the company plans additional infrastructure. It does not establish that the plan will cause rNVDA to rise, that rNVDA will rise 1%, or that the trade will be profitable.",
+      "mostConsequentialUnknown": "Whether rNVDA will rise 1% and whether the trade will be profitable; the supplied source does not establish either outcome.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The company plans additional infrastructure",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "supported",
+          "explanation": "The source states that additional infrastructure is planned for a future period. This describes a plan, not completed deployment or realized revenue.",
+          "citations": [
+            {
+              "sourceId": "src_e05",
+              "excerpt": "The company says additional infrastructure is planned for a future period."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "therefore rNVDA will rise",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source does not establish that the infrastructure plan will cause the token price to rise.",
+          "citations": [
+            {
+              "sourceId": "src_e05",
+              "excerpt": "The passage does not state that the plan will increase the token price"
+            }
+          ],
+          "missingEvidence": "Evidence establishing that the plan will cause rNVDA's price to rise."
+        },
+        {
+          "claimId": "c3",
+          "exactText": "rNVDA will rise 1%",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The supplied source does not establish a future 1% price increase.",
+          "citations": [],
+          "missingEvidence": "Evidence establishing the forecast price change."
+        },
+        {
+          "claimId": "c4",
+          "exactText": "this trade is profitable",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The supplied source does not establish that the trade will be profitable.",
+          "citations": [],
+          "missingEvidence": "Evidence establishing the trade's future profitability."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "e3ce9506a27101926d9de20172f452e21e138292698dafa70fe08670c43c2072",
+  "usage": {
+    "promptTokens": 475,
+    "completionTokens": 695,
+    "totalTokens": 1170,
+    "costUsd": 0.000395
+  },
+  "error": null
+}

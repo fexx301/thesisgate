@@ -1,0 +1,116 @@
+{
+  "caseId": "E08",
+  "packetHash": "9d2fda0a5dde2334d9b899012271de50910e281751bc8debbc6780800889002e",
+  "runType": "calculator",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:28:50.385Z",
+  "latencyMs": 1,
+  "attempts": 0,
+  "effectiveInputHash": "b937e2b39994a54da4909fcb1bfa9c5da64b0ace088377f4a38d63a9a1622d3e",
+  "inputProjectionHash": "69b52f062bacf4f6eb3ee8d4c35292d9100cb32ad8328ea584bf7d57cbdaad91",
+  "sourceHash": "869d217ea74d02bdbd8b6a7c9d065ab262081a80f0f51d22f81bbf2ac47413d4",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E08_calculator_3a08e6c7",
+  "transport": "local_pure_function",
+  "formulaVersion": "economics-v1",
+  "output": {
+    "results": [
+      {
+        "purchaseNotionalExcludingFee": "200",
+        "computationStatus": "threshold_only",
+        "goalComparison": "unavailable",
+        "snapshotId": "snapshot_d48547bf49b3cb23f8d849a3",
+        "planRevision": 0,
+        "scenarioRevision": 0,
+        "units": {
+          "quoteCurrency": "USDT",
+          "baseAsset": "synthetic"
+        },
+        "requestedNotional": "200",
+        "quantity": "2",
+        "spentNotional": "200",
+        "entryCash": "200.2",
+        "unspentNotional": "0",
+        "entryVWAP": "100",
+        "modeledExitVWAP": "99",
+        "modeledExitGross": "198",
+        "modeledExitNet": "197.802",
+        "netPnl": null,
+        "netReturn": null,
+        "frictionProxy": "2.398",
+        "breakEvenShift": "0.0121232343454565677",
+        "requiredGoalShift": "0.5176792954570732349",
+        "scenarioBidPriceShift": null,
+        "effectivePriceShift": null,
+        "scenarioGross": null,
+        "scenarioNet": null,
+        "matchedExitQuantity": "2",
+        "unmatchedExitQuantity": "0",
+        "visibleEntryCapacity": "503",
+        "visibleExitCapacity": "492",
+        "exitDepthMultiplier": "1",
+        "exitPriceHaircut": "0",
+        "warnings": [
+          "Visible ask capacity is 503 USDT at this snapshot.",
+          "Goal threshold 51.77% is outside the ±3% scenario band; it is a computed threshold, not a simulated row."
+        ],
+        "scenarioTable": [
+          {
+            "label": "-3% downside",
+            "bidPriceShift": "-0.03",
+            "effectivePriceShift": "-0.03",
+            "netPnl": "-8.33206",
+            "netReturn": "-0.041618681318681318681",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "Flat",
+            "bidPriceShift": "0",
+            "effectivePriceShift": "0",
+            "netPnl": "-2.398",
+            "netReturn": "-0.011978021978021978022",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+0.3%",
+            "bidPriceShift": "0.003",
+            "effectivePriceShift": "0.003",
+            "netPnl": "-1.804594",
+            "netReturn": "-0.009013956043956043956",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+1%",
+            "bidPriceShift": "0.01",
+            "effectivePriceShift": "0.01",
+            "netPnl": "-0.41998",
+            "netReturn": "-0.0020978021978021978022",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+3%",
+            "bidPriceShift": "0.03",
+            "effectivePriceShift": "0.03",
+            "netPnl": "3.53606",
+            "netReturn": "0.017662637362637362637",
+            "goalComparison": "below",
+            "status": "calculated"
+          }
+        ]
+      }
+    ],
+    "sourceProvenance": "synthetic_test",
+    "marketMode": "synthetic",
+    "fixtureReference": "fixtures/synthetic-book-v1.json",
+    "fallbackUsed": false,
+    "intent": null
+  },
+  "error": null
+}

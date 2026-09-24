@@ -1,0 +1,68 @@
+{
+  "caseId": "E08",
+  "packetHash": "9d2fda0a5dde2334d9b899012271de50910e281751bc8debbc6780800889002e",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:28:50.383Z",
+  "latencyMs": 12608,
+  "attempts": 1,
+  "effectiveInputHash": "b937e2b39994a54da4909fcb1bfa9c5da64b0ace088377f4a38d63a9a1622d3e",
+  "inputProjectionHash": "69b52f062bacf4f6eb3ee8d4c35292d9100cb32ad8328ea584bf7d57cbdaad91",
+  "sourceHash": "869d217ea74d02bdbd8b6a7c9d065ab262081a80f0f51d22f81bbf2ac47413d4",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E08_candidate_0b5ae66a",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source says it contains a narrow factual claim, but does not identify that claim. It gives no price target or probability, so it cannot establish what a trade would require to make 100 USDT.",
+      "mostConsequentialUnknown": "The specific trade inputs needed to calculate a 100 USDT outcome are not supplied here.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The source supports a fact",
+          "distinction": "factual",
+          "materiality": "contextual",
+          "status": "supported",
+          "explanation": "The source explicitly says it states a narrow factual claim, but does not identify that claim.",
+          "citations": [
+            {
+              "sourceId": "src_e08",
+              "excerpt": "The source states a narrow factual claim"
+            }
+          ],
+          "missingEvidence": "The specific factual claim the source is said to support."
+        },
+        {
+          "claimId": "c2",
+          "exactText": "calculate what the trade would require to make 100 USDT",
+          "distinction": "forecast",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source supplies no price target or probability and does not establish the outcome needed to make 100 USDT. The supplied packet also provides no trade inputs for calculating that requirement.",
+          "citations": [
+            {
+              "sourceId": "src_e08",
+              "excerpt": "gives no price target or probability."
+            }
+          ],
+          "missingEvidence": "Trade inputs and an established outcome that would yield 100 USDT."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "b062f30844db359a4b9b6b469a83e1493e86bf8765401e221a2ba06f80a3014a",
+  "usage": {
+    "promptTokens": 456,
+    "completionTokens": 861,
+    "totalTokens": 1317,
+    "costUsd": 0.0004761
+  },
+  "error": null
+}

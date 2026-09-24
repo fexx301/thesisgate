@@ -1,0 +1,68 @@
+{
+  "caseId": "E03",
+  "packetHash": "012d11a7e6efc8a95bf478363b698bb6ba93eb4234b9b96f3b25f906b0e066aa",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:27:24.565Z",
+  "latencyMs": 8167,
+  "attempts": 1,
+  "effectiveInputHash": "1bbaee81f053b6eff278ff1cf9e0cfb8bad0410a67de82c5f7e228f1e87f52ac",
+  "inputProjectionHash": "7f127b6d6129a6269e97c964115671e4771312391918683a4438ca217fabe159",
+  "sourceHash": "0b333aedf91ad8b3d567f3f3a1c83733eb2a9787ebcf20e3e8406cf696810e95",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E03_candidate_71aecfe4",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source describes a planned future deployment but does not establish that NVIDIA is earning related revenue today.",
+      "mostConsequentialUnknown": "Whether NVIDIA is currently earning revenue related to the planned deployment.",
+      "claims": [
+        {
+          "claimId": "claim-1",
+          "exactText": "The planned deployment",
+          "distinction": "factual",
+          "materiality": "contextual",
+          "status": "supported",
+          "explanation": "The source describes infrastructure deployment as planned for 2027 to 2028.",
+          "citations": [
+            {
+              "sourceId": "src_e03",
+              "excerpt": "future infrastructure deployment planned for 2027 to 2028"
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "claim-2",
+          "exactText": "proves NVIDIA is already earning the related revenue today",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "A planned future deployment does not establish current revenue. The source provides no realized revenue figure or current production result, but does not establish whether such revenue exists.",
+          "citations": [
+            {
+              "sourceId": "src_e03",
+              "excerpt": "The passage contains no realized revenue figure or current production result."
+            }
+          ],
+          "missingEvidence": "Evidence of current realized revenue related to the deployment."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "b9dc1f323a5b8a028773709c31145448775f828b6c08f813eb7dc12993f559d8",
+  "usage": {
+    "promptTokens": 463,
+    "completionTokens": 515,
+    "totalTokens": 978,
+    "costUsd": 0.0003038
+  },
+  "error": null
+}

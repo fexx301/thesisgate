@@ -55,6 +55,7 @@ yarn-error.log*
 /evidence/*
 !/evidence/benchmark-gate-final/
 !/evidence/x-post-validity.txt
+!/evidence/benchmark-gate-v4/
 /evidence/benchmark-gate-final/*
 !/evidence/benchmark-gate-final/report.scored.json
 !/evidence/benchmark-gate-final/report.original.json

@@ -1,0 +1,53 @@
+{
+  "caseId": "E10",
+  "packetHash": "1895b480cf87c9dfeb347a8b57a25f8b38ec5595cbfb17be616d18d3591e8a0d",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:29:17.023Z",
+  "latencyMs": 5685,
+  "attempts": 1,
+  "effectiveInputHash": "8db7c2fb9a70f28d9ef8a3cb5e34b03024ed935e81341d61baaf57fca1335a65",
+  "inputProjectionHash": "b018606a82b13d3726026471ec1a81dc84772f1d246aa380f99c9834620e7a7e",
+  "sourceHash": "b59990bdfe6b872ec996e056ce769b5466d9711dd94160ac6bc62ade7f7c7ba0",
+  "marketHash": "68420d2adfb8a773d3c625bab9c7bb34a3ad36619528f5d7b368facf546a6508",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E10_general_baseline_43f47112",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied source does not provide an rTSLA result or information about stressed exit depth.",
+      "mostConsequentialUnknown": "Whether a stressed exit depth is unavailable and what the rTSLA result would be under that condition.",
+      "claims": [
+        {
+          "claimId": "claim_1",
+          "exactText": "Show the rTSLA result when no stressed exit depth is available.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "This is a request for a result, not a result established by the source. The source says it is irrelevant to the liquidity check and provides no rTSLA result or stressed exit-depth information.",
+          "citations": [
+            {
+              "sourceId": "src_e10",
+              "excerpt": "The source is irrelevant to the liquidity check."
+            }
+          ],
+          "missingEvidence": "A source reporting the rTSLA result and whether stressed exit depth is available."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "a8472afff9c5f159c496ff82732da7db77db71bae028976cdb300609052973ac",
+  "usage": {
+    "promptTokens": 239,
+    "completionTokens": 394,
+    "totalTokens": 633,
+    "costUsd": 0.0002209
+  },
+  "error": null
+}

@@ -1,0 +1,48 @@
+{
+  "caseId": "E10",
+  "packetHash": "1895b480cf87c9dfeb347a8b57a25f8b38ec5595cbfb17be616d18d3591e8a0d",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:29:17.019Z",
+  "latencyMs": 7619,
+  "attempts": 1,
+  "effectiveInputHash": "8db7c2fb9a70f28d9ef8a3cb5e34b03024ed935e81341d61baaf57fca1335a65",
+  "inputProjectionHash": "b018606a82b13d3726026471ec1a81dc84772f1d246aa380f99c9834620e7a7e",
+  "sourceHash": "b59990bdfe6b872ec996e056ce769b5466d9711dd94160ac6bc62ade7f7c7ba0",
+  "marketHash": "68420d2adfb8a773d3c625bab9c7bb34a3ad36619528f5d7b368facf546a6508",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E10_candidate_4d298a59",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied source does not establish an rTSLA result or whether stressed exit depth is available.",
+      "mostConsequentialUnknown": "The rTSLA result under the stated exit-depth condition.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "Show the rTSLA result when no stressed exit depth is available.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source says it is irrelevant to the liquidity check and provides no rTSLA result or information about stressed exit depth.",
+          "citations": [],
+          "missingEvidence": "An rTSLA result and evidence that no stressed exit depth is available."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "ba1f0d155a1d2740983e09165fa93e70276e10ea5475cad5a67484306a6df54b",
+  "usage": {
+    "promptTokens": 445,
+    "completionTokens": 381,
+    "totalTokens": 826,
+    "costUsd": 0.000235
+  },
+  "error": null
+}

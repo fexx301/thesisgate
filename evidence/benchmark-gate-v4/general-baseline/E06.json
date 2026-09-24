@@ -1,0 +1,53 @@
+{
+  "caseId": "E06",
+  "packetHash": "f8502597282a51d5b6ae056b06493fdf66166551f779f8393307672bfb843bf1",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:28:14.399Z",
+  "latencyMs": 7145,
+  "attempts": 1,
+  "effectiveInputHash": "301c9680e7cec6e3d909e6f5921a49809a2285b8d4443b8c8a51d9d8a8b42e72",
+  "inputProjectionHash": "bef737b0b487402bb393e2aa70123fb399a20a56ba0dc386504f99400953cad9",
+  "sourceHash": "5d593e98028db1389853002db9ac8b6a329ef02f05b19ecc474dba725c5a5d25",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E06_general_baseline_7c1ccfce",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied text says the URL is only a reference and does not authenticate the pasted passage. However, the source is marked user_pasted_unverified, so the record does not independently establish the URL’s status.",
+      "mostConsequentialUnknown": "Whether the URL actually points to an authenticated official source containing the pasted text.",
+      "claims": [
+        {
+          "claimId": "claim_1",
+          "exactText": "The URL proves the pasted text is an authenticated official source.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "contradicted",
+          "explanation": "The supplied text explicitly says the URL does not authenticate the pasted passage. Because the source itself is unverified, this establishes what the supplied text says, not the URL’s actual status.",
+          "citations": [
+            {
+              "sourceId": "src_e06",
+              "excerpt": "The URL beside the text is only a reference and does not authenticate the pasted passage."
+            }
+          ],
+          "missingEvidence": "Independent verification of the URL and the official source it purportedly identifies."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "8ea3feec475254eec357cbaf430c5a6c92076ec24ded708fc6663ea9671a1b06",
+  "usage": {
+    "promptTokens": 260,
+    "completionTokens": 453,
+    "totalTokens": 713,
+    "costUsd": 0.0002525
+  },
+  "error": null
+}

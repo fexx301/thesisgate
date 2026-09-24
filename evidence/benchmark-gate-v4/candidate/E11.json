@@ -1,0 +1,31 @@
+{
+  "caseId": "E11",
+  "packetHash": "961c059dacad56f6f511f79686f324c2be99b11f76a86935c6a2b527573183e4",
+  "runType": "candidate",
+  "status": "unavailable",
+  "recordedAt": "2026-09-24T15:29:17.034Z",
+  "latencyMs": 0,
+  "attempts": 0,
+  "effectiveInputHash": "b1ce0415d50c39a5487e173670ae900b0b6d7c3150887f26ed90fc6d1401a3cb",
+  "inputProjectionHash": "2f54f4d07dfe1f94b9717b7b66d202e6098782ef25644da805024d0188451553",
+  "sourceHash": "15c10256470022a51d3ee17d7116a7473a558502b998daa5f468581e9f0a52d2",
+  "marketHash": "ccfc1e7256aaea793a283d92a4c11ff4f3b9a97fe05fa105e7572ababa77aff6",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E11_candidate_95f77d9e",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "unavailable",
+    "assessment": null,
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "7f298d0069f952716ba1ed9d541494407742b497989918b0e15058fa5982cf2f",
+  "usage": null,
+  "error": {
+    "code": "model_unconfigured",
+    "message": "Model unavailability is explicitly simulated by the frozen E11 call plan."
+  }
+}

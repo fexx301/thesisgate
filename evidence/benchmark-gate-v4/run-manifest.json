@@ -1,0 +1,54 @@
+{
+  "runVersion": "eval-runner-v1",
+  "status": "unscored",
+  "mode": "paid",
+  "recordedAt": "2026-09-24T15:29:31.784Z",
+  "artifactRoot": "evidence/benchmark-gate-v4",
+  "benchmarkManifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "selectedCases": [
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "E08",
+    "E09",
+    "E10",
+    "E11",
+    "E12"
+  ],
+  "plannedProviderCalls": 22,
+  "attemptedProviderCalls": 22,
+  "modelVersions": [
+    "openai/gpt-6-luna"
+  ],
+  "runtime": {
+    "node": "v24.14.0",
+    "calculator": "production calculateEconomics"
+  },
+  "inferenceConfig": {
+    "provider": "openrouter",
+    "protocol": "openai_chat",
+    "modelAlias": "openai/gpt-6-luna",
+    "reasoningEffort": "low",
+    "temperature": 0.1,
+    "maxTokens": 2200,
+    "maxAttempts": 1,
+    "toolBudget": 0
+  },
+  "paidRunControls": {
+    "defaultMode": "dry_run",
+    "paidFlag": "THESISGATE_ALLOW_PAID_EVAL=1",
+    "exactCaseAllowlistVariable": "THESISGATE_EVAL_CASES",
+    "maxCallsVariable": "THESISGATE_EVAL_MAX_CALLS",
+    "serialExecution": true,
+    "semanticRetries": false,
+    "providerEndpointAllowlist": [
+      "https://openrouter.ai/api/v1/chat/completions"
+    ]
+  },
+  "secretsIncluded": false
+}

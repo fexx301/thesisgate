@@ -1,0 +1,123 @@
+{
+  "caseId": "E07",
+  "packetHash": "0ef13bc47efeb41f8c74febdf38d574e0891fc0b63b0855f1db4dd5b3005a764",
+  "runType": "calculator",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:28:28.102Z",
+  "latencyMs": 2,
+  "attempts": 0,
+  "effectiveInputHash": "1f10bd6c8db25645df939f51f4ddcd9a75bf4de0e6d78ebdd509ca129bc4ed40",
+  "inputProjectionHash": "2fc57574bba71eb41841ad7965e4cd5b982ff46ed83c7ae237164d733ffc5580",
+  "sourceHash": "75f77b5dbc80aadcecebf6368c9780c7a4337be8e41594dabdeb568af59173bf",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E07_calculator_37a2e824",
+  "transport": "local_pure_function",
+  "formulaVersion": "economics-v1",
+  "output": {
+    "results": [
+      {
+        "purchaseNotionalExcludingFee": "200",
+        "computationStatus": "calculated",
+        "goalComparison": "below",
+        "snapshotId": "snapshot_d48547bf49b3cb23f8d849a3",
+        "planRevision": 0,
+        "scenarioRevision": 0,
+        "units": {
+          "quoteCurrency": "USDT",
+          "baseAsset": "synthetic"
+        },
+        "requestedNotional": "200",
+        "quantity": "2",
+        "spentNotional": "200",
+        "entryCash": "200.2",
+        "unspentNotional": "0",
+        "entryVWAP": "100",
+        "modeledExitVWAP": "99",
+        "modeledExitGross": "198",
+        "modeledExitNet": "197.802",
+        "netPnl": "-0.41998",
+        "netReturn": "-0.0020978021978021978022",
+        "frictionProxy": "2.398",
+        "breakEvenShift": "0.0121232343454565677",
+        "requiredGoalShift": "0.0121232343454565677",
+        "scenarioBidPriceShift": "0.01",
+        "effectivePriceShift": "0.01",
+        "scenarioGross": "199.98",
+        "scenarioNet": "199.78002",
+        "matchedExitQuantity": "2",
+        "unmatchedExitQuantity": "0",
+        "visibleEntryCapacity": "503",
+        "visibleExitCapacity": "492",
+        "exitDepthMultiplier": "1",
+        "exitPriceHaircut": "0",
+        "warnings": [
+          "Visible ask capacity is 503 USDT at this snapshot."
+        ],
+        "scenarioTable": [
+          {
+            "label": "-3% downside",
+            "bidPriceShift": "-0.03",
+            "effectivePriceShift": "-0.03",
+            "netPnl": "-8.33206",
+            "netReturn": "-0.041618681318681318681",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "Flat",
+            "bidPriceShift": "0",
+            "effectivePriceShift": "0",
+            "netPnl": "-2.398",
+            "netReturn": "-0.011978021978021978022",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+0.3%",
+            "bidPriceShift": "0.003",
+            "effectivePriceShift": "0.003",
+            "netPnl": "-1.804594",
+            "netReturn": "-0.009013956043956043956",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+1%",
+            "bidPriceShift": "0.01",
+            "effectivePriceShift": "0.01",
+            "netPnl": "-0.41998",
+            "netReturn": "-0.0020978021978021978022",
+            "goalComparison": "below",
+            "status": "calculated"
+          },
+          {
+            "label": "+3%",
+            "bidPriceShift": "0.03",
+            "effectivePriceShift": "0.03",
+            "netPnl": "3.53606",
+            "netReturn": "0.017662637362637362637",
+            "goalComparison": "meets",
+            "status": "calculated"
+          }
+        ]
+      }
+    ],
+    "sourceProvenance": "synthetic_test",
+    "marketMode": "synthetic",
+    "fixtureReference": "fixtures/synthetic-book-v1.json",
+    "fallbackUsed": false,
+    "intent": {
+      "result": "clarification",
+      "planChanged": false,
+      "changed": [],
+      "clarification": "Should the percentage apply to captured bid prices, the entry VWAP, or another reference? State one change at a time.",
+      "refreshMarket": false,
+      "beforePlanHash": "518574f8579ecaf4fcff7f1920d10d47782d4e35b99f959535f53eacf61d6fba",
+      "afterPlanHash": "518574f8579ecaf4fcff7f1920d10d47782d4e35b99f959535f53eacf61d6fba"
+    }
+  },
+  "error": null
+}

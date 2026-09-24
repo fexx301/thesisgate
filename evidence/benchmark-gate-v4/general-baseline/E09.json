@@ -1,0 +1,53 @@
+{
+  "caseId": "E09",
+  "packetHash": "c5d0e95e2f2ee37e00a8309b5a17a9dbaad864d9b49f9abfdba0fd8380db685a",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:29:03.705Z",
+  "latencyMs": 5502,
+  "attempts": 1,
+  "effectiveInputHash": "577ed5a63c6ba43dad770d0c8d780d8ec8d1d45f9aa74dc4674f5901fad2831c",
+  "inputProjectionHash": "4ad21806391de6dc190092fcf44eba63a170231388b4935b05d7d9f0a670ee39",
+  "sourceHash": "e0564f4fa620bb1b02d11e9ae7be8d097b36bad4cc696ceb8210dc7da17451e7",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E09_general_baseline_40842437",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The supplied source does not report deterministic results at either 1,000 or 10,000 USDT notional, so the comparison cannot be established.",
+      "mostConsequentialUnknown": "The deterministic result at each notional and the basis for comparing them.",
+      "claims": [
+        {
+          "claimId": "claim_1",
+          "exactText": "Compare the deterministic result at 1,000 and 10,000 USDT notional.",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source identifies the market packet as a captured selection fixture and says no source claim is used to infer a return. It provides no deterministic results or comparison for either notional.",
+          "citations": [
+            {
+              "sourceId": "src_e09",
+              "excerpt": "The market packet is the captured selection fixture. No source claim is used to infer a return."
+            }
+          ],
+          "missingEvidence": "Deterministic results for 1,000 and 10,000 USDT notional, with a stated basis for comparison."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "e0eeabb38c0c1316a77fd231f90555cc0b7ba3541c38252d7f92fa75c1ffa5dc",
+  "usage": {
+    "promptTokens": 254,
+    "completionTokens": 392,
+    "totalTokens": 646,
+    "costUsd": 0.0002214
+  },
+  "error": null
+}

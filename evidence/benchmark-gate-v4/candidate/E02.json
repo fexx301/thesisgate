@@ -1,0 +1,68 @@
+{
+  "caseId": "E02",
+  "packetHash": "6f42f64aa9bfe01e5055af32b78cf81f2c271046d182cb1b8e03dfdbe19aee90",
+  "runType": "candidate",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:27:10.300Z",
+  "latencyMs": 7629,
+  "attempts": 1,
+  "effectiveInputHash": "78c3a37068ac93e05c763340537247b8464d2aadc91e737b149be8d51b87af95",
+  "inputProjectionHash": "d44f250d0e394b7f4378c658a1848fb159f0a64d64ef7c69c2e836eea83b44b8",
+  "sourceHash": "7d1aa713574f54b225e9519630c19a14bea926556d0b036a292bd0691501772c",
+  "marketHash": "bec3767433df4323fe5e992f56f5205e324dcc1be33ac82c4009b08fd9356d51",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E02_candidate_0756c8c6",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source says the September 8 post repeats an earlier announcement and reports no new deployment. It does not establish that the post changes the immediate rNVDA outlook.",
+      "mostConsequentialUnknown": "Whether the September 8 post changed the immediate rNVDA outlook is not established by the supplied source.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "The September 8 post is a new announcement",
+          "distinction": "factual",
+          "materiality": "material",
+          "status": "contradicted",
+          "explanation": "The source characterizes the post as repeating the August 26 announcement, not as a new announcement.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "A post dated September 8 repeats that the August 26 announcement described planned infrastructure for 2027 to 2028."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "changes the immediate rNVDA outlook",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source reports no new deployment event, but does not establish whether the post changed the immediate rNVDA outlook.",
+          "citations": [
+            {
+              "sourceId": "src_e02",
+              "excerpt": "The post does not report a new deployment event."
+            }
+          ],
+          "missingEvidence": "Evidence about the post's effect on the immediate rNVDA outlook."
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "claims-v4",
+  "promptHash": "f37b70ebb9c761def2050a305ccd1ddaed97904b33c8cbaa16b57863dc0c3ed5",
+  "usage": {
+    "promptTokens": 475,
+    "completionTokens": 515,
+    "totalTokens": 990,
+    "costUsd": 0.000305
+  },
+  "error": null
+}

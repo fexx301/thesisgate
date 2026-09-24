@@ -525,7 +525,7 @@ async function main() {
     grader: "builder",
   }));
   const unscoredReport = {
-    reportVersion: "research-gate-v3",
+    reportVersion: benchmarkManifest.manifestVersion,
     status: "unscored",
     recordedAt: runManifest.recordedAt,
     benchmarkManifestHash,

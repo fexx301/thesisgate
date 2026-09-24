@@ -1,0 +1,68 @@
+{
+  "caseId": "E04",
+  "packetHash": "305f22e8721edb9970ee8b2a889942355e915bda46460c3048ada5c94d3c9d87",
+  "runType": "general_baseline",
+  "status": "completed",
+  "recordedAt": "2026-09-24T15:27:42.272Z",
+  "latencyMs": 7972,
+  "attempts": 1,
+  "effectiveInputHash": "58d4c84047b9f8e920e70ecbad97a8ca859cb3654aa22c8400f340fb2559d950",
+  "inputProjectionHash": "b4f09cd1464fc31f79ccfd111678480ae21a5b5ac8e71581abf1663409a0f800",
+  "sourceHash": "96f6b34808a0fca97e2cb3e168d2cc231c67a65e607d5e56057331426eb0e092",
+  "marketHash": "14a6941937fd1e69526f8fed936bf803fc30900b34e463a449a7c147ac375b42",
+  "inferenceConfigHash": "2f044a694620026aced473dfd8e063b001f5e9fa958cca9a625498f8a9960b82",
+  "manifestHash": "e163af85f6e398f8315f909e3e92d4d04e2570672118dd5845817bfa824f6423",
+  "implementationHash": "7bebeaf557292772fb2b0a91fce4ee3a517adcee0272cbeb067a3c2130214e9b",
+  "requestId": "eval_E04_general_baseline_a4c0a954",
+  "transport": "openrouter_chat",
+  "output": {
+    "status": "completed",
+    "assessment": {
+      "summary": "The source says additional systems are planned, but provides no basis for concluding that rNVDA must rise.",
+      "mostConsequentialUnknown": "Whether the planned systems would cause rNVDA's price to rise.",
+      "claims": [
+        {
+          "claimId": "c1",
+          "exactText": "the plan exists",
+          "distinction": "factual",
+          "materiality": "contextual",
+          "status": "supported",
+          "explanation": "The source states that additional systems are planned.",
+          "citations": [
+            {
+              "sourceId": "src_e04",
+              "excerpt": "additional systems are planned."
+            }
+          ],
+          "missingEvidence": null
+        },
+        {
+          "claimId": "c2",
+          "exactText": "Because the plan exists, rNVDA must rise.",
+          "distinction": "causal",
+          "materiality": "material",
+          "status": "insufficient",
+          "explanation": "The source does not establish that the plan will cause rNVDA to rise, let alone that a rise is certain.",
+          "citations": [
+            {
+              "sourceId": "src_e04",
+              "excerpt": "It says nothing about whether the plan will cause the token price to rise."
+            }
+          ],
+          "missingEvidence": "Evidence connecting the planned systems to rNVDA's price, including support for the certainty implied by “must.”"
+        }
+      ]
+    },
+    "intent": null
+  },
+  "modelVersion": "openai/gpt-6-luna",
+  "promptVersion": "general-research-v1",
+  "promptHash": "6a9712d4e1d75b0eb10268cdb0c203f4483d212a05981397b2f0210ae63db4ec",
+  "usage": {
+    "promptTokens": 251,
+    "completionTokens": 518,
+    "totalTokens": 769,
+    "costUsd": 0.0002841
+  },
+  "error": null
+}
