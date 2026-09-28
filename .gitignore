@@ -54,6 +54,7 @@ yarn-error.log*
 !/public/finished-brief/nvda-captured.md
 !/deploy/README.md
 !/evidence/e2e-comparison-v1/**/*.md
+!/evidence/e2e-comparison-v2/**/*.md
 
 # Publish reviewed evidence only; raw eval runs and credentials stay ignored.
 /evidence/*
@@ -61,6 +62,7 @@ yarn-error.log*
 !/evidence/x-post-validity.txt
 !/evidence/benchmark-gate-v4/
 !/evidence/e2e-comparison-v1/
+!/evidence/e2e-comparison-v2/
 /evidence/benchmark-gate-final/*
 !/evidence/benchmark-gate-final/report.scored.json
 !/evidence/benchmark-gate-final/report.original.json

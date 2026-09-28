@@ -1,0 +1,159 @@
+{
+  "caseId": "X13",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "Analysts have been raising their Tesla price targets since the July earnings, so rTSLA should follow them up. 5k in, I want a 1% return.",
+  "truth": {
+    "isNewEvent": null,
+    "eventNote": "Bitget analyst records after the 2026-07-22 results show target cuts (UBS 442 to 385, Truist 430 to 370, TD Cowen 490 to 460, Piper Sandler 500 to 450, Stifel 508 to 491) and reiterations (StoneX 475, Goldman Sachs 360, GLJ 24.86); none were raised.",
+    "claims": [
+      {
+        "claim": "Analysts have been raising Tesla price targets since the July earnings",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "rTSLA will rise enough for a 1% return",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.47263907201635685,
+      "goalMovePercent": 1.4773654627365205,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The records show a mixed set of Tesla analyst target changes, including multiple cuts after July 22; they do not establish a broad pattern of targets rising since July earnings or predict that rTSLA will rise.\nMost consequential unknown: Whether analyst targets have broadly risen since Tesla's July earnings cannot be determined from this selected set of records, which does not identify the earnings date or establish a complete trend; the records also do not establish rTSLA's future price direction.\n- [insufficient, factual] Analysts have been raising Tesla's price targets since the July earnings.: The records show mixed target changes, including several reductions dated July 22 and afterward, and do not identify the July earnings date or establish that analysts broadly raised targets since then. Quote: \"2026-08-02: Stifel price target 491.00 USD (previously 508.00 USD), rating Buy, maintained.\"\n- [supported, factual] Several analysts lowered Tesla's price targets in records dated July 22 or later.: The records explicitly list several post-July-22 target reductions. Quote: \"2026-08-02: Stifel price target 491.00 USD (previously 508.00 USD), rating Buy, maintained.\"\n- [insufficient, forecast] rTSLA should follow analysts' price targets upward.: The records list analyst targets and revisions but do not establish a future price direction for rTSLA.\nPriced in since the close: US regular session is open. rTSLA mid 377.895 USDT versus TSLA last close 380.12 USD (2026-09-23): -0.59% since the close.\nYour goal needs rTSLA bids near 383.47 USDT, +0.88% versus TSLA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 377.9 USDT; immediate friction 23.54 USDT; break-even needs the bid book +0.47%; your goal needs +1.48%.\nWarning: Visible ask capacity is 531331.68742 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.47263907201635685,
+      "goalMovePercent": 1.4773654627365205,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "claimLatencyMs": 10850,
+    "plan": {
+      "asset": "TSLA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "Analysts have been raising Tesla's price targets since the July earnings. rTSLA should follow them up.",
+      "purchaseNotionalExcludingFee": "5000",
+      "horizon": {
+        "originalText": "",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "net_return",
+        "fractionOfEntryCash": "0.01"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the brief to rTSLA with your stated thesis and a 1% net-return goal; I treated “5k” as 5,000 USDT. I selected the available Tesla analyst-targets headline.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The supplied analyst data **doesn’t support the broad claim that targets have been rising since July earnings**. Several July 22–23 targets were cut: Piper Sandler $500→$450, Canaccord $450→$410, Cantor Fitzgerald $510→$485, and others. There have been some increases in the list—such as Barclays $360→$370 and UBS $364→$442—but the latest listed actions are StoneX **reiterating** $475, Goldman Sachs **reiterating** $360, and GLJ Research **reiterating** $24.86. A reiteration is not a target increase.\n\nThe targets also span a very wide **$24.86–$505** range. They are analyst opinions, not a consensus forecast or a guarantee of near-term performance, and they don’t tell us what rTSLA will return.\n\nFor the trade math, a 1% gain on $5,000 is **$50**, for a value of **$5,050 before fees and other costs**. Assuming an unlevered position that tracks the underlying one-for-one, the price needs to rise 1% to meet that goal; the break-even move is 0% before costs. I can’t calculate rTSLA’s move since its last close or an exact cost-adjusted target from the information provided: there’s no rTSLA price, close, fee, or tracking data. Check whether rTSLA tracks TSLA one-for-one and whether it can trade at a premium or discount before sizing the trade.\n\n```json\n{\n  \"breakEvenMovePercent\": 0,\n  \"goalMovePercent\": 1,\n  \"moveSinceClosePercent\": null,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.00049405,
+    "latencyMs": 8346,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The analyst data **doesn’t support a broad “targets have been rising since July” conclusion**. The recent actions are mixed: some targets rose earlier in July, but many July 22–23 targets were cut, and the August Stifel target was cut too. StoneX’s Sept. 24 target of $475 is a **reiteration**, not a new increase; Goldman reiterated $360, while GLJ reiterated a very low $24.86. Targets range widely and are opinions, not a guarantee that rTSLA will move toward them.\n\n**Trade mechanics, using the supplied order book:**\n\n- A $5,000 sweep buys **13.2300 rTSLA** at the best ask of $377.90, costing **$4,999.62**; the entry fee is about **$5.00**. All-in cash is about **$5,004.62**.\n- Selling that quantity into the listed bids initially yields about **$4,986.06** before the 0.1% exit fee, or **$4,981.07** after it.\n- **Break-even move:** about **+0.473%** across the bids, accounting for both fees and the order-book spread.\n- **1% goal:** Interpreting this as $50 profit on the stated $5,000, the target is $5,050 net proceeds, requiring about a **+1.384%** move across the bids. If instead you mean 1% on the full all-in cash outlay, the required move is about **+1.478%**.\n- **Move since the Sept. 23 TSLA close:** rTSLA’s supplied mid-price is $377.895 versus TSLA’s $380.12 close, or about **−0.585%**. That comparison is a snapshot, not a forecast.\n\nThese figures assume the supplied book remains available and exclude any costs or tracking differences beyond the stated fees. The analyst-target history is not itself a new bullish event.",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.000928675,
+    "latencyMs": 14232,
+    "isNewEvent": null
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.01285,
+    "order": [
+      "chatbot",
+      "chatbot_with_data",
+      "thesisgate"
+    ],
+    "judgement": {
+      "chatbot": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags mixed/contradicted evidence but lacks order book data so cannot address prior move."
+      },
+      "chatbot_with_data": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly identifies contradiction, uses order book math accurately, and notes move since close."
+      },
+      "thesisgate": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Properly flags claim as insufficient/contradicted, includes move-since-close and break-even calcs, avoids forecasting."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.47263907201635685,
+        "goalMovePercent": 1.4773654627365205,
+        "moveSinceClosePercent": -0.585341471114385
+      }
+    },
+    "chatbot": {
+      "breakEven": "wrong",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": 0,
+        "goalMovePercent": 1,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "missing",
+      "goal": "missing",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": null,
+        "moveSinceClosePercent": null
+      }
+    }
+  }
+}

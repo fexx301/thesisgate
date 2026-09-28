@@ -1,0 +1,163 @@
+{
+  "caseId": "X14",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "Raymond James just raised its NVIDIA target to $515 today, so rNVDA should pop this week. 3k, want 60 USDT.",
+  "truth": {
+    "isNewEvent": false,
+    "eventNote": "Bitget analyst records show Raymond James raised its NVIDIA target from 352 to 515 USD on 2026-08-26, four weeks before the as-of date, not today.",
+    "claims": [
+      {
+        "claim": "Raymond James raised its NVIDIA price target to $515",
+        "expected": "supported"
+      },
+      {
+        "claim": "The raise happened today (2026-09-24)",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "rNVDA pops enough for 60 USDT this week",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.3819672917784775,
+      "goalMovePercent": 2.3876158751176195,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The supplied market-data record supports that Raymond James raised its NVIDIA price target to $515 from $352 on August 26, 2026. It does not establish that the raise happened today, September 24, or that rNVDA will rise this week.\nMost consequential unknown: Whether rNVDA will rise this week; the supplied source does not establish that future price outcome.\n- [insufficient, factual] Raymond James raised its NVIDIA target to $515 today.: The record lists a Raymond James target increase to $515 on August 26, 2026, earlier than the thesis date of September 24, 2026. It does not establish whether there was also an announcement today. Quote: \"2026-08-26: Raymond James price target 515.00 USD (previously 352.00 USD), rating Strong Buy, maintained.\"\n- [supported, factual] Raymond James raised its NVIDIA target to $515 from $352.: The market-data record directly reports the $515 target, the prior $352 target, and the August 26, 2026 date. Quote: \"2026-08-26: Raymond James price target 515.00 USD (previously 352.00 USD), rating Strong Buy, maintained.\"\n- [insufficient, forecast] rNVDA should pop this week.: The supplied source reports analyst price targets but does not establish a future price move for rNVDA this week.\nPriced in since the close: US regular session is open. rNVDA mid 222.575 USDT versus NVDA last close 225.51 USD (2026-09-23): -1.30% since the close.\nYour goal needs rNVDA bids near 227.88 USDT, +1.05% versus NVDA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 222.58 USDT; immediate friction 11.43 USDT; break-even needs the bid book +0.38%; your goal needs +2.39%.\nWarning: Visible ask capacity is 1102637.068353 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.3819672917784775,
+      "goalMovePercent": 2.3876158751176195,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "claimLatencyMs": 8534,
+    "plan": {
+      "asset": "NVDA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "Raymond James just raised its NVIDIA target to $515 today. The expectation is that rNVDA should pop this week.",
+      "purchaseNotionalExcludingFee": "3000",
+      "horizon": {
+        "originalText": "this week",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "60"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the brief with the NVIDIA thesis, amount, and USDT profit goal. I selected the analyst-target headline; the brief will check the idea against the available evidence and market data.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The source **doesn’t support the claim that Raymond James raised its target today**. It lists Raymond James at **$515 on August 26, 2026**, up from **$352**—a target increase of about **46.3%**. The supplied data is dated September 9 and shows no later Raymond James action. It also doesn’t establish that NVDA—or rNVDA—will rise this week. An analyst price target is not a short-term price forecast, and the source gives no current price, rNVDA quote, or recent close to measure a move against.\n\nFor the trade: **60 USDT on 3,000 USDT is a 2% gross gain**. That’s the required move on the position before fees, spread, funding, or any tracking difference; those costs would raise the actual break-even/target move. Since the entry price and rNVDA’s relationship to NVDA aren’t provided, the corresponding NVDA price move—and the move since close—can’t be calculated.\n\n```json\n{\n  \"breakEvenMovePercent\": 0,\n  \"goalMovePercent\": 2,\n  \"moveSinceClosePercent\": null,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.000400675,
+    "latencyMs": 6944,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The shared source does **not** support the claim that Raymond James raised its target “today”: it lists the move to **$515 from $352 on August 26**, with a **Strong Buy** rating maintained. The Bitget summary is dated September 9. Neither establishes a new September 24 event, and an analyst target is not a forecast that rNVDA will reach that price this week.\n\n**Trade math** (assuming $3,000 is your entry notional and “want 60 USDT” means $60 profit after fees):\n\n- At the best ask of **$222.58**, $3,000 buys **13.4780 rNVDA**; the entry cost is about **$2,999.93**, plus **$3.00** entry fee.\n- Selling that position into the current bids would return about **$2,991.51 after the exit fee**.\n- The bids would need to rise uniformly about **0.382%** for the sale to break even after both fees.\n- To net **$60 profit**, they would need to rise about **2.388%** from the current bid levels.\n- rNVDA’s current mid is **$222.575**, about **1.301% below** NVDA’s September 23 close of $225.51.\n\nThese are estimates from the supplied snapshot; the book can change, and an analyst target alone does not establish that either move will happen this week.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.382,\n  \"goalMovePercent\": 2.388,\n  \"moveSinceClosePercent\": -1.301,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.000789425,
+    "latencyMs": 12144,
+    "isNewEvent": false
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.015344,
+    "order": [
+      "thesisgate",
+      "chatbot",
+      "chatbot_with_data"
+    ],
+    "judgement": {
+      "thesisgate": {
+        "label": "A",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags stale event, gives math with disclaimers, no advice."
+      },
+      "chatbot": {
+        "label": "B",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags stale event, no market data used, appropriately caveats."
+      },
+      "chatbot_with_data": {
+        "label": "C",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags stale event, uses order book data accurately with caveats."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.3819672917784775,
+        "goalMovePercent": 2.3876158751176195,
+        "moveSinceClosePercent": -1.301494390492661
+      }
+    },
+    "chatbot": {
+      "breakEven": "wrong",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": 0,
+        "goalMovePercent": 2,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.382,
+        "goalMovePercent": 2.388,
+        "moveSinceClosePercent": -1.301
+      }
+    }
+  }
+}

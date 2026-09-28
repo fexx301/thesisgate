@@ -1,0 +1,87 @@
+{
+  "runId": "20260928165038-0c55c3",
+  "cases": 14,
+  "contestantModel": "openai/gpt-6-luna",
+  "judgeModel": "anthropic/claude-sonnet-5",
+  "systems": {
+    "thesisgate": {
+      "misleadingAnswers": 0,
+      "oldNewsAsNew": "0/5",
+      "unsupportedAsEstablished": "0/14",
+      "missedContradiction": "0/9",
+      "fabrication": "0/14",
+      "adviceOrForecast": "0/14",
+      "addressesAlreadyMoved": "14/14",
+      "breakEven": {
+        "correct": 14,
+        "wrong": 0,
+        "missing": 0
+      },
+      "goal": {
+        "correct": 14,
+        "wrong": 0,
+        "missing": 0
+      },
+      "moveSinceClose": {
+        "correct": 14,
+        "wrong": 0,
+        "missing": 0
+      }
+    },
+    "chatbot": {
+      "misleadingAnswers": 1,
+      "oldNewsAsNew": "1/5",
+      "unsupportedAsEstablished": "0/14",
+      "missedContradiction": "0/9",
+      "fabrication": "0/14",
+      "adviceOrForecast": "0/14",
+      "addressesAlreadyMoved": "0/14",
+      "breakEven": {
+        "correct": 0,
+        "wrong": 6,
+        "missing": 8
+      },
+      "goal": {
+        "correct": 0,
+        "wrong": 12,
+        "missing": 2
+      },
+      "moveSinceClose": {
+        "correct": 0,
+        "wrong": 0,
+        "missing": 14
+      }
+    },
+    "chatbot_with_data": {
+      "misleadingAnswers": 3,
+      "oldNewsAsNew": "1/5",
+      "unsupportedAsEstablished": "0/14",
+      "missedContradiction": "0/9",
+      "fabrication": "2/14",
+      "adviceOrForecast": "0/14",
+      "addressesAlreadyMoved": "14/14",
+      "breakEven": {
+        "correct": 11,
+        "wrong": 2,
+        "missing": 1
+      },
+      "goal": {
+        "correct": 10,
+        "wrong": 3,
+        "missing": 1
+      },
+      "moveSinceClose": {
+        "correct": 13,
+        "wrong": 0,
+        "missing": 1
+      }
+    }
+  },
+  "thesisgateParse": {
+    "asset": 14,
+    "notional": 14,
+    "goal": 14,
+    "of": 14
+  },
+  "reportedCostUsdExcludingCandidate": 0.213752
+}

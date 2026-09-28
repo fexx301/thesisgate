@@ -277,7 +277,20 @@ The final report validator requires:
 
 The paid-run controls are `THESISGATE_EVAL_MODE`, `THESISGATE_EVAL_CASES`, `THESISGATE_ALLOW_PAID_EVAL`, and `THESISGATE_EVAL_MAX_CALLS`. The public benchmark inputs and schema are [evals/cases.json](evals/cases.json), [evals/benchmark-manifest.json](evals/benchmark-manifest.json), and [evals/report.template.json](evals/report.template.json). Do not replace case evidence with aggregate counters or placeholder artifacts.
 
-#### End-to-end comparison against a general chatbot
+#### End-to-end comparison v2: with Bitget Agent Hub data (14 cases)
+
+[`evidence/e2e-comparison-v2/`](evidence/e2e-comparison-v2/) adds Bitget analyst-target and earnings-calendar records to the comparison, filtered to each case's date and given identically to every system. It also adds two new cases, and every judge flag is audited in [`AUDIT.md`](evidence/e2e-comparison-v2/AUDIT.md).
+
+| | ThesisGate | Chatbot (sources only) | Chatbot + same data |
+| --- | --- | --- | --- |
+| Misleading answers (after audit) | 0/14 | 0–1/14 | 0/14 |
+| Goal move correct | 14/14 | 0/14 | 10/14 |
+| Break-even move correct | 14/14 | 0/14 | 11/14 |
+| Addressed the move since the US close | 14/14 | 0/14 | 14/14 |
+
+With Bitget's records, every system catches claims that none caught in v1: "analysts say $660", "Tesla just reported earnings", "analysts have been raising Tesla targets since July" (all 17 actions were cuts or reiterations), and "Raymond James raised to $515 today" (it was Aug 26). ThesisGate is the only one that fetches those records itself. Its trade thresholds stayed 14/14 correct.
+
+#### End-to-end comparison v1 (12 cases, before the Bitget integration)
 
 [`evidence/e2e-comparison-v1/`](evidence/e2e-comparison-v1/) compares the whole product with how a trader would otherwise ask an AI, on 12 real trader messages built from captured Bitget books, US quotes, headlines, NVIDIA Newsroom posts and SEC filings. All systems use GPT-6 Luna. A blind Claude Sonnet 5 judge scores the evidence handling, and code scores the numbers.
 

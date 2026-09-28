@@ -1,0 +1,163 @@
+{
+  "caseId": "X01",
+  "pack": "captured-2026-09-08",
+  "asOf": "2026-09-08T21:51:19Z",
+  "message": "Just saw NVIDIA and AWS announced 2 million more GPUs today. Putting 5k into rNVDA, I want 80 USDT profit by tomorrow evening.",
+  "truth": {
+    "isNewEvent": false,
+    "eventNote": "The release was published on 2026-08-26; the as-of time is 2026-09-08 after the US close.",
+    "claims": [
+      {
+        "claim": "NVIDIA and AWS announced the GPU expansion today (Sep 8)",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "NVIDIA and AWS plan 2 million additional GPUs (deployment in 2027-2028)",
+        "expected": "supported"
+      },
+      {
+        "claim": "The news will make rNVDA rise enough for 80 USDT by tomorrow evening",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.42248897495803206,
+      "goalMovePercent": 2.027646401548889,
+      "moveSinceClosePercent": -0.039870641917334866
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The source supports that AWS and NVIDIA announced plans to deploy 2 million additional GPUs, but it dates that announcement to August 26, 2026—not today, September 8, 2026.\nMost consequential unknown: The supplied source does not establish any event or announcement on September 8, 2026.\n- [contradicted, factual] NVIDIA and AWS announced 2 million more GPUs today.: The supplied source is dated August 26, 2026, and records the announcement as occurring then. It therefore shows an earlier announcement, not a new announcement today, September 8, 2026. Quote: \"Amazon Web Services (AWS), an Amazon.com, Inc. company (NASDAQ: AMZN), and NVIDIA (NASDAQ: NVDA) today announced a major expansion\"\n- [supported, factual] NVIDIA and AWS announced plans to deploy 2 million additional GPUs.: The source says the companies plan to deploy 2 million additional GPUs. This is a deployment plan, not evidence that the GPUs have already been deployed. Quote: \"the companies plan to deploy 2 million additional NVIDIA GPUs across AWS’s global infrastructure\"\nPriced in since the close: US after-hours: thin extended-hours trading only. rNVDA mid 225.64 USDT versus NVDA last close 225.73 USD (2026-09-08): -0.04% since the close.\nYour goal needs rNVDA bids near 230.19 USDT, +1.98% versus NVDA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 225.76382399422043618 USDT; immediate friction 21.06 USDT; break-even needs the bid book +0.42%; your goal needs +2.03%.\nWarning: Visible ask capacity is 1170548.833666 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.42248897495803206,
+      "goalMovePercent": 2.027646401548889,
+      "moveSinceClosePercent": -0.039870641917334866
+    },
+    "claimLatencyMs": 9672,
+    "plan": {
+      "asset": "NVDA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "NVIDIA and AWS announced 2 million more GPUs today.",
+      "purchaseNotionalExcludingFee": "5000",
+      "horizon": {
+        "originalText": "by tomorrow evening",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "80"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the rNVDA brief with the NVIDIA/AWS announcement, your amount, profit goal, and horizon. I selected the matching NVIDIA Newsroom headline as evidence.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The announcement is a potentially positive **long-term demand signal**, but it does not by itself establish a reason to expect an 1.6% NVDA move by tomorrow evening.\n\n- **What it supports:** AWS and NVIDIA announced plans for 2 million *additional* GPUs, with deployment in **2027–2028**. The release also describes broader work on AI infrastructure and services. Those plans may reinforce the longer-term growth story.\n- **What it doesn’t support:** It gives no near-term revenue or earnings estimate, delivery guarantee, stock-price target, or probability of a move by tomorrow. The GPUs are planned for future deployment, and the announcement is dated **August 26, 2026**, not today (**September 8, 2026**). So it is not a newly announced catalyst today based on the material provided.\n- **Trade math:** If $5,000 is the position’s dollar exposure, an $80 gain requires a **1.6% favorable move before fees, spread, funding, and other costs**. The actual target move must be larger to cover those costs. With no trading costs, break-even is a 0% move; with costs, it is higher.\n- **Important uncertainty:** I can’t verify what “rNVDA” represents or its current price, leverage, conversion terms, or fees from the source. If it is leveraged or tracks NVDA imperfectly, the required underlying NVDA move may differ. I also don’t have the relevant closing price to calculate the move since close. Check the product terms and live quote before sizing the trade; the $80 target is not assured.\n\n```json\n{\"breakEvenMovePercent\":0,\"goalMovePercent\":1.6,\"moveSinceClosePercent\":null,\"isNewEvent\":false}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.000553425,
+    "latencyMs": 6611,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The announcement supports a larger AWS–NVIDIA infrastructure partnership, including **2 million additional GPUs planned for deployment in 2027–2028**. It does **not** describe a deployment happening today, guarantee NVIDIA revenue or earnings, or imply a particular share-price move by tomorrow. The supplied newsroom item is dated **August 26, 2026**, so it is not a new announcement today.\n\nUsing the supplied rNVDA order book and your stated **5,000 USDT notional**:\n\n- **Estimated buy:** 22.1460 rNVDA for about 4,999.80 USDT; the 0.1% entry fee adds about 5.00 USDT, for roughly **5,005.00 USDT total cash outlay**.\n- **Estimated break-even move:** about **+0.43%** across the bids, after both fees and the quoted order-book depth.\n- **Move needed for 80 USDT profit:** about **+2.03%** across the bids. That is a target net return of 80 USDT, not a forecast.\n- **Move since the underlying’s last close:** about **−0.04%**, using the rNVDA midpoint of 225.64 versus NVDA’s 225.73 close.\n\nThese are estimates from a single order-book snapshot. rNVDA’s quoted book has a wide spread near the top and the US market is in thin after-hours trading, so executable prices can change; a move of the required size by tomorrow evening is not assured.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.43,\n  \"goalMovePercent\": 2.03,\n  \"moveSinceClosePercent\": -0.04,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0009758,
+    "latencyMs": 12579,
+    "isNewEvent": false
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.019976,
+    "order": [
+      "chatbot",
+      "thesisgate",
+      "chatbot_with_data"
+    ],
+    "judgement": {
+      "chatbot": {
+        "label": "A",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly identifies old news and insufficient basis for profit target, but doesn't address price already moved since close (lacks data)."
+      },
+      "thesisgate": {
+        "label": "B",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags old news, gives supported claim status, and explicitly addresses move since close and required move, framed as non-forecast."
+      },
+      "chatbot_with_data": {
+        "label": "C",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly notes old announcement, supported GPU plan, insufficient evidence for profit target, and includes move-since-close context."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.42248897495803206,
+        "goalMovePercent": 2.027646401548889,
+        "moveSinceClosePercent": -0.039870641917334866
+      }
+    },
+    "chatbot": {
+      "breakEven": "wrong",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": 0,
+        "goalMovePercent": 1.6,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.43,
+        "goalMovePercent": 2.03,
+        "moveSinceClosePercent": -0.04
+      }
+    }
+  }
+}

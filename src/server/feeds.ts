@@ -294,7 +294,11 @@ export async function fetchHeadlines(asset: Asset, mode: "live" | "captured_real
   const news = bitget.items.filter((item) => item.headline.kind === "platform_news");
   const merged = [...headlines, ...news.map((item) => item.headline)]
     .sort((left, right) => (right.publishedAt ?? right.publishedDate ?? "").localeCompare(left.publishedAt ?? left.publishedDate ?? ""));
-  const bounded = [...data.map((item) => item.headline), ...merged].slice(0, MAX_HEADLINES + data.length);
+  // Always keep the latest regulatory filings visible; a busy newsroom must not crowd them out.
+  const filings = merged.filter((headline) => headline.kind === "regulatory_filing").slice(0, 2);
+  const rest = merged.filter((headline) => !filings.includes(headline)).slice(0, MAX_HEADLINES - filings.length);
+  const bounded = [...data.map((item) => item.headline), ...[...rest, ...filings]
+    .sort((left, right) => (right.publishedAt ?? right.publishedDate ?? "").localeCompare(left.publishedAt ?? left.publishedDate ?? ""))];
   for (const item of bitget.items) headlineBodies.set(item.headline.id, item.body);
   bounded.forEach(remember);
   return { headlines: bounded, warnings };

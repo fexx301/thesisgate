@@ -1,0 +1,163 @@
+{
+  "caseId": "X06",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "Tesla opened its Semi factory today and deliveries are ramping, so rTSLA goes up this week. 2k, want 40 USDT.",
+  "truth": {
+    "isNewEvent": true,
+    "eventNote": "The factory opening is same-day news. The sources say investors are looking for proof the long-delayed Semi is ready to scale, and that the stock edged lower.",
+    "claims": [
+      {
+        "claim": "Tesla is opening its Semi factory in Nevada today",
+        "expected": "supported"
+      },
+      {
+        "claim": "Semi deliveries are ramping",
+        "expected": "insufficient"
+      },
+      {
+        "claim": "rTSLA goes up this week",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.44253765577380205,
+      "goalMovePercent": 2.449383611962947,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): insufficient. The supplied records describe a Semi factory event in Sparks, but do not establish that the factory had already opened or that Semi deliveries are ramping. They do not establish that rTSLA will rise this week. One same-day feed summary says the stock edged lower Thursday, which does not determine the full-week outcome.\nMost consequential unknown: Whether Semi deliveries are actually ramping and whether that development will affect rTSLA this week are not established by these records.\n- [insufficient, factual] Tesla opened its Semi factory today.: The same-day feed summaries discuss Tesla opening the factory doors or say it will do so Thursday; they do not confirm that the factory had already opened. These are feed summaries, not full articles. Quote: \"Tesla (TSLA) opening the doors to its new Semi factory in Sparks, Nev.\"\n- [insufficient, factual] Tesla Semi deliveries are ramping.: The supplied records do not report that Semi deliveries have begun or are ramping. One summary says investors are looking for proof the truck is ready to scale, which is not evidence that deliveries are ramping. Quote: \"investors look for proof that the long-delayed electric Semi is finally ready to scale.\"\n- [insufficient, causal] The factory opening and ramping Semi deliveries will cause rTSLA to rise this week.: The records do not establish the asserted delivery ramp or a causal effect on rTSLA. A same-day feed summary says the stock edged lower Thursday, but that observation does not settle the full-week direction. Quote: \"The stock edged lower Thursday.\"\n- [insufficient, forecast] rTSLA will go up this week.: The supplied sources do not establish a future weekly price outcome. The report that the stock edged lower Thursday is a limited same-day observation, not evidence of what will happen over the full week. Quote: \"The stock edged lower Thursday.\"\nPriced in since the close: US regular session is open. rTSLA mid 377.895 USDT versus TSLA last close 380.12 USD (2026-09-23): -0.59% since the close.\nYour goal needs rTSLA bids near 387.15 USDT, +1.85% versus TSLA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 377.9 USDT; immediate friction 8.82 USDT; break-even needs the bid book +0.44%; your goal needs +2.45%.\nWarning: Visible ask capacity is 531331.68742 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.44253765577380205,
+      "goalMovePercent": 2.449383611962947,
+      "moveSinceClosePercent": -0.585341471114385
+    },
+    "claimLatencyMs": 12124,
+    "plan": {
+      "asset": "TSLA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "Tesla opened its Semi factory today and deliveries are ramping, so rTSLA goes up this week.",
+      "purchaseNotionalExcludingFee": "2000",
+      "horizon": {
+        "originalText": "this week",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "profit_usdt",
+        "amount": "40"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the brief for rTSLA with your factory and delivery thesis, this-week timeframe, and USDT amount and profit goal. I selected the available headline about Tesla opening its Nevada Semi factory as evidence.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "insufficient"
+  },
+  "chatbot": {
+    "text": "The sources support a **factory-site showcase/open-house**, not proof that the factory has started mass production or that Semi deliveries are ramping. The earlier Yahoo item says investors are looking for evidence the long-delayed truck is ready to scale; none of the three sources confirms rising deliveries. The latest report says TSLA **edged lower Thursday**, but gives no percentage in the text provided. That’s a caution against treating the event itself as confirmed bullish news—not proof of what happens next.\n\nFor the trade, **$40 on $2,000 of exposure is a 2% gross gain**. That assumes $2,000 is your position’s notional exposure; fees, funding, spreads, leverage, and any rTSLA tracking differences can change the result. If $2,000 is your capital rather than notional exposure, the target move depends on leverage. The information here doesn’t give a price or prior close, so I can’t calculate the move since close or translate 2% into a price target. Also, a factory event alone doesn’t establish that “rTSLA” will rise this week.\n\n```json\n{\n  \"breakEvenMovePercent\": null,\n  \"goalMovePercent\": 2,\n  \"moveSinceClosePercent\": null,\n  \"isNewEvent\": true\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0003637,
+    "latencyMs": 7847,
+    "isNewEvent": true
+  },
+  "chatbotWithData": {
+    "text": "The sources support a **Tesla Semi factory event in Sparks today**: Tesla is opening the facility to showcase it, with the stated aim of boosting investor confidence. They **do not establish that Semi deliveries are already ramping** or provide evidence of production volumes. The third report says TSLA edged lower Thursday, so the event has not meant an immediate stock rise in the reports provided. A rise this week is possible, but not confirmed by these sources.\n\nFor a **2,000 USDT buy**, using the supplied order book:\n\n- **Estimated buy:** 5.2924 rTSLA at 377.90 USDT, about 2,000 USDT notional. The 0.1% entry fee adds about **2 USDT**, so total cash outlay is about **2,002 USDT**.\n- **Break-even:** about a **0.44% rise** in bid prices, assuming the listed bid quantities stay available and all bid prices rise by the same percentage. This accounts for the exit fee and selling through the bids.\n- **To net 40 USDT profit:** about a **2.45% rise** under the same assumptions.\n- **Move since TSLA’s prior close:** the rTSLA mid-price is about **377.895**, roughly **0.59% below** TSLA’s 380.12 USD close on September 23.\n\nThese are order-book-based estimates, not a prediction; spreads, available depth, and prices can change. The factory event is new today, but the delivery-ramp claim is not supported by the shared sources.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.4425,\n  \"goalMovePercent\": 2.449,\n  \"moveSinceClosePercent\": -0.5853,\n  \"isNewEvent\": true\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.00076855,
+    "latencyMs": 12182,
+    "isNewEvent": true
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.014878,
+    "order": [
+      "chatbot",
+      "thesisgate",
+      "chatbot_with_data"
+    ],
+    "judgement": {
+      "chatbot": {
+        "label": "A",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags insufficiency of delivery/rise claims but has no market data so doesn't address prior move."
+      },
+      "thesisgate": {
+        "label": "B",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Properly labels claims insufficient, uses order-book data correctly, notes move since close, avoids giving directional advice."
+      },
+      "chatbot_with_data": {
+        "label": "C",
+        "oldNewsAsNew": null,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": null,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags unsupported delivery-ramp claim, gives accurate order-book math, and notes price move since close without forecasting."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.44253765577380205,
+        "goalMovePercent": 2.449383611962947,
+        "moveSinceClosePercent": -0.585341471114385
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "wrong",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": 2,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.4425,
+        "goalMovePercent": 2.449,
+        "moveSinceClosePercent": -0.5853
+      }
+    }
+  }
+}

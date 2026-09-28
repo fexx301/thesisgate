@@ -1,0 +1,158 @@
+{
+  "caseId": "X10",
+  "pack": "live-2026-09-24",
+  "asOf": "2026-09-24T15:36:49.644Z",
+  "message": "NVIDIA filed an 8-K today, something big is coming. 2k in rNVDA, I just need to break even.",
+  "truth": {
+    "isNewEvent": false,
+    "eventNote": "NVIDIA's latest 8-K is dated 2026-09-03 (Item 8.01 Other Events); nothing was filed on the as-of date, and the entry does not say what the event is.",
+    "claims": [
+      {
+        "claim": "NVIDIA filed an 8-K today",
+        "expected": "contradicted"
+      },
+      {
+        "claim": "Something big is coming",
+        "expected": "insufficient"
+      }
+    ],
+    "numbers": {
+      "breakEvenMovePercent": 0.3691009956266283,
+      "goalMovePercent": 0.3691009956266283,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "computationStatus": "threshold_only"
+  },
+  "candidate": {
+    "text": "Evidence verdict (by the supplied sources): mixed. The supplied feed summary reports an NVIDIA 8-K filed on September 3, 2026, not today, September 24, 2026. It does not establish that something big is coming.\nMost consequential unknown: The supplied record contains only a headline and feed summary for an Item 8.01 filing; it does not provide the filing's full text or evidence of a significant future event.\n- [contradicted, factual] NVIDIA filed an 8-K today.: The source identifies an NVIDIA 8-K filing dated September 3, 2026. That is earlier than today, September 24, 2026, so this record does not support describing the filing as occurring today. Quote: \"Filed: 2026-09-03\"\n- [insufficient, forecast] Something big is coming.: The source identifies the filing as Item 8.01, Other Events, but its headline and feed summary do not establish that a significant future event is coming. Quote: \"Item 8.01: Other Events\"\nPriced in since the close: US regular session is open. rNVDA mid 222.575 USDT versus NVDA last close 225.51 USD (2026-09-23): -1.30% since the close.\nYour goal needs rNVDA bids near 223.39 USDT, -0.94% versus NVDA's last close.\nTrade math from the displayed order book (0.1% fee each side, full visible depth): status threshold_only; entry VWAP 222.58 USDT; immediate friction 7.36 USDT; break-even needs the bid book +0.37%; your goal needs +0.37%.\nWarning: Visible ask capacity is 1102637.068353 USDT at this snapshot.\nThis is a conditional research brief, not a buy or sell instruction or a forecast.",
+    "numbers": {
+      "breakEvenMovePercent": 0.3691009956266283,
+      "goalMovePercent": 0.3691009956266283,
+      "moveSinceClosePercent": -1.301494390492661
+    },
+    "claimLatencyMs": 6057,
+    "plan": {
+      "asset": "NVDA",
+      "category": "SPOT",
+      "side": "long",
+      "quoteCurrency": "USDT",
+      "thesis": "NVIDIA filed an 8-K today, and something big is coming.",
+      "purchaseNotionalExcludingFee": "2000",
+      "horizon": {
+        "originalText": "",
+        "endAtUTC": null,
+        "timezone": null
+      },
+      "goal": {
+        "kind": "break_even"
+      },
+      "exitAssumptions": {
+        "depthMultiplier": "1",
+        "priceHaircut": "0",
+        "depthOrigin": "illustrative_preset",
+        "haircutOrigin": "illustrative_preset"
+      },
+      "scenario": null,
+      "invalidation": null,
+      "feeIn": "0.001",
+      "feeOut": "0.001",
+      "feeOrigin": "published_standard_assumption"
+    },
+    "chatReply": "I’ve updated the rNVDA idea with the 8-K claim, the 2,000 USDT amount, and a break-even goal, and selected the SEC filing as evidence. I’ll run the brief.",
+    "chatError": null,
+    "claimError": null,
+    "parse": {
+      "asset": true,
+      "notional": true,
+      "goal": true
+    },
+    "evidenceVerdict": "mixed"
+  },
+  "chatbot": {
+    "text": "The source does **not** support “something big is coming.” It identifies an NVIDIA 8-K with Item 8.01, “Other Events,” but provides no description of the event or its likely effect on the stock. And it was filed **September 3, 2026**, not today, September 24.\n\nFor your **$2,000 rNVDA** position, the amount invested alone is not enough to calculate the break-even move. I’d need to know what “rNVDA” refers to, your entry price or cost basis, and the current price. Without those—and without price data—I can’t calculate your break-even move or move since the close. If rNVDA is a wrapper or leveraged product rather than NVIDIA common stock, its tracking and risks may differ.\n\n```json\n{\"breakEvenMovePercent\":null,\"goalMovePercent\":null,\"moveSinceClosePercent\":null,\"isNewEvent\":false}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.0002473,
+    "latencyMs": 6513,
+    "isNewEvent": false
+  },
+  "chatbotWithData": {
+    "text": "The source does **not** support “something big is coming” based on a filing today: the cited 8-K was filed **September 3**, not September 24, and the excerpt only identifies **Item 8.01, Other Events**. Without the filing’s actual text or another current source, it doesn’t establish what the event is or that a new event was announced today.\n\n**Trade math** — assuming “2k” means **2,000 USDT of entry notional**:\n\n- At the best ask of **222.58**, that buys **8.9850 rNVDA** after rounding down to the 0.0001 quantity step. The position costs **1,999.88 USDT**, plus about **2.00 USDT entry fee**.\n- Selling that amount against the listed bids would use three levels. After the 0.1% exit fee, estimated proceeds at the current book are about **1,994.52 USDT**.\n- **Break-even requires about a 0.369% rise in every bid price** from the quoted book, enough for net sale proceeds to recover the entry notional and fee. This is a book-based estimate, not a guaranteed fill; prices and depth can change.\n- Since the stated goal is to **break even**, the goal move is the same: **about 0.369%**.\n- The rNVDA midpoint is **222.575**, about **1.302% below** NVDA’s last regular-session close of 225.51. The underlying’s latest print is 222.1074, so the token midpoint is also above that print; the two prices are not identical.\n\n```json\n{\n  \"breakEvenMovePercent\": 0.369,\n  \"goalMovePercent\": 0.369,\n  \"moveSinceClosePercent\": -1.302,\n  \"isNewEvent\": false\n}\n```",
+    "model": "openai/gpt-6-luna",
+    "costUsd": 0.000744675,
+    "latencyMs": 12724,
+    "isNewEvent": false
+  },
+  "judge": {
+    "model": "anthropic/claude-sonnet-5",
+    "costUsd": 0.009746,
+    "order": [
+      "chatbot_with_data",
+      "thesisgate",
+      "chatbot"
+    ],
+    "judgement": {
+      "chatbot_with_data": {
+        "label": "A",
+        "oldNewsAsNew": true,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Notes filing was Sept 3 not today (correctly flags contradiction) but muddles by still framing trade math around it; addresses move since close."
+      },
+      "thesisgate": {
+        "label": "B",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": true,
+        "note": "Correctly flags filing date mismatch and insufficiency, notes move since close, no advice given."
+      },
+      "chatbot": {
+        "label": "C",
+        "oldNewsAsNew": false,
+        "unsupportedAsEstablished": false,
+        "missedContradiction": false,
+        "adviceOrForecast": false,
+        "fabrication": false,
+        "addressesAlreadyMoved": false,
+        "note": "Correctly flags date mismatch and insufficiency but claims lack of data to compute, missing move-since-close discussion."
+      }
+    }
+  },
+  "numberScores": {
+    "thesisgate": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.3691009956266283,
+        "goalMovePercent": 0.3691009956266283,
+        "moveSinceClosePercent": -1.301494390492661
+      }
+    },
+    "chatbot": {
+      "breakEven": "missing",
+      "goal": "missing",
+      "moveSinceClose": "missing",
+      "values": {
+        "breakEvenMovePercent": null,
+        "goalMovePercent": null,
+        "moveSinceClosePercent": null
+      }
+    },
+    "chatbot_with_data": {
+      "breakEven": "correct",
+      "goal": "correct",
+      "moveSinceClose": "correct",
+      "values": {
+        "breakEvenMovePercent": 0.369,
+        "goalMovePercent": 0.369,
+        "moveSinceClosePercent": -1.302
+      }
+    }
+  }
+}
