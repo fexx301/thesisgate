@@ -118,3 +118,26 @@ describe("ttl cache", () => {
     expect(await cache.get("bad", async () => 7)).toBe(7);
   });
 });
+
+describe("SEC submissions API", () => {
+  it("builds dated 8-K headlines with item names and a document link", async () => {
+    const { parseSecSubmissions } = await import("../../src/server/feeds");
+    const json = JSON.stringify({
+      cik: "0001045810",
+      filings: { recent: {
+        form: ["10-Q", "8-K", "8-K"],
+        filingDate: ["2026-08-27", "2026-09-03", "2026-08-26"],
+        accessionNumber: ["0001045810-26-000080", "0001045810-26-000078", "0001045810-26-000073"],
+        primaryDocument: ["q.htm", "nvda-20260902.htm", "nvda-20260826.htm"],
+        acceptanceDateTime: ["", "2026-09-03T12:03:56.000Z", ""],
+        items: ["", "8.01", "2.02,9.01"],
+      } },
+    });
+    const headlines = parseSecSubmissions(json, { feed: "sec_edgar_8k", kind: "regulatory_filing", publisher: "SEC EDGAR", url: "https://data.sec.gov/x", host: "data.sec.gov", format: "sec_json" }, "NVDA");
+    expect(headlines).toHaveLength(2);
+    expect(headlines[0].title).toBe("NVIDIA 8-K filing: Item 8.01: Other Events");
+    expect(headlines[0].publishedDate).toBe("2026-09-03");
+    expect(headlines[0].url).toBe("https://www.sec.gov/Archives/edgar/data/1045810/000104581026000078/nvda-20260902.htm");
+    expect(headlines[1].title).toBe("NVIDIA 8-K filing: Item 2.02: Results of Operations and Financial Condition; Item 9.01: Financial Statements and Exhibits");
+  });
+});

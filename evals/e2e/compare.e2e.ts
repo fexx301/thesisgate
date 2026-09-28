@@ -13,7 +13,8 @@ import { buildMarketContext, pricedInView, type UnderlyingQuote } from "@/domain
 import { CHAT_SYSTEM_PROMPT, chatPrompt, finalizeModelTurn } from "@/server/agent";
 import { sourceFromHeadline } from "@/server/articles";
 import { createCapturedMarket, marketFromCapturedResponses } from "@/server/bitget";
-import { capturedHeadlines, parseFeed } from "@/server/feeds";
+import { analystTargetsEvidence, earningsCalendarEvidence } from "@/server/bitget-agent";
+import { capturedHeadlines, parseFeed, registerHeadlineBody } from "@/server/feeds";
 import { assessClaims, callJsonModel } from "@/server/model";
 import { resetLocalRateLimitsForTests } from "@/server/quota";
 import { CAPTURED_AT_UTC, capturedUnderlyingQuote, lastCloseFromDailyBars, latestFromIntradayBars } from "@/server/underlying";
@@ -77,6 +78,20 @@ function loadPacks(): Record<CaseSpec["pack"], Pack> {
     if (!found) throw new Error(`Pack is missing ${label}`);
     return found;
   };
+  // Bitget Agent Hub records captured later are replayed only up to each pack's as-of date.
+  const bitgetPath = path.join(ROOT, "evals/e2e/packs/bitget-2026-09-28.json");
+  const bitget = fs.existsSync(bitgetPath)
+    ? JSON.parse(fs.readFileSync(bitgetPath, "utf8")) as { requests: Array<{ label: string; rows: Array<Record<string, unknown>> }> }
+    : null;
+  const bitgetHeadlines = (asset: "NVDA" | "TSLA", asOf: string) => {
+    if (!bitget) return [];
+    const asOfDate = asOf.slice(0, 10);
+    const rows = (entry: string) => bitget.requests.find((request) => request.label === `${asset}:${entry}`)?.rows ?? [];
+    const targets = rows("equity_estimates_price_target").filter((row) => String(row.rating_date ?? row.published_date ?? "9999") <= asOfDate);
+    const items = [analystTargetsEvidence(asset, targets), earningsCalendarEvidence(asset, rows("equity_calendar"), asOfDate)].filter((item) => item !== null);
+    for (const item of items) registerHeadlineBody(item.headline.id, item.body);
+    return items.map((item) => item.headline);
+  };
   const feedDefinition = (feed: Headline["feed"]) => ({
     feed,
     kind: feed === "issuer_newsroom" ? "issuer_official" as const : feed === "sec_edgar_8k" ? "regulatory_filing" as const : "news_aggregator" as const,
@@ -109,8 +124,11 @@ function loadPacks(): Record<CaseSpec["pack"], Pack> {
         const feeds: Array<[string, Headline["feed"]]> = [[`${asset}:yahoo_rss`, "yahoo_finance_ticker"], [`${asset}:sec_8k`, "sec_edgar_8k"]];
         if (asset === "NVDA") feeds.push(["NVDA:newsroom_rss", "issuer_newsroom"]);
         // Evidence stays summary-only here: the pack holds feed text, so nothing is fetched at evaluation time.
-        return feeds.flatMap(([label, feed]) => parseFeed(String(request(label).body), feedDefinition(feed), asset))
-          .map((headline) => ({ ...headline, fullTextAvailable: false }));
+        return [
+          ...feeds.flatMap(([label, feed]) => parseFeed(String(request(label).body), feedDefinition(feed), asset))
+            .map((headline) => ({ ...headline, fullTextAvailable: false })),
+          ...bitgetHeadlines(asset, live.capturedAt),
+        ];
       },
     },
   };
@@ -286,7 +304,8 @@ const run = process.env.THESISGATE_COMPARE_PAID === "1" ? it : it.skip;
 run("end-to-end comparison", async () => {
   loadEnv();
   if (process.env.THESIS_LLM_MODEL !== CONTESTANT_MODEL) throw new Error(`Set THESIS_LLM_MODEL=${CONTESTANT_MODEL} in .env.local`);
-  const cases = JSON.parse(fs.readFileSync(path.join(ROOT, "evals/e2e/cases.json"), "utf8")) as CaseSpec[];
+  const casesFile = process.env.THESISGATE_COMPARE_CASES_FILE ?? "evals/e2e/cases.json";
+  const cases = JSON.parse(fs.readFileSync(path.join(ROOT, casesFile), "utf8")) as CaseSpec[];
   const only = process.env.THESISGATE_COMPARE_CASES?.split(",").map((value) => value.trim()).filter(Boolean);
   const selected = only?.length ? cases.filter((item) => only.includes(item.id)) : cases;
   const packs = loadPacks();

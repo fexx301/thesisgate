@@ -159,7 +159,9 @@ export function RadarPanel({
         )
       ) : null}
       {radar?.mode === "live" ? <p className="radar-note">Sources: Bitget market data (bitget-mcp-server: analyst targets, earnings calendar, Bitget news), NVIDIA Newsroom, SEC EDGAR and Yahoo Finance.</p> : null}
-      {radar?.feedWarnings.map((warning) => <p key={warning} className="radar-note radar-warning">{warning}</p>)}
+      {radar?.feedWarnings.length ? (
+        <p className="radar-note">Not every source answered in time ({radar.feedWarnings.map((warning) => warning.split(/ (?:feed )?unavailable/)[0]).join(", ")}); the rest are shown.</p>
+      ) : null}
     </section>
   );
 }

@@ -6,7 +6,7 @@ import { fetchBitgetEvidence } from "./bitget-agent";
 import { createTtlCache, decodeEntities, fetchBoundedText, htmlToText } from "./fetch-text";
 import { sha256 } from "./identifiers";
 
-const FEED_TIMEOUT_MS = 6_000;
+const FEED_TIMEOUT_MS = 8_000;
 const FEED_MAX_BYTES = 1_500_000;
 const HEADLINE_CACHE_TTL_MS = 3 * 60 * 60_000;
 const HEADLINE_CACHE_MAX = 600;
@@ -33,7 +33,7 @@ type FeedDefinition = {
   publisher: string;
   url: string;
   host: string;
-  format: "rss" | "atom";
+  format: "rss" | "atom" | "sec_json";
   userAgent?: string;
 };
 
@@ -65,9 +65,10 @@ function feedsFor(asset: Asset): FeedDefinition[] {
       feed: "sec_edgar_8k",
       kind: "regulatory_filing",
       publisher: "SEC EDGAR",
-      url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${SEC_CIK[asset]}&type=8-K&dateb=&owner=include&count=6&output=atom`,
-      host: "www.sec.gov",
-      format: "atom",
+      // The submissions API is EDGAR's supported programmatic endpoint; the legacy browse page often stalls.
+      url: `https://data.sec.gov/submissions/CIK${SEC_CIK[asset]}.json`,
+      host: "data.sec.gov",
+      format: "sec_json",
       userAgent: secAgent,
     });
   }
@@ -77,6 +78,11 @@ function feedsFor(asset: Asset): FeedDefinition[] {
 const headlineCache = new Map<string, { headline: Headline; cachedAt: number }>();
 // Full text for Bitget records, kept server-side so browsers only ever send headline IDs.
 const headlineBodies = new Map<string, string>();
+
+/** Registers server-held full text for a headline (used by the evaluation replay of captured Bitget records). */
+export function registerHeadlineBody(id: string, body: string) {
+  headlineBodies.set(id, body);
+}
 
 export function cachedHeadlineBody(id: string) {
   return headlineBodies.get(id) ?? null;
@@ -179,6 +185,60 @@ export function parseFeed(xml: string, definition: FeedDefinition, asset: Asset)
   return headlines;
 }
 
+const SEC_ITEMS: Record<string, string> = {
+  "1.01": "Entry into a Material Definitive Agreement",
+  "1.02": "Termination of a Material Definitive Agreement",
+  "2.01": "Completion of Acquisition or Disposition of Assets",
+  "2.02": "Results of Operations and Financial Condition",
+  "2.03": "Creation of a Direct Financial Obligation",
+  "2.05": "Costs Associated with Exit or Disposal Activities",
+  "2.06": "Material Impairments",
+  "3.02": "Unregistered Sales of Equity Securities",
+  "5.02": "Departure or Appointment of Directors or Officers",
+  "5.03": "Amendments to Articles of Incorporation or Bylaws",
+  "5.07": "Submission of Matters to a Vote of Security Holders",
+  "7.01": "Regulation FD Disclosure",
+  "8.01": "Other Events",
+  "9.01": "Financial Statements and Exhibits",
+};
+
+/** Turns EDGAR's submissions JSON into dated 8-K filing headlines linking to the filed document. */
+export function parseSecSubmissions(json: string, definition: FeedDefinition, asset: Asset, limit = 6): Headline[] {
+  const data = JSON.parse(json) as { cik?: string; filings?: { recent?: Record<string, unknown[]> } };
+  const recent = data.filings?.recent ?? {};
+  const forms = (recent.form ?? []) as string[];
+  const headlines: Headline[] = [];
+  const cik = String(Number(data.cik ?? SEC_CIK[asset]));
+  for (let index = 0; index < forms.length && headlines.length < limit; index += 1) {
+    if (forms[index] !== "8-K") continue;
+    const filingDate = String(recent.filingDate?.[index] ?? "");
+    const accession = String(recent.accessionNumber?.[index] ?? "");
+    const document = String(recent.primaryDocument?.[index] ?? "");
+    const accepted = String(recent.acceptanceDateTime?.[index] ?? "");
+    const items = String(recent.items?.[index] ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(filingDate) || !accession) continue;
+    const itemText = items.map((item) => `Item ${item}: ${SEC_ITEMS[item] ?? "Other"}`).join("; ");
+    const acceptedAt = accepted && !Number.isNaN(new Date(accepted).getTime()) ? new Date(accepted).toISOString() : null;
+    const url = `https://www.sec.gov/Archives/edgar/data/${cik}/${accession.replaceAll("-", "")}/${document || `${accession}-index.htm`}`;
+    const parsed = HeadlineSchema.safeParse({
+      id: headlineId(definition.feed, url, filingDate),
+      asset,
+      title: `${COMPANY_NAME[asset]} 8-K filing${itemText ? `: ${itemText}` : ""}`.slice(0, 400),
+      summary: `Filed with the SEC on ${filingDate}${acceptedAt ? ` (accepted ${acceptedAt.slice(11, 16)} UTC)` : ""}. Form 8-K${itemText ? `, ${itemText}` : ""}. Accession number ${accession}.`,
+      url,
+      publisher: definition.publisher,
+      publishedAt: acceptedAt,
+      publishedDate: filingDate,
+      feed: definition.feed,
+      kind: definition.kind,
+      fullTextAvailable: false,
+      mode: "live",
+    });
+    if (parsed.success) headlines.push(parsed.data);
+  }
+  return headlines;
+}
+
 type CapturedContext = {
   capturedAtUTC: string;
   headlines: Array<Omit<Headline, "id" | "fullTextAvailable" | "mode">>;
@@ -208,7 +268,7 @@ export async function fetchHeadlines(asset: Asset, mode: "live" | "captured_real
       accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
       userAgent: definition.userAgent,
     });
-    return parseFeed(text, definition, asset);
+    return definition.format === "sec_json" ? parseSecSubmissions(text, definition, asset) : parseFeed(text, definition, asset);
   })));
   const seen = new Set<string>();
   const headlines: Headline[] = [];

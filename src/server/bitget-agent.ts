@@ -22,7 +22,7 @@ const COMPANY: Record<Asset, { name: string; pattern: RegExp }> = {
   TSLA: { name: "Tesla", pattern: /\b(tesla|tsla|elon musk|cybertruck|robotaxi|cybercab)\b/i },
 };
 
-const RATING: Record<string, string> = { "买入": "Buy", "强力买入": "Strong Buy", "增持": "Overweight", "跑赢大市": "Outperform", "持有": "Hold", "中性": "Neutral", "减持": "Underweight", "跑输大市": "Underperform", "卖出": "Sell" };
+const RATING: Record<string, string> = { "买入": "Buy", "强力买入": "Strong Buy", "强力买进": "Strong Buy", "增持": "Overweight", "跑赢大市": "Outperform", "跑赢大盘": "Outperform", "跑输大盘": "Underperform", "持有": "Hold", "中性": "Neutral", "减持": "Underweight", "跑输大市": "Underperform", "卖出": "Sell" };
 const ACTION: Record<string, string> = { "首次覆盖": "initiated coverage", "维持": "maintained", "重申": "reiterated", "上调": "raised", "下调": "lowered", "上调评级": "upgraded", "下调评级": "downgraded" };
 const REPORT: Record<string, string> = { "一季报": "Q1 report", "二季报": "Q2 / half-year report", "三季报": "Q3 report", "四季报": "Q4 report", "年报": "annual report" };
 const SESSION: Record<string, string> = { "盘后": "after the close", "盘前": "before the open", "盘中": "during the session" };
@@ -53,8 +53,9 @@ export function analystTargetsEvidence(asset: Asset, rows: Array<Record<string, 
   const dated = rows
     .map((row) => ({ date: str(row.rating_date) ?? str(row.published_date), firm: str(row.analyst_firm) ?? str(row.rating_org), target: num(row.price_target) ?? num(row.latest_target_price), previous: num(row.price_target_previous) ?? num(row.pre_target_price), rating: str(row.rating_current) ?? str(row.latest_rating_cn), action: str(row.action) ?? str(row.rating_chg_cn) }))
     .filter((row) => row.date && row.firm && row.target !== null)
-    .sort((left, right) => (right.date as string).localeCompare(left.date as string))
-    .slice(0, 10);
+    // Newest first; firm name breaks ties so the record is deterministic.
+    .sort((left, right) => (right.date as string).localeCompare(left.date as string) || (left.firm as string).localeCompare(right.firm as string))
+    .slice(0, 30);
   if (!dated.length) return null;
   const lines = dated.map((row) => {
     const rating = row.rating ? RATING[row.rating] ?? row.rating : null;
@@ -169,7 +170,7 @@ export async function fetchBitgetEvidence(asset: Asset, now = new Date()) {
   return evidenceCache.get(asset, async () => {
     const today = now.toISOString().slice(0, 10);
     const [targets, calendar, stockNews, macroNews] = await Promise.allSettled([
-      bitgetQuery("equity_estimates_price_target", { symbol: asset, limit: 12 }),
+      bitgetQuery("equity_estimates_price_target", { symbol: asset, limit: 40 }),
       bitgetQuery("equity_calendar", { symbol: asset }),
       bitgetQuery("news_label_search", { label: 2, page_size: 40 }),
       bitgetQuery("news_label_search", { label: 1, page_size: 5 }),
