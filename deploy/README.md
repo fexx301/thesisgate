@@ -36,6 +36,10 @@ Live at **https://thesisgate.duckdns.org** (also `https://34-196-4-213.sslip.io`
 - **Snapshots:** daily EBS snapshots of both volumes (root and `/data`), kept 7 days, via an AWS Data Lifecycle Manager policy tagged `Project=ThesisGate`. Restore by creating volumes from the latest snapshots and attaching them to a new instance with the same layout (`/` and `/data`).
 - **Rebuilding from scratch** (Amazon Linux 2023): install Docker, mount the `/data` volume, clone the repository to `/opt/thesisgate`, put the model key in SSM `/thesisgate/openrouter-api-key`, and run `deploy/aws-upgrade.sh`. It creates `deploy/production.env` with fresh secrets. Rotating `THESIS_RECOMPUTE_SIGNING_SECRET` only invalidates receipts for briefs already on screen. The quota ledger (spend counters) restarts empty unless restored from a snapshot; the provider's own key limit still bounds spend.
 
+### Emergency: turn the AI off
+
+Set `THESIS_LLM_ENABLED=false` in `/opt/thesisgate/deploy/production.env` on the host (via SSM) and run the deploy command above; the script never overwrites this value. The site keeps working: chat falls back to quick edits and evidence reviews report "Assessment unavailable". For an instant brake, revoke or zero the credit limit of the OpenRouter key in the OpenRouter dashboard.
+
 ### Spend controls (check these before judging)
 
 1. **Set a credit limit on the OpenRouter key** in the OpenRouter dashboard (Keys, edit the key, credit limit). OpenRouter's API reports `limit: null` for a key without one; check with `GET https://openrouter.ai/api/v1/key`.

@@ -17,7 +17,9 @@ STOP_TIMEOUT=25
 cd "$ROOT"
 
 # Non-secret settings whose source of truth is the repository (production.env keeps only secrets and addresses).
-TUNABLES=(THESIS_LLM_ENABLED THESIS_LLM_BASE_URL THESIS_LLM_MODEL THESIS_LLM_PROTOCOL THESIS_LLM_REASONING_EFFORT
+# THESIS_LLM_ENABLED is deliberately NOT synced: it is the emergency AI kill switch and lives only in
+# production.env, so a deploy never turns the AI back on.
+TUNABLES=(THESIS_LLM_BASE_URL THESIS_LLM_MODEL THESIS_LLM_PROTOCOL THESIS_LLM_REASONING_EFFORT
   THESIS_LLM_MAX_CALL_COST_USD THESIS_LLM_DAILY_BUDGET_USD THESIS_LLM_PER_VISITOR_BUDGET_USD
   THESIS_LLM_PROVIDER_HARD_LIMIT_USD THESIS_LLM_MAX_CONCURRENT THESIS_SEC_USER_AGENT
   NEXT_PUBLIC_TELEMETRY_ENABLED THESIS_TELEMETRY_ENABLED)
@@ -135,7 +137,8 @@ for _ in $(seq 1 30); do
 done
 [ "$(docker inspect -f '{{.State.Health.Status}}' tg-quota)" = "healthy" ] || { echo "quota service did not become healthy"; docker logs --tail 30 tg-quota; false; }
 
-docker run -d --name tg-app --restart unless-stopped --stop-timeout "$STOP_TIMEOUT" \
+# --init: node as PID 1 ignores SIGTERM unless a handler is installed (measured: 25 s stall, then SIGKILL).
+docker run -d --init --name tg-app --restart unless-stopped --stop-timeout "$STOP_TIMEOUT" \
   --network thesisgate-private --network-alias app \
   --env-file "$ENV_FILE" \
   -e THESIS_LLM_QUOTA_URL=http://quota:8787/v1/reservations \
