@@ -76,13 +76,46 @@ function sharedSession(url: string, timeoutMs: number) {
   return promise;
 }
 
+/** Ends a session on the server; public MCP servers cap open sessions per client address. */
+async function closeSession(url: string, id: string | null) {
+  if (!id) return;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3_000);
+  try {
+    await fetch(url, { method: "DELETE", headers: { "mcp-session-id": id, "mcp-protocol-version": PROTOCOL_VERSION }, signal: controller.signal });
+  } catch {
+    // Best effort: an unreachable server will expire the session itself.
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function closeMcpSessions() {
+  const open = [...sessions.entries()];
+  sessions.clear();
+  await Promise.all(open.map(([url, session]) => closeSession(url, session.id)));
+}
+
+let shutdownHookInstalled = false;
+function installShutdownHook() {
+  if (shutdownHookInstalled || typeof process === "undefined" || typeof process.once !== "function") return;
+  shutdownHookInstalled = true;
+  for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    process.once(signal, () => {
+      void closeMcpSessions().finally(() => process.kill(process.pid, signal));
+    });
+  }
+}
+
 async function openSession(url: string, timeoutMs: number) {
+  installShutdownHook();
   const init = await post(url, {
     jsonrpc: "2.0",
     id: ++requestCounter,
     method: "initialize",
     params: { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "thesisgate", version: "0.3" } },
   }, null, timeoutMs);
+  if (init.status === 503) throw new McpError("The data server is busy (too many open sessions); try again shortly.");
   if (init.status >= 400) throw new McpError(`The data server refused the session (HTTP ${init.status}).`);
   parseRpcBody(init.text);
   await post(url, { jsonrpc: "2.0", method: "notifications/initialized" }, init.sessionId, timeoutMs);
@@ -96,12 +129,16 @@ export async function callMcpTool(url: string, name: string, args: Record<string
   for (let attempt = 0; attempt < 2; attempt += 1) {
     let session = sessions.get(url);
     if (!session || Date.now() - session.createdAt > SESSION_TTL_MS || attempt > 0) {
-      if (attempt > 0) sessions.delete(url);
+      if (session) {
+        sessions.delete(url);
+        void closeSession(url, session.id);
+      }
       session = await sharedSession(url, timeoutMs);
     }
     const response = await post(url, { jsonrpc: "2.0", id: ++requestCounter, method: "tools/call", params: { name, arguments: args } }, session.id, timeoutMs);
     if (response.status === 404 || response.status === 400) {
       sessions.delete(url);
+      void closeSession(url, session.id);
       continue;
     }
     if (response.status >= 400) throw new McpError(`The data server returned HTTP ${response.status}.`);

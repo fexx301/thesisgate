@@ -94,3 +94,36 @@ describe("partial-failure caching", () => {
     expect(calls).toBe(2);
   });
 });
+
+describe("MCP session hygiene", () => {
+  it("closes a session the server rejected before opening a new one", async () => {
+    const { vi } = await import("vitest");
+    const { callMcpTool, resetMcpSessionsForTests } = await import("../../src/server/mcp-client");
+    resetMcpSessionsForTests();
+    const calls: Array<{ method: string; session: string | null; body: string }> = [];
+    let sessionCounter = 0;
+    let toolCalls = 0;
+    vi.stubGlobal("fetch", vi.fn(async (_url: URL | string, init: RequestInit) => {
+      const headers = new Headers(init.headers);
+      const body = typeof init.body === "string" ? init.body : "";
+      calls.push({ method: init.method ?? "GET", session: headers.get("mcp-session-id"), body });
+      if (init.method === "DELETE") return new Response(null, { status: 200 });
+      if (body.includes('"initialize"')) {
+        sessionCounter += 1;
+        return new Response('{"jsonrpc":"2.0","id":1,"result":{}}', { headers: { "mcp-session-id": `s${sessionCounter}` } });
+      }
+      if (body.includes("notifications/initialized")) return new Response(null, { status: 202 });
+      toolCalls += 1;
+      if (toolCalls === 1) return new Response("gone", { status: 404 });
+      return new Response('data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"ok"}]}}\n\n');
+    }));
+    try {
+      await expect(callMcpTool("https://agent.bitget.com/mcp", "do_query", {})).resolves.toBe("ok");
+      expect(calls.some((call) => call.method === "DELETE" && call.session === "s1")).toBe(true);
+      expect(sessionCounter).toBe(2);
+    } finally {
+      vi.unstubAllGlobals();
+      resetMcpSessionsForTests();
+    }
+  });
+});
