@@ -127,3 +127,41 @@ describe("MCP session hygiene", () => {
     }
   });
 });
+
+describe("skill tool parsing (defensive)", () => {
+  it("accepts plausible news, sentiment and rates shapes and rejects empty errors", async () => {
+    const { parseSkillNews, parseSkillSentiment, parseSkillRates } = await import("../../src/server/bitget-agent");
+    const news = parseSkillNews(JSON.stringify({ items: [
+      { title: "Tesla Semi enters volume production", url: "http://example.com/a", published_at: "2026-09-28T10:00:00Z", summary: "<p>Tesla said...</p>", source: "Reuters" },
+      { title: "Unrelated bank story", url: "https://example.com/b", published_at: "2026-09-28T10:00:00Z" },
+      { title: "Tesla missing date", url: "https://example.com/c" },
+    ] }), "TSLA");
+    expect(news).toHaveLength(1);
+    expect(news[0].url).toBe("https://example.com/a");
+    expect(news[0].publisher).toBe("Reuters");
+    expect(news[0].feed).toBe("skill_news_briefing");
+    expect(parseSkillNews('{"error": ""}', "TSLA")).toEqual([]);
+    expect(parseSkillSentiment('{"value": "42", "value_classification": "Fear"}')).toEqual({ score: "42", rating: "Fear" });
+    expect(parseSkillSentiment('{"data": [{"value": 71, "value_classification": "Greed"}]}')).toEqual({ score: "71", rating: "Greed" });
+    expect(parseSkillSentiment('{"alt_me_error": ""}')).toBeNull();
+    expect(parseSkillRates('{"t10y": {"value": 4.21, "date": "2026-09-26"}, "fed_funds_target_lower": 4.25, "fed_funds_target_upper": {"value": 4.5}}')).toEqual({ tenYearYield: "4.21", fedFundsLower: "4.25", fedFundsUpper: "4.5" });
+    expect(parseSkillRates('{"t10y": {"error": ""}, "fed_funds_target_upper": {"error": ""}}')).toBeNull();
+  });
+});
+
+describe("Agent Hub handoff", () => {
+  it("builds a dry-run-first IOC limit at the deepest ask needed, and nothing without a fillable quantity", async () => {
+    const { agentHubHandoff, sweepLimitPrice } = await import("../../src/domain/handoff");
+    expect(sweepLimitPrice([["100", "1"], ["100.5", "2"], ["101", "5"]], "2.5")).toBe("100.5");
+    expect(sweepLimitPrice([["100", "1"]], "2")).toBeNull();
+    const instrument = { symbol: "RNVDAUSDT", baseCoin: "rNVDA", quantityStep: "0.0001" } as never;
+    const snapshot = { mode: "live", asks: [["222.58", "10"], ["222.6", "30"]] } as never;
+    const handoff = agentHubHandoff({ quantity: "17.9", computationStatus: "threshold_only" } as never, instrument, snapshot);
+    expect(handoff?.limitPrice).toBe("222.6");
+    expect(handoff?.commands[1].command).toBe("bgc order --action place --category SPOT --symbol RNVDAUSDT --side buy --orderType limit --price 222.6 --qty 17.9 --timeInForce ioc --dry-run");
+    expect(handoff?.commands[2].command.endsWith("--timeInForce ioc")).toBe(true);
+    expect(handoff?.commands[0].command).toContain("--read-only");
+    expect(agentHubHandoff({ quantity: "5", computationStatus: "invalid_instrument" } as never, instrument, snapshot)).toBeNull();
+    expect(agentHubHandoff({ quantity: null, computationStatus: "calculated" } as never, instrument, snapshot)).toBeNull();
+  });
+});

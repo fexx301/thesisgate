@@ -2,7 +2,7 @@ import "server-only";
 
 import capturedContext from "../../fixtures/captured-context.json";
 import { HeadlineSchema, type Asset, type Headline } from "@/domain/contracts";
-import { fetchBitgetEvidence } from "./bitget-agent";
+import { fetchBitgetEvidence, fetchSkillNews } from "./bitget-agent";
 import { createTtlCache, decodeEntities, fetchBoundedText, htmlToText } from "./fetch-text";
 import { sha256 } from "./identifiers";
 
@@ -287,8 +287,15 @@ export async function fetchHeadlines(asset: Asset, mode: "live" | "captured_real
     }
   });
   headlines.sort((left, right) => (right.publishedAt ?? right.publishedDate ?? "").localeCompare(left.publishedAt ?? left.publishedDate ?? ""));
-  const bitget = await bitgetPromise;
+  const [bitget, skillNews] = await Promise.all([bitgetPromise, fetchSkillNews(asset)]);
   warnings.push(...bitget.warnings);
+  for (const headline of skillNews) {
+    const key = headline.title.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      headlines.push(headline);
+    }
+  }
   // Structured Bitget data (analyst targets, earnings calendar) leads the list; Bitget news joins the dated feed.
   const data = bitget.items.filter((item) => item.headline.kind === "market_data");
   const news = bitget.items.filter((item) => item.headline.kind === "platform_news");

@@ -323,7 +323,7 @@ export const HeadlineSchema = z
     // Exact instant when the feed states one; otherwise only the publication day is known.
     publishedAt: z.string().datetime({ offset: true }).nullable(),
     publishedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
-    feed: z.enum(["issuer_newsroom", "yahoo_finance_ticker", "sec_edgar_8k", "bitget_news", "bitget_analyst_targets", "bitget_earnings_calendar"]),
+    feed: z.enum(["issuer_newsroom", "yahoo_finance_ticker", "sec_edgar_8k", "bitget_news", "bitget_analyst_targets", "bitget_earnings_calendar", "skill_news_briefing"]),
     kind: z.enum(["issuer_official", "regulatory_filing", "news_aggregator", "platform_news", "market_data"]),
     fullTextAvailable: z.boolean(),
     mode: z.enum(["live", "captured_real"]),
@@ -355,6 +355,30 @@ export const MarketSignalsSchema = z
       })
       .strict()
       .nullable(),
+    // Bitget's own US quote, used to cross-check the close taken from the chart source.
+    bitgetQuote: z
+      .object({ lastPrice: PositiveDecimalStringSchema, prevClose: PositiveDecimalStringSchema.nullable(), changePercent: DecimalStringSchema.nullable() })
+      .strict()
+      .nullable()
+      .default(null),
+    macro: z
+      .object({ tenYearYield: DecimalStringSchema.nullable(), fedFundsLower: DecimalStringSchema.nullable(), fedFundsUpper: DecimalStringSchema.nullable() })
+      .strict()
+      .nullable()
+      .default(null),
+    cryptoSentiment: z
+      .object({ score: DecimalStringSchema, rating: z.string().min(1).max(40) })
+      .strict()
+      .nullable()
+      .default(null),
+    // Which Bitget Agent Hub skills answered for this context, and what was used when one did not.
+    skills: z
+      .array(z.object({
+        skill: z.enum(["technical-analysis", "news-briefing", "sentiment-analyst", "macro-analyst", "market-intel"]),
+        status: z.enum(["used", "fallback", "unavailable", "not_applicable"]),
+        detail: z.string().max(200),
+      }).strict())
+      .default([]),
     warnings: z.array(z.string()),
   })
   .strict();

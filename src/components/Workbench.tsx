@@ -24,6 +24,7 @@ import {
 import { toJson, toMarkdown } from "@/domain/export";
 import { ChatResultSchema, InstrumentSchema, MarketContextSchema, MAX_SELECTED_HEADLINES, MAX_SOURCE_CHARS, MarketSnapshotSchema, MULTI_SOURCE_PROMPT_VERSION, PlanSchema, PROMPT_VERSION, RadarResultSchema, RecomputeResultSchema, ResearchResultSchema, type Asset, type Instrument, type MarketContext, type MarketSnapshot, type Plan, type RadarResult, type ResearchResult } from "@/domain/contracts";
 import { pricedInView } from "@/domain/priced-in";
+import { AgentHubHandoffCard } from "./AgentHubHandoff";
 import { ChatPanel, type ChatEntry } from "./ChatPanel";
 import { PricedInCard } from "./PricedInCard";
 import { RadarPanel, SessionPill, signedPercent } from "./RadarPanel";
@@ -1495,6 +1496,7 @@ export default function Workbench() {
               <SourcesPanel report={state.report} />
               <RunDetails report={state.report} />
               <ChangePanel report={state.report} />
+              <AgentHubHandoffCard report={state.report} />
               {state.report.partialErrors.length ? <details className="partial-details"><summary>Partial outcomes and recovery <CaretDown size={17} aria-hidden="true" /></summary><ul>{state.report.partialErrors.map((item) => <li key={`${item.kind}-${item.message}`}><strong>{partialKindLabel(item.kind)}</strong><span>{item.message}</span><small>Next step: {item.recovery}</small></li>)}</ul></details> : null}
             </>
           ) : <EmptyReport onReplay={replayCapturedExample} />}

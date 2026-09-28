@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { ResearchResultSchema, type ResearchResult } from "./contracts";
+import { agentHubHandoff } from "./handoff";
 import { pricedInView } from "./priced-in";
 
 function value(value: string | null) {
@@ -90,6 +91,7 @@ export function toMarkdown(report: ResearchResult) {
         })
         .join("\n\n")
     : "No runtime claim assessments were recorded.";
+  const handoff = agentHubHandoff(economics, validated.instrument, validated.snapshot);
   const openClaim = validated.claims.find((claim) => claim.materiality === "material" && claim.status !== "supported")
     ?? validated.claims.find((claim) => claim.status !== "supported");
   const context = validated.marketContext;
@@ -112,6 +114,9 @@ export function toMarkdown(report: ResearchResult) {
     "- Levels are the best bid moved by the whole-book threshold: an indicator, not a fill price. One rToken is assumed to track one underlying share.",
     `- Typical daily range (14-day ATR): ${context.signals?.technicals ? `${context.signals.technicals.atrPercent}% (${context.signals.technicals.source === "bitget_signal_technical_analysis" ? "Bitget technical-analysis skill" : "computed from daily bars"})${context.signals.technicals.rsi14 ? `; RSI(14) ${context.signals.technicals.rsi14}` : ""}` : "Not available"}`,
     `- Market mood: ${context.signals?.sentiment ? `${context.signals.sentiment.rating} ${context.signals.sentiment.score} on the US Fear & Greed index at ${context.signals.sentiment.asOf} (Bitget market data)${context.signals.sentiment.previousMonth ? `; ${context.signals.sentiment.previousMonth} a month earlier` : ""}` : "Not available"}`,
+    `- Bitget US quote: ${context.signals?.bitgetQuote ? `last ${context.signals.bitgetQuote.lastPrice}, previous close ${context.signals.bitgetQuote.prevClose ?? "not available"}` : "Not available"}`,
+    `- Rates backdrop (macro-analyst skill): ${context.signals?.macro ? `10Y ${context.signals.macro.tenYearYield ?? "n/a"}%, Fed funds ${context.signals.macro.fedFundsLower ?? "n/a"}–${context.signals.macro.fedFundsUpper ?? "n/a"}%` : "Not available"}`,
+    ...(context.signals?.skills ?? []).map((item) => `- Skill ${item.skill}: ${item.status} (${item.detail})`),
     ...context.warnings.map((warning) => `- Warning: ${warning}`),
   ].join("\n") : "- Market context was not recorded for this report.";
   const scenarioLines = economics.scenarioTable
@@ -220,6 +225,12 @@ export function toMarkdown(report: ResearchResult) {
     "",
     `- Evidence to look for: ${openClaim ? `${openClaim.missingEvidence ?? `a source that directly establishes "${openClaim.exactText.slice(0, 160)}"`} (claim currently ${openClaim.status})` : validated.claims.length ? `every assessed claim is supported; a dated source contradicting "${validated.claims[0].exactText.slice(0, 140)}" would change that` : "select a headline or paste a source so the claims can be checked"}.`,
     `- Price levels that matter: ${economics.requiredGoalShift ? `the goal needs a ${percent(economics.requiredGoalShift)} bid-book shift (${level(view.goal)}); break-even needs ${percent(economics.breakEvenShift)}` : economics.breakEvenShift ? `break-even needs a ${percent(economics.breakEvenShift)} bid-book shift` : "a usable order-book snapshot is needed before thresholds can be calculated"}. Thinner exit liquidity raises both. These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.`,
+    "",
+    "## Hand off to Bitget Agent Hub (not sent by ThesisGate)",
+    "",
+    ...(handoff
+      ? [...handoff.commands.flatMap((item) => [`${item.label}:`, "", "```bash", item.command, "```", ""]), ...handoff.notes.map((note) => `- ${note}`)]
+      : ["- No order command: the plan has no fillable quantity on this book."]),
     "",
     "## Limitations",
     "",

@@ -97,14 +97,18 @@ function moodLabel(rating: string) {
 /** Context from the Bitget Agent Hub skills. Descriptive scale and mood only: no verdicts, stops or forecasts. */
 function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; goalVsBids: string | null; asset: string }) {
   const signals = context.signals;
-  if (!signals || (!signals.technicals && !signals.sentiment)) return null;
-  const technicals = signals.technicals;
-  const sentiment = signals.sentiment;
+  if (!signals) return null;
+  const { technicals, sentiment, macro, cryptoSentiment, bitgetQuote } = signals;
   const goalPercent = goalVsBids ? new Decimal(goalVsBids).mul(100).toString() : null;
   const days = technicals && goalPercent ? requiredMoveInTypicalDays(goalPercent, technicals.atrPercent) : null;
   const symbol = context.underlying?.symbol ?? asset;
+  const close = context.underlying ? new Decimal(context.underlying.lastClose) : null;
+  const quoteMatches = bitgetQuote?.prevClose && close ? new Decimal(bitgetQuote.prevClose).minus(close).abs().div(close).lte("0.0025") : null;
+  const used = signals.skills.filter((item) => item.status === "used").map((item) => item.skill);
+  const fellBack = signals.skills.filter((item) => item.status === "fallback").map((item) => item.skill);
+  if (!technicals && !sentiment && !macro && !cryptoSentiment && !bitgetQuote) return null;
   return (
-    <div className="skill-context" aria-label="Market context from Bitget Agent Hub skills">
+    <div className="skill-context" aria-label="Market context from Bitget Agent Hub">
       {technicals ? (
         <div className="skill-item">
           <span className="skill-label">Typical daily range</span>
@@ -119,13 +123,28 @@ function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; 
         <div className="skill-item">
           <span className="skill-label">Market mood</span>
           <strong>{moodLabel(sentiment.rating)} {new Decimal(sentiment.score).toFixed(0)}</strong>
-          <small>US Fear &amp; Greed index{sentiment.previousMonth ? ` · ${new Decimal(sentiment.previousMonth).toFixed(0)} a month ago` : ""}</small>
+          <small>US Fear &amp; Greed index{sentiment.previousMonth ? ` · ${new Decimal(sentiment.previousMonth).toFixed(0)} a month ago` : ""}{cryptoSentiment ? ` · crypto mood ${moodLabel(cryptoSentiment.rating)} ${new Decimal(cryptoSentiment.score).toFixed(0)}` : ""}</small>
+        </div>
+      ) : null}
+      {macro ? (
+        <div className="skill-item">
+          <span className="skill-label">Rates backdrop</span>
+          <strong>{macro.tenYearYield ? `10Y ${new Decimal(macro.tenYearYield).toFixed(2)}%` : "—"}</strong>
+          <small>{macro.fedFundsLower && macro.fedFundsUpper ? `Fed funds target ${new Decimal(macro.fedFundsLower).toFixed(2)}–${new Decimal(macro.fedFundsUpper).toFixed(2)}%` : "Fed funds target unavailable"}</small>
+        </div>
+      ) : null}
+      {bitgetQuote ? (
+        <div className="skill-item">
+          <span className="skill-label">Bitget US quote</span>
+          <strong>{symbol} {new Decimal(bitgetQuote.lastPrice).toFixed(2)}</strong>
+          <small>
+            {bitgetQuote.prevClose ? `previous close ${new Decimal(bitgetQuote.prevClose).toFixed(2)}` : "previous close unavailable"}
+            {quoteMatches === true ? " · matches the close used here" : quoteMatches === false ? " · refers to a different session than the close used here" : ""}
+          </small>
         </div>
       ) : null}
       <p className="skill-source">
-        Via Bitget Agent Hub: {technicals ? (technicals.source === "bitget_signal_technical_analysis" ? "technical-analysis skill" : "indicators computed from daily bars") : null}
-        {technicals && sentiment ? " · " : null}
-        {sentiment ? "sentiment-analyst market mood" : null}. Context for scale, not a forecast.
+        Bitget Agent Hub skills: {used.length ? `${used.join(", ")} answered` : "none answered"}{fellBack.length ? `; ${fellBack.join(", ")} fell back to Bitget market data` : ""}. Context for scale, not a forecast.
       </p>
     </div>
   );

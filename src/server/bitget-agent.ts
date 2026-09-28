@@ -195,6 +195,94 @@ export async function fetchBitgetEvidence(asset: Asset, now = new Date()) {
   }, (result) => result.warnings.length === 0);
 }
 
+// ---- Skill tools on the bitget-signal backend (news-briefing, sentiment-analyst, macro-analyst) ----
+// Their output shapes are parsed defensively: anything unrecognised, including the backend's empty
+// error objects, is treated as "unavailable" and never turned into data.
+
+function numberish(value: unknown): number | null {
+  if (value && typeof value === "object" && !Array.isArray(value)) return numberish((value as Record<string, unknown>).value);
+  return num(value);
+}
+
+function firstArray(value: unknown): unknown[] | null {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") {
+    for (const key of ["items", "news", "articles", "results", "data"]) {
+      const candidate = (value as Record<string, unknown>)[key];
+      if (Array.isArray(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+export function parseSkillNews(text: string, asset: Asset): Headline[] {
+  const items = firstArray(JSON.parse(text)) ?? [];
+  const headlines: Headline[] = [];
+  for (const raw of items.slice(0, 20)) {
+    if (!raw || typeof raw !== "object") continue;
+    const item = raw as Record<string, unknown>;
+    const title = str(item.title) ?? str(item.headline);
+    const link = str(item.url) ?? str(item.link);
+    const dateValue = item.published_at ?? item.publishedAt ?? item.datetime ?? item.published ?? item.date ?? item.time;
+    const date = typeof dateValue === "number" ? new Date(dateValue < 1e12 ? dateValue * 1000 : dateValue) : typeof dateValue === "string" ? new Date(dateValue) : null;
+    const summary = htmlToText(String(item.summary ?? item.description ?? item.text ?? "")).replace(/\s+/g, " ").slice(0, 600);
+    if (!title || !link || !date || Number.isNaN(date.getTime())) continue;
+    if (!COMPANY[asset].pattern.test(`${title} ${summary}`)) continue;
+    let url: string;
+    try {
+      const parsedUrl = new URL(link);
+      if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") continue;
+      parsedUrl.protocol = "https:";
+      url = parsedUrl.toString();
+    } catch {
+      continue;
+    }
+    const parsed = HeadlineSchema.safeParse({
+      id: headlineId("skill_news_briefing", `${url}\n${title}`),
+      asset, title: title.slice(0, 400), summary, url,
+      publisher: str(item.source) ?? str(item.publisher) ?? "news-briefing skill",
+      publishedAt: date.toISOString(), publishedDate: date.toISOString().slice(0, 10),
+      feed: "skill_news_briefing", kind: "news_aggregator", fullTextAvailable: false, mode: "live",
+    });
+    if (parsed.success) headlines.push(parsed.data);
+  }
+  return headlines;
+}
+
+export function parseSkillSentiment(text: string): { score: string; rating: string } | null {
+  const root = JSON.parse(text) as Record<string, unknown>;
+  const candidates = [root, root.current, root.data, Array.isArray(root.data) ? root.data[0] : null].filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value));
+  for (const candidate of candidates) {
+    const score = numberish(candidate.value ?? candidate.score ?? candidate.index);
+    const rating = str(candidate.value_classification) ?? str(candidate.classification) ?? str(candidate.rating) ?? str(candidate.label);
+    if (score !== null && score >= 0 && score <= 100 && rating) return { score: new Decimal(score).toString(), rating };
+  }
+  return null;
+}
+
+export function parseSkillRates(text: string): NonNullable<MarketSignals["macro"]> | null {
+  const root = JSON.parse(text) as Record<string, unknown>;
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = numberish(root[key]);
+      if (value !== null) return new Decimal(value).toString();
+    }
+    return null;
+  };
+  const macro = { tenYearYield: pick("t10y", "ten_year", "us10y"), fedFundsLower: pick("fed_funds_target_lower", "target_lower"), fedFundsUpper: pick("fed_funds_target_upper", "target_upper") };
+  return macro.tenYearYield || macro.fedFundsUpper ? macro : null;
+}
+
+const skillNewsCache = createTtlCache<Headline[]>(10 * 60_000, 10);
+
+/** news-briefing skill: company news from the skill backend (empty when it does not answer). */
+export async function fetchSkillNews(asset: Asset): Promise<Headline[]> {
+  return skillNewsCache.get(asset, async () => {
+    const text = await callMcpTool(BITGET_SIGNAL_MCP, "tradfi_news", { action: "company", symbol: asset, limit: 10 }, 15_000);
+    return parseSkillNews(text, asset);
+  }, (headlines) => headlines.length > 0).catch(() => []);
+}
+
 // ---- Signals: technical-analysis and sentiment-analyst skills ----
 
 async function signalTechnicals(asset: Asset): Promise<NonNullable<MarketSignals["technicals"]>> {
@@ -251,11 +339,30 @@ export async function fetchMarketSignals(asset: Asset): Promise<MarketSignals> {
         return null;
       });
     });
-    const sentiment = await fearGreed().catch(() => {
-      warnings.push("Market sentiment is unavailable.");
-      return null;
-    });
-    return MarketSignalsSchema.parse({ technicals, sentiment, warnings });
+    const [sentiment, cryptoSentiment, macro, bitgetQuote, skillNews] = await Promise.all([
+      fearGreed().catch(() => {
+        warnings.push("Market sentiment is unavailable.");
+        return null;
+      }),
+      callMcpTool(BITGET_SIGNAL_MCP, "sentiment_index", { action: "current" }, 15_000).then(parseSkillSentiment).catch(() => null),
+      callMcpTool(BITGET_SIGNAL_MCP, "rates_yields", { action: "rates_snapshot" }, 15_000).then(parseSkillRates).catch(() => null),
+      bitgetQuery("equity_price_quote", { symbol: asset }).then(([row]) => {
+        const last = num(row?.last_price);
+        if (last === null || last <= 0) return null;
+        const prev = num(row?.prev_close);
+        const change = num(row?.change_percent);
+        return { lastPrice: new Decimal(last).toString(), prevClose: prev && prev > 0 ? new Decimal(prev).toString() : null, changePercent: change === null ? null : new Decimal(change).mul(100).toDecimalPlaces(3).toString() };
+      }).catch(() => null),
+      fetchSkillNews(asset),
+    ]);
+    const skills: MarketSignals["skills"] = [
+      { skill: "technical-analysis", status: technicals?.source === "bitget_signal_technical_analysis" ? "used" : technicals ? "fallback" : "unavailable", detail: technicals?.source === "bitget_signal_technical_analysis" ? "ATR and RSI from the skill" : technicals ? "indicators computed from daily bars instead" : "no indicator data" },
+      { skill: "news-briefing", status: skillNews.length ? "used" : "fallback", detail: skillNews.length ? `${skillNews.length} company stories from the skill` : "skill did not answer; Bitget news used instead" },
+      { skill: "sentiment-analyst", status: cryptoSentiment ? "used" : "fallback", detail: cryptoSentiment ? "crypto market mood from the skill" : "skill did not answer; US Fear & Greed from Bitget market data used instead" },
+      { skill: "macro-analyst", status: macro ? "used" : "fallback", detail: macro ? "rates snapshot from the skill" : "skill did not answer; Bitget macro briefing on the radar used instead" },
+      { skill: "market-intel", status: "not_applicable", detail: "crypto on-chain flows; not relevant to US stock tokens" },
+    ];
+    return MarketSignalsSchema.parse({ technicals, sentiment, bitgetQuote, macro, cryptoSentiment, skills, warnings });
   }, (signals) => signals.technicals !== null && signals.sentiment !== null);
 }
 

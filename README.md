@@ -68,6 +68,9 @@ The price levels in the priced-in card are the best bid moved by the whole-book 
 | Source | Used for | Mode |
 | --- | --- | --- |
 | **Bitget Agent Hub: `bitget-mcp-server`** (`agent.bitget.com/mcp`) | Dated analyst price targets, earnings calendar, Bitget news and the daily macro briefing as selectable evidence; the US Fear & Greed index for market mood | Live |
+| **Bitget Agent Hub: `bitget-signal` news-briefing, sentiment-analyst and macro-analyst skills** | Company news, crypto market mood and the rates backdrop, each called through the skill's own tool. When a skill doesn't answer, the brief says so and uses the Bitget data above instead | Live |
+| **Bitget US quote** (`bitget-mcp-server`) | Cross-checks the underlying close used for the priced-in comparison | Live |
+| **Bitget Agent Hub CLI (`bgc`) handoff** | Copy-only commands (read-only price check, then a dry-run IOC limit order) for the trader to run themselves; ThesisGate sends nothing | Live |
 | **Bitget Agent Hub: `bitget-signal` technical-analysis skill** | 14-day ATR (typical daily range) and RSI, shown as scale context next to the goal; falls back to the same indicators computed from daily bars | Live |
 | Bitget public API (`/api/v3/market/*`) | rToken instrument rules, ticker, 50-level order book | Live; captured Sep 8 fixture for replay |
 | Yahoo Finance chart endpoint | Underlying last regular close and latest extended-hours print | Live; captured values for replay |
@@ -98,7 +101,7 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - Priced-in card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
 - Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the priced-in context and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
-- Current local verification: typecheck, lint, 169 unit/integration tests across 23 files, production build, and 26 Chromium/mobile browser journeys pass.
+- Current local verification: typecheck, lint, 173 unit/integration tests across 23 files, production build, and 26 Chromium/mobile browser journeys pass.
 
 ### Not ready for public AI use
 
