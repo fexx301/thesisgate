@@ -22,7 +22,7 @@ rollback() {
 if [ "${1:-}" = "--rollback" ]; then rollback; exit 0; fi
 
 BRANCH="${1:?branch}"
-SITE_ADDRESS="${2:?site addresses, e.g. \"thesisgate.duckdns.org, 54-84-91-138.sslip.io\"}"
+SITE_ADDRESS="${2:?site addresses, e.g. \"thesisgate.duckdns.org, 34-196-4-213.sslip.io\"}"
 PUBLIC_ORIGINS="${3:?public origins, e.g. https://thesisgate.duckdns.org}"
 
 # Untracked files from the first manual deploy would block checkout; keep a copy.

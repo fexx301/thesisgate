@@ -2,15 +2,16 @@
 
 ## Current production host (EC2 `thesisgate-prod`, us-east-1)
 
-The live demo runs on an existing EC2 instance at **https://thesisgate.duckdns.org** (also `https://54-84-91-138.sslip.io`). The host has no SSH key and is managed through AWS Systems Manager. It has no Compose plugin, so `deploy/aws-upgrade.sh` uses plain `docker build` and `docker run`:
+The live demo runs on an existing EC2 instance at **https://thesisgate.duckdns.org** (also `https://34-196-4-213.sslip.io`). The host has no SSH key and is managed through AWS Systems Manager. It has no Compose plugin, so `deploy/aws-upgrade.sh` uses plain `docker build` and `docker run`:
 
 ```sh
 aws ssm send-command --region us-east-1 --instance-ids i-03b8a54e47308e5f6 --document-name AWS-RunShellScript \
-  --parameters 'commands=["cd /opt/thesisgate && git fetch -q origin +refs/heads/stronger-after-hours:refs/remotes/origin/stronger-after-hours && git checkout -q -B stronger-after-hours origin/stronger-after-hours && bash deploy/aws-upgrade.sh stronger-after-hours \"thesisgate.duckdns.org, 54-84-91-138.sslip.io\" \"https://thesisgate.duckdns.org,https://54-84-91-138.sslip.io\""]'
+  --parameters 'commands=["cd /opt/thesisgate && git fetch -q origin +refs/heads/stronger-after-hours:refs/remotes/origin/stronger-after-hours && git checkout -q -B stronger-after-hours origin/stronger-after-hours && bash deploy/aws-upgrade.sh stronger-after-hours \"thesisgate.duckdns.org, 34-196-4-213.sslip.io\" \"https://thesisgate.duckdns.org,https://34-196-4-213.sslip.io\""]'
 ```
 
 - The OpenRouter key is read from the SecureString parameter `/thesisgate/openrouter-api-key` at deploy time and is written only to the root-only `deploy/production.env` on the host.
 - The quota ledger stays on the dedicated `/data` EBS volume (`/data/thesisgate-quota`), and Caddy's certificates stay in the `thesisgate-caddy-*` volumes.
+- **Bitget Agent Hub session limit:** `agent.bitget.com/mcp` caps open MCP sessions per client IP, and sessions that are never closed do not expire in practice. The app reuses one session and closes sessions with `DELETE` (including on shutdown). If "Too many open sessions" ever returns, the fix is a new Elastic IP (done once on 2026-09-28: 54.84.91.138 → 34.196.4.213), plus updating DuckDNS and the sslip address above.
 - New containers are `tg-quota`, `tg-app` and `tg-caddy`. The first-generation containers are stopped, not deleted: `bash deploy/aws-upgrade.sh --rollback` brings them back.
 
 ## Generic one-box setup (Lightsail or any Docker Compose host)
