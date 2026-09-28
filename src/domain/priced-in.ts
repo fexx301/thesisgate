@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { MarketContextSchema, type Asset, type EconomicsResult, type MarketContext, type MarketSignals, type MarketSnapshot } from "./contracts";
-import { classifySession } from "./session";
+import { classifySession, SESSION_CALENDAR_COVERAGE } from "./session";
 
 // An underlying print older than this is context, not a tracking reference.
 const FRESH_UNDERLYING_MS = 20 * 60_000;
@@ -26,6 +26,9 @@ export function buildMarketContext(input: {
 }): MarketContext {
   const warnings = [...(input.warnings ?? [])];
   const session = classifySession(new Date(input.observedAt));
+  if (input.observedAt.slice(0, 10) > SESSION_CALENDAR_COVERAGE.to) {
+    warnings.push(`The US market holiday calendar built into ThesisGate ends ${SESSION_CALENDAR_COVERAGE.to}; session and holiday labels after that date may be wrong.`);
+  }
   let rToken: MarketContext["rToken"] = null;
   if (input.snapshot?.bids.length && input.snapshot.asks.length) {
     const bestBid = new Decimal(input.snapshot.bids[0][0]);

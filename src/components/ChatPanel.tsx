@@ -58,7 +58,7 @@ export function ChatPanel({
                 {entry.changed.map((change) => <li key={change}>{change}</li>)}
               </ul>
             ) : null}
-            {entry.role === "assistant" && entry.origin === "rules" ? <small className="chat-origin">Simple-edit mode (model unavailable)</small> : null}
+            {entry.role === "assistant" && entry.origin === "rules" ? <small className="chat-origin">Quick-edit mode (AI busy or unavailable)</small> : null}
           </li>
         ))}
         {pending ? (

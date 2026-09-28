@@ -139,7 +139,7 @@ function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; 
           <strong>{symbol} {new Decimal(bitgetQuote.lastPrice).toFixed(2)}</strong>
           <small>
             {bitgetQuote.prevClose ? `previous close ${new Decimal(bitgetQuote.prevClose).toFixed(2)}` : "previous close unavailable"}
-            {quoteMatches === true ? " · matches the close used here" : quoteMatches === false ? " · refers to a different session than the close used here" : ""}
+            {quoteMatches === true ? " · agrees with the close used here" : quoteMatches === false ? " · differs from the close used here, which is the official consolidated close; Bitget's quote uses IEX prints" : ""}
           </small>
         </div>
       ) : null}

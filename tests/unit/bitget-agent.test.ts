@@ -165,3 +165,40 @@ describe("Agent Hub handoff", () => {
     expect(agentHubHandoff({ quantity: null, computationStatus: "calculated" } as never, instrument, snapshot)).toBeNull();
   });
 });
+
+describe("MCP idle close", () => {
+  it("closes a session after 60s idle, but never while a call is in flight", async () => {
+    const { vi } = await import("vitest");
+    const { callMcpTool, resetMcpSessionsForTests } = await import("../../src/server/mcp-client");
+    resetMcpSessionsForTests();
+    vi.useFakeTimers();
+    const deletes: string[] = [];
+    const gate: { release: () => void } = { release: () => undefined };
+    vi.stubGlobal("fetch", vi.fn(async (_url: URL | string, init: RequestInit) => {
+      const headers = new Headers(init.headers);
+      const body = typeof init.body === "string" ? init.body : "";
+      if (init.method === "DELETE") { deletes.push(headers.get("mcp-session-id") ?? ""); return new Response(null, { status: 200 }); }
+      if (body.includes('"initialize"')) return new Response('{"jsonrpc":"2.0","id":1,"result":{}}', { headers: { "mcp-session-id": "sess-1" } });
+      if (body.includes("notifications/initialized")) return new Response(null, { status: 202 });
+      if (body.includes('"slow"')) await new Promise<void>((resolve) => { gate.release = resolve; });
+      return new Response('{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"ok"}]}}');
+    }));
+    try {
+      await expect(callMcpTool("https://agent.bitget.com/mcp", "do_query", {})).resolves.toBe("ok");
+      await vi.advanceTimersByTimeAsync(59_000);
+      expect(deletes).toEqual([]);
+      // A long call keeps the session alive past the idle window.
+      const slow = callMcpTool("https://agent.bitget.com/mcp", "do_query", { mode: "slow" });
+      await vi.advanceTimersByTimeAsync(90_000);
+      expect(deletes).toEqual([]);
+      gate.release();
+      await expect(slow).resolves.toBe("ok");
+      await vi.advanceTimersByTimeAsync(61_000);
+      expect(deletes).toEqual(["sess-1"]);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      resetMcpSessionsForTests();
+    }
+  });
+});

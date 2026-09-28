@@ -24,6 +24,13 @@ const basePlan: Plan = {
 };
 
 describe("contract boundary validation", () => {
+  it("accepts a scenario shift up to +1,000% and rejects anything beyond it", () => {
+    expect(PlanSchema.safeParse({ ...basePlan, scenario: { bidPriceShift: "10", assumptionOrigin: "user" } }).success).toBe(true);
+    const beyond = PlanSchema.safeParse({ ...basePlan, scenario: { bidPriceShift: "10.01", assumptionOrigin: "user" } });
+    expect(beyond.success).toBe(false);
+    expect(PlanSchema.safeParse({ ...basePlan, scenario: { bidPriceShift: "1e10", assumptionOrigin: "user" } }).success).toBe(false);
+  });
+
   it("rejects zero purchase notional", () => {
     expect(PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "0" }).success).toBe(false);
   });

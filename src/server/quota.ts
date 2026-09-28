@@ -128,11 +128,13 @@ let activeModelCalls = 0;
 // This is a single-process guard for development and a defense-in-depth check in production;
 // production multi-instance enforcement remains the durable THESIS_LLM_QUOTA_URL service.
 const VISITOR_WINDOW_MS = 10 * 60 * 1000;
-const VISITOR_MAX = 5;
-const GLOBAL_DAILY_MAX = 200;
+// Sized for a judging window: several judges can share one office IP, and the durable ledger
+// (daily and per-visitor dollar caps) is what actually bounds spend.
+const VISITOR_MAX = 12;
+const GLOBAL_DAILY_MAX = 600;
 // Chat turns are short, cheap planning calls, so they get their own bucket instead of consuming briefs.
-const CHAT_VISITOR_MAX = 20;
-const CHAT_GLOBAL_DAILY_MAX = 600;
+const CHAT_VISITOR_MAX = 40;
+const CHAT_GLOBAL_DAILY_MAX = 2_000;
 const visitorCalls = new Map<string, number[]>();
 let globalDayKey = "";
 let globalDayCount = 0;
@@ -155,12 +157,12 @@ export function checkLocalModelRateLimit(visitorKey: string, kind: "analysis" | 
   }
   if (kind === "chat") {
     if (chatDayCount >= CHAT_GLOBAL_DAILY_MAX) {
-      throw new ModelQuotaError("denied", "The daily conversation budget is exhausted. Simple edits still work without the model.");
+      throw new ModelQuotaError("denied", "The daily conversation budget is exhausted. Quick edits still work without the model.");
     }
     const chatKey = `chat:${visitorKey}`;
     const chatCalls = (visitorCalls.get(chatKey) ?? []).filter((t) => now - t < VISITOR_WINDOW_MS);
     if (chatCalls.length >= CHAT_VISITOR_MAX) {
-      throw new ModelQuotaError("denied", "Twenty messages per visitor per ten minutes. Simple edits still work without the model.");
+      throw new ModelQuotaError("denied", `${CHAT_VISITOR_MAX} messages per visitor per ten minutes. Quick edits still work without the model.`);
     }
     chatCalls.push(now);
     visitorCalls.set(chatKey, chatCalls);
@@ -172,7 +174,7 @@ export function checkLocalModelRateLimit(visitorKey: string, kind: "analysis" | 
   }
   const calls = (visitorCalls.get(visitorKey) ?? []).filter((t) => now - t < VISITOR_WINDOW_MS);
   if (calls.length >= VISITOR_MAX) {
-    throw new ModelQuotaError("denied", "Five analyses per visitor per ten minutes. Retry shortly; replay and exports remain available.");
+    throw new ModelQuotaError("denied", `${VISITOR_MAX} analyses per visitor per ten minutes. Retry shortly; replay and exports remain available.`);
   }
   calls.push(now);
   visitorCalls.set(visitorKey, calls);
@@ -185,17 +187,45 @@ export function resetLocalRateLimitsForTests() {
   globalDayCount = 0;
   chatDayCount = 0;
   activeModelCalls = 0;
+  slotWaiters.length = 0;
 }
 
-export function acquireModelSlot() {
-  const limit = process.env.NODE_ENV === "production" ? quotaConfig().maxConcurrent : localDevelopmentConcurrency();
-  if (activeModelCalls >= limit) {
-    throw new ModelQuotaError("denied", "The claim-assessment concurrency limit is currently full. Retry after the active request finishes.");
+const SLOT_WAIT_MS = 10_000;
+const slotWaiters: Array<() => void> = [];
+
+function slotLimit() {
+  return process.env.NODE_ENV === "production" ? quotaConfig().maxConcurrent : localDevelopmentConcurrency();
+}
+
+function releaseSlot() {
+  activeModelCalls = Math.max(0, activeModelCalls - 1);
+  // Hand the freed slot to the longest-waiting request.
+  while (slotWaiters.length && activeModelCalls < slotLimit()) slotWaiters.shift()?.();
+}
+
+/**
+ * Takes a concurrency slot, waiting briefly for one when all are busy so that a burst of visitors is
+ * queued instead of being bounced into the degraded fallback. Denies only after `waitMs`.
+ */
+export function acquireModelSlot(waitMs = SLOT_WAIT_MS): Promise<() => void> {
+  const limit = slotLimit();
+  if (activeModelCalls < limit) {
+    activeModelCalls += 1;
+    return Promise.resolve(releaseSlot);
   }
-  activeModelCalls += 1;
-  return () => {
-    activeModelCalls = Math.max(0, activeModelCalls - 1);
-  };
+  return new Promise((resolve, reject) => {
+    const waiter = () => {
+      clearTimeout(timer);
+      activeModelCalls += 1;
+      resolve(releaseSlot);
+    };
+    const timer = setTimeout(() => {
+      const index = slotWaiters.indexOf(waiter);
+      if (index >= 0) slotWaiters.splice(index, 1);
+      reject(new ModelQuotaError("denied", "All AI analysis slots stayed busy. Retry in a few seconds."));
+    }, waitMs);
+    slotWaiters.push(waiter);
+  });
 }
 
 async function readQuotaResponse(response: Response) {

@@ -306,7 +306,8 @@ export async function fetchHeadlines(asset: Asset, mode: "live" | "captured_real
   const rest = merged.filter((headline) => !filings.includes(headline)).slice(0, MAX_HEADLINES - filings.length);
   const bounded = [...data.map((item) => item.headline), ...[...rest, ...filings]
     .sort((left, right) => (right.publishedAt ?? right.publishedDate ?? "").localeCompare(left.publishedAt ?? left.publishedDate ?? ""))];
-  for (const item of bitget.items) headlineBodies.set(item.headline.id, item.body);
+  const shown = new Set(bounded.map((headline) => headline.id));
+  for (const item of bitget.items) if (shown.has(item.headline.id)) headlineBodies.set(item.headline.id, item.body);
   bounded.forEach(remember);
   return { headlines: bounded, warnings };
 }

@@ -16,7 +16,10 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    # Next's own SIGTERM handler exits within milliseconds; the app's shutdown hook needs to finish
+    # closing Bitget MCP sessions first (see src/server/mcp-client.ts), so it owns the exit.
+    NEXT_MANUAL_SIG_HANDLE=true
 RUN groupadd --system --gid 1001 app && useradd --system --uid 1001 --gid app app
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static

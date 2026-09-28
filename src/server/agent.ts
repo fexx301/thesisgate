@@ -109,26 +109,59 @@ export function finalizeModelTurn(raw: unknown, request: ChatRequest, modelId: s
   });
 }
 
-const WORD_NUMBERS: Record<string, string> = { k: "1000", thousand: "1000" };
+const NUMBER = String.raw`(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)`;
+const UNIT = String.raw`(?:usdt|usd|dollars?|bucks)`;
 
-function amountFrom(text: string) {
-  const match = text.match(/(?:^|\s|\$)(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|thousand)?\s*(?:usdt|usd|dollars|bucks)?\b/i);
-  if (!match) return null;
-  let amount = new Decimal(match[1].replaceAll(",", ""));
-  if (match[2]) amount = amount.mul(WORD_NUMBERS[match[2].toLowerCase()]);
+function toAmount(raw: string, thousand?: string) {
+  let amount = new Decimal(raw.replaceAll(",", ""));
+  if (thousand) amount = amount.mul(1000);
   return amount.gt(0) ? amount.toString() : null;
 }
 
+/** The goal in the user's words, with the matched text so it can be removed before the size is read. */
+function goalFrom(lower: string): { goal: Record<string, unknown>; matched: string } | null {
+  const percent = lower.match(/(\d+(?:\.\d+)?)\s*%\s*(?:net\s*)?(?:return|profit|gain)\b/);
+  if (percent) return { goal: { kind: "net_return_percent", percent: percent[1] }, matched: percent[0] };
+  const even = lower.match(/\bbreak[- ]?even\b|\bjust (?:need|want) to (?:get|be) even\b/);
+  if (even) return { goal: { kind: "break_even" }, matched: even[0] };
+  const phrase = lower.match(new RegExp(String.raw`${NUMBER}\s*(k|thousand)?\s*${UNIT}?\s*(?:net\s*)?(?:profit|gain)\b`))
+    ?? lower.match(new RegExp(String.raw`(?:profit|gain|make|earn|target|goal)(?:\s+of)?\s+(?:about\s+)?${NUMBER}\s*(k|thousand)?\s*${UNIT}`));
+  const amount = phrase ? toAmount(phrase[1], phrase[2]) : null;
+  return phrase && amount ? { goal: { kind: "profit_usdt", amount }, matched: phrase[0] } : null;
+}
+
+/** Position size: a number with a unit (2k, 3000 usdt) or a bare number right after a sizing verb. */
+function amountFrom(lower: string) {
+  const withUnit = lower.match(new RegExp(String.raw`(?:^|[\s$])${NUMBER}\s*(?:(k|thousand)\b|${UNIT}\b)`));
+  if (withUnit) return toAmount(withUnit[1], withUnit[2]);
+  const bare = lower.match(new RegExp(String.raw`\b(?:put|use|invest|spend|budget|size|amount|make it|instead|buy)\s+(?:in\s+|only\s+|just\s+|about\s+)?\$?${NUMBER}\b`));
+  return bare ? toAmount(bare[1]) : null;
+}
+
+function horizonFrom(message: string) {
+  const held = message.match(/\b(?:hold(?:ing)?|until|till|through)\s+((?:until|till|through|to)\s+)?(.{3,60}?)(?:[,.;!?]|$)/i);
+  if (held && /\b(hold|until|till|through)\b/i.test(message)) {
+    const text = held[0].replace(/^hold(?:ing)?\s+/i, "").replace(/[,.;!?]$/, "").trim();
+    if (text) return text;
+  }
+  const by = message.match(/\bby\s+((?:tomorrow|today|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+\w+|the\s+\w+|end\s+of\s+\w+|this\s+\w+)[^,.;!?]{0,30})/i);
+  return by ? `by ${by[1].trim()}` : null;
+}
+
+const QUICK_MODE_NOTE = " Quick-edit mode: the AI is busy or unavailable, so I only applied what I could read. Send your message again to have the AI read all of it.";
+
 /**
- * Deterministic fallback when the model is disabled, over budget, or fails. It covers the common
- * edits so the conversation never dead-ends, and says plainly when it could not understand.
+ * Deterministic fallback when the model is disabled, busy, over budget, or fails. It covers the common
+ * edits so the conversation never dead-ends, and says plainly when it may have missed something.
  */
 export function ruleBasedTurn(request: ChatRequest): ChatResult {
   const message = request.messages[request.messages.length - 1]?.content ?? "";
   const lower = message.toLowerCase().trim();
+  const words = lower.split(/\s+/).filter(Boolean).length;
   const wantsRun = /\b(run|check|test|stress|analy[sz]e|go|build)\b/.test(lower);
   const base = (reply: string, plan: Plan, changed: string[], action: ChatResult["action"]) => ChatResultSchema.parse({
-    reply, plan, changed, selectHeadlineIds: null, action, marketMode: action === "refresh_market" ? "live" : null, origin: "rules", modelId: null,
+    reply: (words > 8 ? `${reply}${QUICK_MODE_NOTE}` : reply).slice(0, 1_200),
+    plan, changed, selectHeadlineIds: null, action, marketMode: action === "refresh_market" ? "live" : null, origin: "rules", modelId: null,
   });
 
   const strict = parseIntent(message, request.plan);
@@ -140,25 +173,27 @@ export function ruleBasedTurn(request: ChatRequest): ChatResult {
   const patch: Record<string, unknown> = {};
   if (/\b(r?tsla|tesla)\b/.test(lower) && request.plan.asset !== "TSLA") patch.asset = "TSLA";
   if (/\b(r?nvda|nvidia)\b/.test(lower) && request.plan.asset !== "NVDA") patch.asset = "NVDA";
-  if (/\b(put|use|invest|size|amount|make it|instead|budget|spend|with)\b/.test(lower) && !/%/.test(lower)) {
-    const amount = amountFrom(lower);
+  const goal = goalFrom(lower);
+  if (goal) patch.goal = goal.goal;
+  const sizingText = goal ? lower.replace(goal.matched, " ") : lower;
+  if (!/%/.test(sizingText)) {
+    const amount = amountFrom(sizingText);
     if (amount) patch.purchaseNotional = amount;
   }
-  const horizon = message.match(/\b(?:hold(?:ing)?|until|till|through)\s+((?:until|till|through|to)\s+)?(.{3,60}?)(?:[,.;!?]|$)/i);
-  if (horizon && /\b(hold|until|till|through)\b/i.test(message)) {
-    const text = horizon[0].replace(/^hold(?:ing)?\s+/i, "").replace(/[,.;!?]$/, "").trim();
-    if (text) patch.horizonText = text;
-  }
+  const horizon = horizonFrom(message);
+  if (horizon) patch.horizonText = horizon;
+  // With no thesis yet, keep the user's own words so a brief can still be built (evidence must be picked by hand).
+  if (!request.plan.thesis.trim() && words >= 8) patch.thesis = message.trim().slice(0, 4_000);
   if (Object.keys(patch).length) {
     const outcome = applyPlanPatch(request.plan, patch);
     if (outcome.ok && outcome.changed.length) {
-      return base(`Done: ${outcome.changed.join(", ")}.`, outcome.plan, outcome.changed, request.briefSummary || wantsRun ? "run_brief" : "none");
+      return base(`Done: ${outcome.changed.join(", ")}.`, outcome.plan, outcome.changed, request.briefSummary || wantsRun || outcome.plan.thesis.trim() ? "run_brief" : "none");
     }
   }
   if (wantsRun && request.plan.thesis.trim()) return base("Running the brief on the current plan.", request.plan, [], "run_brief");
   return base(
     strict.clarification
-      ?? "The language model is unavailable, so I can only apply simple edits right now: change the amount (\"use 3000\"), switch to rTSLA, set a horizon (\"hold until Monday open\"), set a profit goal (\"I want 100 USDT profit\"), assume a move (\"assume bids rise 1%\"), halve exit depth, or refresh market data.",
+      ?? "I can only apply quick edits right now: change the amount (\"use 3000\"), switch to rTSLA, set a horizon (\"hold until Monday open\"), set a profit goal (\"I want 100 USDT profit\"), assume a move (\"assume bids rise 1%\"), halve exit depth, or refresh market data.",
     request.plan,
     [],
     "none",

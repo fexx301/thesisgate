@@ -424,6 +424,7 @@ function Metric({ label, value, note, emphasis = false }: { label: string; value
 function ReportSkeleton() {
   return (
     <div className="report-skeleton" aria-label="Loading research brief" role="status">
+      <p className="skeleton-note">Checking the sources and building your brief. This usually takes 10 to 25 seconds.</p>
       <div className="skeleton-line skeleton-wide" />
       <div className="skeleton-grid"><div /><div /></div>
       <div className="skeleton-line" />
@@ -819,7 +820,7 @@ export default function Workbench() {
       purchaseNotionalExcludingFee: "Enter a purchase notional greater than 0 USDT.",
       "goal.amount": "Enter a net profit objective of 0 USDT or more.",
       "goal.fractionOfEntryCash": "Enter a net return objective of 0% or more of entry cash.",
-      "scenario.bidPriceShift": "Enter a finite bid-price shift above -100%, or clear it for threshold only.",
+      "scenario.bidPriceShift": "Enter a bid-price shift between -100% and +1,000%, or clear it for threshold only.",
       feeIn: "Enter an entry fee from 0% to less than 100%.",
       feeOut: "Enter an exit fee from 0% to less than 100%.",
       "exitAssumptions.depthMultiplier": "Enter available exit depth from 0% to 100%.",

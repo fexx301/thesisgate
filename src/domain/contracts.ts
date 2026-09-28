@@ -96,6 +96,9 @@ export const PriceScenarioSchema = z
     if (shift !== null && shift.lte(-1)) {
       context.addIssue({ code: "custom", path: ["bidPriceShift"], message: "A price shift must be above -100%" });
     }
+    if (shift !== null && shift.gt(10)) {
+      context.addIssue({ code: "custom", path: ["bidPriceShift"], message: "A price shift above +1,000% is not a meaningful scenario" });
+    }
   });
 
 export const HorizonSchema = z

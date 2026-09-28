@@ -23,7 +23,10 @@ import {
   settleModelBudget,
 } from "./quota";
 
-const MODEL_TIMEOUT_MS = 15_000;
+// Evidence checks read several sources and were measured at 11-15s, so 15s timed out about half the
+// time. Chat turns are short; a stuck one should fall back to quick edits sooner.
+const ANALYSIS_TIMEOUT_MS = 35_000;
+const CHAT_TIMEOUT_MS = 20_000;
 const MODEL_RESPONSE_MAX_BYTES = 256_000;
 type ReasoningEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 const REASONING_EFFORTS = new Set<ReasoningEffort>(["none", "minimal", "low", "medium", "high", "xhigh", "max"]);
@@ -277,12 +280,12 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
     } catch (error) {
       throw new ModelAdapterError("model_budget", error instanceof Error ? error.message : "Model budget denied.");
     }
-    releaseSlot = acquireModelSlot();
+    releaseSlot = await acquireModelSlot();
     reservation = await reserveModelBudget(context);
     providerStarted = true;
     modelId = config.model;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), options.kind === "chat" ? CHAT_TIMEOUT_MS : ANALYSIS_TIMEOUT_MS);
     try {
       const reasoning = config.reasoningEffort ? { effort: config.reasoningEffort } : undefined;
       const body = config.protocol === "openai_responses"

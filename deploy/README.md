@@ -1,20 +1,51 @@
-# Self-hosted deploy
+# Deploy runbook
 
-## Current production host (EC2 `thesisgate-prod`, us-east-1)
+## Production host: EC2 `thesisgate-prod` (us-east-1, Amazon Linux 2023)
 
-The live demo runs on an existing EC2 instance at **https://thesisgate.duckdns.org** (also `https://34-196-4-213.sslip.io`). The host has no SSH key and is managed through AWS Systems Manager. It has no Compose plugin, so `deploy/aws-upgrade.sh` uses plain `docker build` and `docker run`:
+Live at **https://thesisgate.duckdns.org** (also `https://34-196-4-213.sslip.io`). The host has no SSH key and is managed through AWS Systems Manager. It has no Compose plugin, so `deploy/aws-upgrade.sh` uses plain `docker build` / `docker run`. Containers: `tg-caddy` (HTTPS), `tg-app`, `tg-quota` (ledger on the dedicated `/data` EBS volume). Secrets live only in the root-only `deploy/production.env` on the host and in SSM parameter `/thesisgate/openrouter-api-key`; the non-secret settings (model, budgets, concurrency) come from `deploy/production.env.example` on every deploy.
 
-```sh
-aws ssm send-command --region us-east-1 --instance-ids i-03b8a54e47308e5f6 --document-name AWS-RunShellScript \
-  --parameters 'commands=["cd /opt/thesisgate && git fetch -q origin +refs/heads/stronger-after-hours:refs/remotes/origin/stronger-after-hours && git checkout -q -B stronger-after-hours origin/stronger-after-hours && bash deploy/aws-upgrade.sh stronger-after-hours \"thesisgate.duckdns.org, 34-196-4-213.sslip.io\" \"https://thesisgate.duckdns.org,https://34-196-4-213.sslip.io\""]'
-```
+### Deploying
 
-- The OpenRouter key is read from the SecureString parameter `/thesisgate/openrouter-api-key` at deploy time and is written only to the root-only `deploy/production.env` on the host.
-- The quota ledger stays on the dedicated `/data` EBS volume (`/data/thesisgate-quota`), and Caddy's certificates stay in the `thesisgate-caddy-*` volumes.
-- **Bitget Agent Hub session limit:** `agent.bitget.com/mcp` caps open MCP sessions per client IP, and sessions that are never closed do not expire in practice. The app reuses one session and closes sessions with `DELETE` (including on shutdown). If "Too many open sessions" ever returns, the fix is a new Elastic IP (done once on 2026-09-28: 54.84.91.138 → 34.196.4.213), plus updating DuckDNS and the sslip address above.
-- New containers are `tg-quota`, `tg-app` and `tg-caddy`. The first-generation containers are stopped, not deleted: `bash deploy/aws-upgrade.sh --rollback` brings them back.
+1. **Snapshot first** (from a machine with AWS access):
+   ```sh
+   for v in $(aws ec2 describe-instances --region us-east-1 --instance-ids i-03b8a54e47308e5f6 --query 'Reservations[0].Instances[0].BlockDeviceMappings[].Ebs.VolumeId' --output text); do
+     aws ec2 create-snapshot --region us-east-1 --volume-id $v --description "pre-deploy $(date -u +%F-%H%M)" --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Project,Value=ThesisGate}]'; done
+   ```
+2. Push the branch, then run the upgrade through SSM:
+   ```sh
+   aws ssm send-command --region us-east-1 --instance-ids i-03b8a54e47308e5f6 --document-name AWS-RunShellScript \
+     --timeout-seconds 1800 --parameters '{"executionTimeout":["1800"],"commands":["set -e","cd /opt/thesisgate","git fetch -q origin +refs/heads/stronger-after-hours:refs/remotes/origin/stronger-after-hours","git checkout -q -B stronger-after-hours origin/stronger-after-hours","bash deploy/aws-upgrade.sh stronger-after-hours \"thesisgate.duckdns.org, 34-196-4-213.sslip.io\" \"https://thesisgate.duckdns.org,https://34-196-4-213.sslip.io\""]}'
+   ```
+   (Use the branch you are deploying; `main` and `stronger-after-hours` are kept identical.)
 
-## Generic one-box setup (Lightsail or any Docker Compose host)
+### What the script does, and how it fails safe
+
+- **Preflight:** aborts if `/data` is not mounted (the ledger would otherwise land on the root disk and reset) or if the root disk has under 3 GB free.
+- **Builds while the site keeps serving**, tags images by commit, and validates the Caddyfile before touching anything.
+- **Swaps gracefully:** `docker stop -t 25` (never `rm -f`, which sends SIGKILL and skips cleanup), parks the running generation as `tg-*-prev` with its restart policy off, and starts the new one.
+- **Checks end to end:** the app container must be healthy *and* `https://<primary host>/` must answer 200 through Caddy. Any failure restores `tg-*-prev`, i.e. the last good version. `bash deploy/aws-upgrade.sh --rollback` does the same by hand until the next deploy replaces the parked generation.
+- **Prunes** unused images older than 72 h and build cache older than 24 h.
+- The first-generation containers from Sep 19 (`thesisgate-*`) are obsolete and are not used by rollback.
+
+### Bitget Agent Hub session limit (important)
+
+`agent.bitget.com/mcp` and `datahub.noxiaohao.com/mcp` cap open MCP sessions per client IP, and unclosed sessions do not expire in practice (observed 3+ hours). The app therefore closes each session after 60 seconds idle, closes all sessions on SIGTERM/SIGINT (the container sets `NEXT_MANUAL_SIG_HANDLE=true` so Next does not exit before the cleanup finishes), and reuses one session per server. A hard kill can still leak at most the sessions used in the last minute. Do not probe these servers by hand from the production host without sending `DELETE` for the session. If "Too many open sessions" ever returns, the fix is a new Elastic IP (done once on 2026-09-28: 54.84.91.138 to 34.196.4.213), plus DuckDNS and the sslip address above.
+
+### Disaster recovery
+
+- **Snapshots:** daily EBS snapshots of both volumes (root and `/data`), kept 7 days, via an AWS Data Lifecycle Manager policy tagged `Project=ThesisGate`. Restore by creating volumes from the latest snapshots and attaching them to a new instance with the same layout (`/` and `/data`).
+- **Rebuilding from scratch** (Amazon Linux 2023): install Docker, mount the `/data` volume, clone the repository to `/opt/thesisgate`, put the model key in SSM `/thesisgate/openrouter-api-key`, and run `deploy/aws-upgrade.sh`. It creates `deploy/production.env` with fresh secrets. Rotating `THESIS_RECOMPUTE_SIGNING_SECRET` only invalidates receipts for briefs already on screen. The quota ledger (spend counters) restarts empty unless restored from a snapshot; the provider's own key limit still bounds spend.
+
+### Spend controls (check these before judging)
+
+1. **Set a credit limit on the OpenRouter key** in the OpenRouter dashboard (Keys, edit the key, credit limit). OpenRouter's API reports `limit: null` for a key without one; check with `GET https://openrouter.ai/api/v1/key`.
+2. The account balance is a second ceiling and is **shared with any other project using the same account**.
+3. The ledger caps the day at `THESIS_LLM_DAILY_BUDGET_USD`. A call that times out is settled at the full per-call reservation, because the provider may still bill it.
+
+
+## Generic one-box setup (Lightsail or any Docker Compose host): UNTESTED REFERENCE
+
+> The compose stack and `bootstrap-server.sh` below were written for a fresh Ubuntu host but were **never executed**: the live demo uses the EC2 flow above, and Docker was not available where they were written. Treat them as a starting point and test them before relying on them.
 
 One small Ubuntu server runs three containers with Docker Compose:
 

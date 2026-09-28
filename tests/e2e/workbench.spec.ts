@@ -168,7 +168,7 @@ test("the conversation falls back to simple edits when the model is off", async 
   await replayCaptured(page);
   await sendChat(page, "what if I only put in 3k instead?");
   await expect(page.locator("#notional")).toHaveValue("3000");
-  await expect(page.locator(".chat-log")).toContainText("Simple-edit mode");
+  await expect(page.locator(".chat-log")).toContainText("Quick-edit mode");
   await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled({ timeout: 30_000 });
 });
 

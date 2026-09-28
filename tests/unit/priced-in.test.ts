@@ -59,3 +59,12 @@ describe("priced-in context", () => {
     expect(view.scenario).toBeNull();
   });
 });
+
+describe("calendar coverage", () => {
+  it("warns when the observation is past the built-in holiday calendar", () => {
+    const late = buildMarketContext({ asset: "NVDA", mode: "live", observedAt: "2028-03-01T15:00:00.000Z", underlying: null, snapshot: null });
+    expect(late.warnings.some((warning) => warning.includes("calendar") && warning.includes("2027-12-31"))).toBe(true);
+    const current = buildMarketContext({ asset: "NVDA", mode: "live", observedAt: "2026-09-24T15:00:00.000Z", underlying: null, snapshot: null });
+    expect(current.warnings.some((warning) => warning.includes("calendar"))).toBe(false);
+  });
+});

@@ -30,7 +30,7 @@ npm run dev
 Open <http://localhost:3000>. The app opens in **Live** mode: the after-hours radar loads current headlines, the Bitget book and the US quote.
 
 - **Try it with no setup:** click **Replay captured example**. It replays the real Sep 8, 2026 after-hours book with the NVIDIA/AWS release as evidence, and needs no network or AI key.
-- **Try the conversation:** type a trade idea in **Describe the trade**, or click a suggestion. The full conversational layer and the claim review need a model key (see [Optional local claim model](#optional-local-claim-model)). Without one, the chat still applies simple edits (amounts like "3k", switching token, horizons, profit goals, "assume bids rise 1%", halving depth or amount, refreshing prices) and says it is in simple-edit mode.
+- **Try the conversation:** type a trade idea in **Describe the trade**, or click a suggestion. The full conversational layer and the claim review need a model key (see [Optional local claim model](#optional-local-claim-model)). Without one, the chat still applies simple edits (amounts like "3k", switching token, horizons, profit goals, "assume bids rise 1%", halving depth or amount, refreshing prices) and says it is in quick-edit mode.
 
 After a brief exists, economics-only changes (amount, goal, fees, depth, scenario) recompute without another model call. Changing the thesis, horizon, token or evidence selection re-runs the claim review.
 
@@ -101,7 +101,7 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - Priced-in card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
 - Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the priced-in context and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
-- Current local verification: typecheck, lint, 173 unit/integration tests across 23 files, production build, and 26 Chromium/mobile browser journeys pass.
+- Current local verification: typecheck, lint, 180 unit/integration tests across 23 files, production build, and 26 Chromium/mobile browser journeys pass.
 
 ### Not ready for public AI use
 
@@ -188,19 +188,18 @@ The provider hard limit must still be enforced by the provider account or an eff
 
 `THESIS_RECOMPUTE_SIGNING_SECRET` is a separate production requirement even when the model is disabled and all quota variables are unset. Research and market responses carry a server-signed receipt for their validated instrument and snapshot; `/api/recompute` rejects browser-substituted market data. The receipt authenticates origin, not freshness. Use the visible exchange age and refresh control when current data matters. Keep one strong secret consistent across serving instances; rotating it invalidates previously issued receipts and requires a fresh research or market request.
 
-For local development, the quota service is not required. The optional `THESIS_LLM_LOCAL_MAX_CONCURRENT` variable limits simultaneous local model calls in the running process. All POST routes also enforce a single-process per-visitor guard (30 requests/minute per route; claim analyses 5 per visitor per 10 minutes with a 200/day global cap; chat turns have a separate 20 per 10 minutes and 600/day bucket). This is defense in depth only: multi-instance production enforcement remains the durable `THESIS_LLM_QUOTA_URL` reservation service.
+For local development, the quota service is not required. The optional `THESIS_LLM_LOCAL_MAX_CONCURRENT` variable limits simultaneous local model calls in the running process. All POST routes also enforce a single-process per-visitor guard (30 requests/minute per route; claim analyses 12 per visitor per 10 minutes with a 600/day global cap; chat turns have a separate 40 per 10 minutes and 2,000/day bucket. "Visitor" means client IP, so several judges behind one office network share these; the durable ledger's dollar caps are what bound spend. When all model slots are busy, a request waits up to 10 seconds for one before falling back). This is defense in depth only: multi-instance production enforcement remains the durable `THESIS_LLM_QUOTA_URL` reservation service.
 
-### Deploying a production demo
+### Deploying
 
-This checklist deploys a **model-disabled** demo. It does not enable paid AI or certify a hosted service. The app opens in **Live** mode and calls the public market and news endpoints; `THESIS_LLM_ENABLED=false` disables model calls only. Use **Captured replay** for the no-provider, no-network walkthrough. Some exchanges and data providers restrict datacenter or regional traffic, so confirm the live radar actually loads from the chosen host region.
+The live demo runs on one EC2 host with Docker (Caddy for HTTPS, the app, and the durable quota service). The exact runbook, including snapshots before a deploy, the rollback behaviour, and the Bitget session-limit lesson, is in [`deploy/README.md`](deploy/README.md). The app is a standard Next.js standalone build (`Dockerfile`), so it also runs on any Docker host; the repository no longer ships Vercel configuration because Vercel was not used.
 
-1. Import this repository into a Next.js-capable host. For Vercel, select the directory containing `package.json` as the project root, the Next.js framework preset, Node 24, install command `npm ci`, and build command `npm run build`. The included `vercel.json` sets API `Cache-Control: no-store` and function durations. On a Node host, build with `npm ci && npm run build`, then serve with `npm run start` behind HTTPS.
-2. Assign the intended HTTPS domain before exposing the app. Set `THESIS_PUBLIC_ORIGINS` in that deployment's server environment to its **exact origin**, such as `https://demo.example` (illustrative only), or a comma-separated list of exact origins. Include a preview origin only if that deployment must accept it. Do not include paths, trailing slashes, wildcard hosts, or the example domain. Missing or mismatched origins make production POST requests fail closed.
-3. Generate a unique secret with `openssl rand -hex 32` and store its output in the host's secret store as `THESIS_RECOMPUTE_SIGNING_SECRET`. It is **mandatory for production replay and economics reuse**, independently of model quota settings. Do not commit it or expose it through a `NEXT_PUBLIC_` variable.
-4. Set `THESIS_LLM_ENABLED=false`, `NEXT_PUBLIC_TELEMETRY_ENABLED=false`, and `THESIS_TELEMETRY_ENABLED=false`. Leave the model key, endpoint, model, and model-only quota variables unset. `.env.example` separates these groups; local development does not require the production origin or signing-secret settings.
-5. Build and deploy with those environment values. `NEXT_PUBLIC_` settings are baked into the browser bundle, so changing telemetry requires rebuilding. Do not enable model assessment merely because deployment succeeds.
-6. In a logged-out browser on the actual allowed HTTPS origin, select **Replay captured example**. Confirm historical captured provenance, visible **Assessment unavailable** evidence (the model is off), the priced-in card, and conditional economics. Send a chat message such as "use 3k" and confirm simple-edit mode applies it. Change the budget or scenario and submit; confirm economics recompute while evidence is reused. Export Markdown and JSON and check unavailable fields remain unavailable. Save an incomplete draft, restore it, and confirm its text survives without an automatic request.
-7. Record the real deployed URL and the observed smoke-test outcome before sharing it. No hosted link or successful production smoke test is claimed in this README. A replay demo does not resolve the external model-budget gates or real five-trader validation.
+Minimum production settings, wherever it runs:
+
+1. `THESIS_PUBLIC_ORIGINS`: the exact HTTPS origin(s) that serve the app. Production POST routes fail closed without it.
+2. `THESIS_RECOMPUTE_SIGNING_SECRET` (`openssl rand -hex 32`) and `THESIS_VISITOR_HASH_SECRET`: server-only, never `NEXT_PUBLIC_`.
+3. For AI: the model variables plus a reachable quota service (`THESIS_LLM_QUOTA_URL` and the budget variables above). With `THESIS_LLM_ENABLED=false` the app still runs: chat falls back to quick edits and the evidence review reports "Assessment unavailable".
+4. Set a **credit limit on the provider key** in the provider's dashboard. The ledger bounds spend per day, but only the provider can enforce a hard cap.
 
 ### Drafts and validation telemetry
 
@@ -221,7 +220,7 @@ Browser workbench (chat, radar, plan, brief)
       -> pasted text (optional, labeled unverified)
       -> Bitget adapter or captured replay -> pure Decimal.js economics
       -> US quote -> market context
-      -> claim adapter (claims-v4 for pasted-only, claims-v5-multisource with dated provenance)
+      -> claim adapter (claims-v4 for pasted-only, claims-v6-multisource with dated provenance)
           -> durable quota-service reserve/settle when production AI is enabled
       -> validated ResearchResult (`research-v3`)
   -> POST /api/recompute for economics-only changes

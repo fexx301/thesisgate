@@ -59,6 +59,37 @@ describe("rule-based fallback", () => {
     expect(ruleBasedTurn(request("hold until Monday open")).plan.horizon.originalText).toBe("until Monday open");
   });
 
+  it("reads the goal and horizon too, instead of silently dropping them", () => {
+    const result = ruleBasedTurn(request("Put 2k into rNVDA, I want 21 USDT profit by Monday."));
+    expect(result.plan.purchaseNotionalExcludingFee).toBe("2000");
+    expect(result.plan.goal).toEqual({ kind: "profit_usdt", amount: "21" });
+    expect(result.plan.horizon.originalText).toBe("by Monday");
+    for (const change of ["amount set to 2000 USDT", "horizon set to \"by Monday\"", "objective set to 21 USDT net profit"]) expect(result.changed).toContain(change);
+    expect(result.reply).toContain("Quick-edit mode");
+    const casual = ruleBasedTurn(request("Thinking 3k, want about 60 bucks profit"));
+    expect(casual.plan.purchaseNotionalExcludingFee).toBe("3000");
+    expect(casual.plan.goal).toEqual({ kind: "profit_usdt", amount: "60" });
+    const percent = ruleBasedTurn(request("5k please and a 2% return"));
+    expect(percent.plan.purchaseNotionalExcludingFee).toBe("5000");
+    expect(percent.plan.goal).toEqual({ kind: "net_return", fractionOfEntryCash: "0.02" });
+    const even = ruleBasedTurn(request("use 1500 and I just want to break even"));
+    expect(even.plan.goal).toEqual({ kind: "break_even" });
+  });
+
+  it("does not mistake a time for an amount, and keeps short commands free of the quick-mode note", () => {
+    const time = ruleBasedTurn(request("hold until 3pm"));
+    expect(time.plan.horizon.originalText).toBe("until 3pm");
+    expect(time.plan.purchaseNotionalExcludingFee).toBe("1000");
+    expect(ruleBasedTurn(request("use 3000")).reply).toBe("Done: amount set to 3000 USDT.");
+  });
+
+  it("uses a long first message as the thesis when none exists, so a brief can still run", () => {
+    const result = ruleBasedTurn(request("Nvidia just posted huge results so I think rNVDA pops tomorrow, putting in 2k and want 30 USDT profit"));
+    expect(result.plan.thesis).toContain("Nvidia just posted huge results");
+    expect(result.plan.goal).toEqual({ kind: "profit_usdt", amount: "30" });
+    expect(result.action).toBe("run_brief");
+  });
+
   it("keeps the strict follow-up commands and their actions", () => {
     const result = ruleBasedTurn(request("refresh market data"));
     expect(result.action).toBe("refresh_market");

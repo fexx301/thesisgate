@@ -6,6 +6,10 @@ import "server-only";
  */
 const ALLOWED_HOSTS = new Set(["agent.bitget.com", "datahub.noxiaohao.com"]);
 const SESSION_TTL_MS = 10 * 60_000;
+// The public servers cap open sessions per client IP and never expire them, so a session that is not
+// being used is closed quickly. This is the only protection that survives a SIGKILL, an out-of-memory
+// kill or a host reboot: at most one minute of a session's life can be lost to a hard stop.
+const IDLE_CLOSE_MS = 60_000;
 const MAX_BODY_BYTES = 2_000_000;
 const PROTOCOL_VERSION = "2025-06-18";
 
@@ -16,9 +20,10 @@ export class McpError extends Error {
   }
 }
 
-const sessions = new Map<string, { id: string | null; createdAt: number }>();
+type Session = { id: string | null; createdAt: number; inflight: number; idleTimer: ReturnType<typeof setTimeout> | null };
+const sessions = new Map<string, Session>();
 // Concurrent calls share one in-flight handshake instead of racing to open several sessions.
-const opening = new Map<string, Promise<{ id: string | null; createdAt: number }>>();
+const opening = new Map<string, Promise<Session>>();
 let requestCounter = 0;
 
 /** Extracts the JSON-RPC message from either a JSON body or a server-sent-events body. */
@@ -90,10 +95,27 @@ async function closeSession(url: string, id: string | null) {
   }
 }
 
+function scheduleIdleClose(url: string, session: Session) {
+  if (session.idleTimer) clearTimeout(session.idleTimer);
+  session.idleTimer = setTimeout(() => {
+    session.idleTimer = null;
+    if (session.inflight > 0) {
+      scheduleIdleClose(url, session);
+      return;
+    }
+    if (sessions.get(url) === session) sessions.delete(url);
+    void closeSession(url, session.id);
+  }, IDLE_CLOSE_MS);
+  session.idleTimer.unref?.();
+}
+
 export async function closeMcpSessions() {
   const open = [...sessions.entries()];
   sessions.clear();
-  await Promise.all(open.map(([url, session]) => closeSession(url, session.id)));
+  await Promise.all(open.map(([url, session]) => {
+    if (session.idleTimer) clearTimeout(session.idleTimer);
+    return closeSession(url, session.id);
+  }));
 }
 
 let shutdownHookInstalled = false;
@@ -101,8 +123,10 @@ function installShutdownHook() {
   if (shutdownHookInstalled || typeof process === "undefined" || typeof process.once !== "function") return;
   shutdownHookInstalled = true;
   for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    // The container sets NEXT_MANUAL_SIG_HANDLE so Next does not exit first (its handler calls
+    // process.exit within milliseconds, which cut the DELETE requests off). This handler owns the exit.
     process.once(signal, () => {
-      void closeMcpSessions().finally(() => process.kill(process.pid, signal));
+      void closeMcpSessions().finally(() => process.exit(signal === "SIGINT" ? 130 : 143));
     });
   }
 }
@@ -119,8 +143,9 @@ async function openSession(url: string, timeoutMs: number) {
   if (init.status >= 400) throw new McpError(`The data server refused the session (HTTP ${init.status}).`);
   parseRpcBody(init.text);
   await post(url, { jsonrpc: "2.0", method: "notifications/initialized" }, init.sessionId, timeoutMs);
-  const session = { id: init.sessionId, createdAt: Date.now() };
+  const session: Session = { id: init.sessionId, createdAt: Date.now(), inflight: 0, idleTimer: null };
   sessions.set(url, session);
+  scheduleIdleClose(url, session);
   return session;
 }
 
@@ -128,31 +153,45 @@ async function openSession(url: string, timeoutMs: number) {
 export async function callMcpTool(url: string, name: string, args: Record<string, unknown>, timeoutMs = 20_000): Promise<string> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     let session = sessions.get(url);
-    if (!session || Date.now() - session.createdAt > SESSION_TTL_MS || attempt > 0) {
-      if (session) {
+    const expired = session && session.inflight === 0 && Date.now() - session.createdAt > SESSION_TTL_MS;
+    if (!session || expired || attempt > 0) {
+      if (session && (expired || attempt > 0)) {
         sessions.delete(url);
+        if (session.idleTimer) clearTimeout(session.idleTimer);
         void closeSession(url, session.id);
       }
       session = await sharedSession(url, timeoutMs);
     }
-    const response = await post(url, { jsonrpc: "2.0", id: ++requestCounter, method: "tools/call", params: { name, arguments: args } }, session.id, timeoutMs);
-    if (response.status === 404 || response.status === 400) {
-      sessions.delete(url);
-      void closeSession(url, session.id);
-      continue;
+    const active = session;
+    active.inflight += 1;
+    if (active.idleTimer) {
+      clearTimeout(active.idleTimer);
+      active.idleTimer = null;
     }
-    if (response.status >= 400) throw new McpError(`The data server returned HTTP ${response.status}.`);
-    const message = parseRpcBody(response.text);
-    if (message.error) throw new McpError(message.error.message || "The data tool returned an error.");
-    const result = message.result as { content?: Array<{ type?: string; text?: string }>; isError?: boolean } | undefined;
-    const text = (result?.content ?? []).filter((part) => part.type === "text").map((part) => part.text ?? "").join("");
-    if (result?.isError) throw new McpError(text.slice(0, 200) || "The data tool reported an error.");
-    return text;
+    try {
+      const response = await post(url, { jsonrpc: "2.0", id: ++requestCounter, method: "tools/call", params: { name, arguments: args } }, active.id, timeoutMs);
+      if (response.status === 404 || response.status === 400) {
+        if (sessions.get(url) === active) sessions.delete(url);
+        void closeSession(url, active.id);
+        continue;
+      }
+      if (response.status >= 400) throw new McpError(`The data server returned HTTP ${response.status}.`);
+      const message = parseRpcBody(response.text);
+      if (message.error) throw new McpError(message.error.message || "The data tool returned an error.");
+      const result = message.result as { content?: Array<{ type?: string; text?: string }>; isError?: boolean } | undefined;
+      const text = (result?.content ?? []).filter((part) => part.type === "text").map((part) => part.text ?? "").join("");
+      if (result?.isError) throw new McpError(text.slice(0, 200) || "The data tool reported an error.");
+      return text;
+    } finally {
+      active.inflight -= 1;
+      if (active.inflight === 0 && sessions.get(url) === active) scheduleIdleClose(url, active);
+    }
   }
   throw new McpError("The data server session could not be established.");
 }
 
 export function resetMcpSessionsForTests() {
+  for (const session of sessions.values()) if (session.idleTimer) clearTimeout(session.idleTimer);
   sessions.clear();
   opening.clear();
 }

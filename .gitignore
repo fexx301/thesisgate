@@ -53,6 +53,7 @@ yarn-error.log*
 !/evals/scoring-rubric.md
 !/public/finished-brief/nvda-captured.md
 !/deploy/README.md
+!/docs/demo-script.md
 !/evidence/e2e-comparison-v1/**/*.md
 !/evidence/e2e-comparison-v2/**/*.md
 

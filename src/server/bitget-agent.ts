@@ -22,6 +22,7 @@ const COMPANY: Record<Asset, { name: string; pattern: RegExp }> = {
   TSLA: { name: "Tesla", pattern: /\b(tesla|tsla|elon musk|cybertruck|robotaxi|cybercab)\b/i },
 };
 
+const NEWS_BODY_MAX_CHARS = 6_000;
 const RATING: Record<string, string> = { "买入": "Buy", "强力买入": "Strong Buy", "强力买进": "Strong Buy", "增持": "Overweight", "跑赢大市": "Outperform", "跑赢大盘": "Outperform", "跑输大盘": "Underperform", "持有": "Hold", "中性": "Neutral", "减持": "Underweight", "跑输大市": "Underperform", "卖出": "Sell" };
 const ACTION: Record<string, string> = { "首次覆盖": "initiated coverage", "维持": "maintained", "重申": "reiterated", "上调": "raised", "下调": "lowered", "上调评级": "upgraded", "下调评级": "downgraded" };
 const REPORT: Record<string, string> = { "一季报": "Q1 report", "二季报": "Q2 / half-year report", "三季报": "Q3 report", "四季报": "Q4 report", "年报": "annual report" };
@@ -132,7 +133,9 @@ export function newsEvidence(asset: Asset, rows: Array<Record<string, unknown>>,
     const title = str(row.title);
     const published = str(row.published_at) ?? str(row.date);
     if (!title || !published) continue;
-    const text = htmlToText(String(row.content ?? "")).slice(0, 15_000);
+    // Daily briefings run to tens of thousands of characters; the opening sections carry the headline
+    // facts, and every extra character adds model latency.
+    const text = htmlToText(String(row.content ?? "")).slice(0, NEWS_BODY_MAX_CHARS);
     const labels = String(row.labels ?? "");
     const isMacro = /macro/i.test(labels) || /UEX Daily|Macro Preview/i.test(title);
     const relevant = COMPANY[asset].pattern.test(`${title} ${text.slice(0, 4000)}`);

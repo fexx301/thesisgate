@@ -3002,3 +3002,9 @@ select:focus {
   font-size: var(--text-xs);
   line-height: 1.5;
 }
+
+.skeleton-note {
+  margin: 0 0 var(--space-3);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}

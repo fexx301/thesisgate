@@ -6,5 +6,8 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
+	# Next marks the prerendered page cacheable for a year; nothing in front of Caddy should keep a stale build.
+	@html not path /_next/static/* /_next/image*
+	header @html >Cache-Control "no-cache"
 	reverse_proxy app:3000
 }
