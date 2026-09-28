@@ -3,7 +3,7 @@ import "server-only";
 import capturedContext from "../../fixtures/captured-context.json";
 import { MAX_SOURCE_CHARS, SourceDocumentSchema, type Headline, type SourceDocument } from "@/domain/contracts";
 import { decodeEntities, fetchBoundedText, htmlToText } from "./fetch-text";
-import { OFFICIAL_ARTICLE_HOSTS } from "./feeds";
+import { cachedHeadlineBody, OFFICIAL_ARTICLE_HOSTS } from "./feeds";
 import { newId, sha256 } from "./identifiers";
 
 const ARTICLE_TIMEOUT_MS = 7_000;
@@ -60,9 +60,35 @@ function feedSummaryDocument(headline: Headline, fetchedAt: string): SourceDocum
   });
 }
 
+function platformDocument(headline: Headline, body: string, fetchedAt: string): SourceDocument {
+  const { text, truncated } = bounded(body);
+  return SourceDocumentSchema.parse({
+    id: newId("src"),
+    originalUrl: headline.url,
+    finalApprovedUrl: null,
+    title: headline.title,
+    publisher: headline.publisher,
+    publicationDate: headline.publishedAt ?? headline.publishedDate,
+    publicationDatePrecision: headline.publishedAt || headline.publishedDate ? "day" : "unknown",
+    eventDate: null,
+    fetchedAt,
+    cleanedText: text,
+    textHash: sha256(text),
+    provenance: "retrieved_platform_data",
+    truncated,
+  });
+}
+
 export async function sourceFromHeadline(headline: Headline, fetchedAt: string): Promise<{ source: SourceDocument; warning: string | null }> {
+  if (headline.feed.startsWith("bitget_")) {
+    const body = cachedHeadlineBody(headline.id);
+    return {
+      source: platformDocument(headline, body ?? [headline.title, headline.summary].join("\n\n"), fetchedAt),
+      warning: body ? null : `Bitget record "${headline.title.slice(0, 60)}" expired from the server cache; its summary was assessed instead.`,
+    };
+  }
   if (headline.mode === "captured_real") {
-    const article = (capturedContext as unknown as { articles: Record<string, CapturedArticle> }).articles[headline.url];
+    const article = headline.url ? (capturedContext as unknown as { articles: Record<string, CapturedArticle> }).articles[headline.url] : undefined;
     if (!article) return { source: feedSummaryDocument(headline, fetchedAt), warning: null };
     const { text, truncated } = bounded(article.text);
     return {
@@ -84,7 +110,7 @@ export async function sourceFromHeadline(headline: Headline, fetchedAt: string):
       warning: null,
     };
   }
-  if (!headline.fullTextAvailable) return { source: feedSummaryDocument(headline, fetchedAt), warning: null };
+  if (!headline.fullTextAvailable || !headline.url) return { source: feedSummaryDocument(headline, fetchedAt), warning: null };
   try {
     const { text: html, finalUrl } = await fetchBoundedText(headline.url, {
       allowedHosts: OFFICIAL_ARTICLE_HOSTS,

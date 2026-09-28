@@ -4,6 +4,7 @@ import Decimal from "decimal.js";
 import { Clock } from "@phosphor-icons/react";
 import type { EconomicsResult, MarketContext } from "@/domain/contracts";
 import { pricedInView } from "@/domain/priced-in";
+import { requiredMoveInTypicalDays } from "@/domain/technicals";
 import { price, SessionPill, signedPercent } from "./RadarPanel";
 
 type Marker = { key: string; label: string; value: Decimal; detail: string };
@@ -79,11 +80,53 @@ export function PricedInCard({ context, economics, asset }: { context: MarketCon
           </div>
         ))}
       </dl>
+      <SkillContext context={context} goalVsBids={economics.requiredGoalShift} asset={asset} />
       <p className="priced-footnote">
         Close {context.underlying.lastCloseSessionDate} ({timeLabel(context.underlying.lastCloseAt)}){context.session.nextRegularOpenAt ? ` · next US open ${timeLabel(context.session.nextRegularOpenAt)}` : ""}
         {context.basisVsLatest !== null ? ` · r${asset} tracks the latest ${symbol} print within ${signedPercent(context.basisVsLatest, 3)}` : ""}.
         Levels are the best bid moved by the whole-book threshold, an indicator rather than a fill price. Assumes one r{asset} tracks one {symbol} share.
       </p>
     </section>
+  );
+}
+
+function moodLabel(rating: string) {
+  return rating.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+/** Context from the Bitget Agent Hub skills. Descriptive scale and mood only: no verdicts, stops or forecasts. */
+function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; goalVsBids: string | null; asset: string }) {
+  const signals = context.signals;
+  if (!signals || (!signals.technicals && !signals.sentiment)) return null;
+  const technicals = signals.technicals;
+  const sentiment = signals.sentiment;
+  const goalPercent = goalVsBids ? new Decimal(goalVsBids).mul(100).toString() : null;
+  const days = technicals && goalPercent ? requiredMoveInTypicalDays(goalPercent, technicals.atrPercent) : null;
+  const symbol = context.underlying?.symbol ?? asset;
+  return (
+    <div className="skill-context" aria-label="Market context from Bitget Agent Hub skills">
+      {technicals ? (
+        <div className="skill-item">
+          <span className="skill-label">Typical daily range</span>
+          <strong>{new Decimal(technicals.atrPercent).toFixed(2)}%</strong>
+          <small>
+            {symbol} 14-day ATR{days ? ` · your goal needs about ${days} typical days of movement in your favour` : ""}
+            {technicals.rsi14 ? ` · RSI(14) ${new Decimal(technicals.rsi14).toFixed(0)}` : ""}
+          </small>
+        </div>
+      ) : null}
+      {sentiment ? (
+        <div className="skill-item">
+          <span className="skill-label">Market mood</span>
+          <strong>{moodLabel(sentiment.rating)} {new Decimal(sentiment.score).toFixed(0)}</strong>
+          <small>US Fear &amp; Greed index{sentiment.previousMonth ? ` · ${new Decimal(sentiment.previousMonth).toFixed(0)} a month ago` : ""}</small>
+        </div>
+      ) : null}
+      <p className="skill-source">
+        Via Bitget Agent Hub: {technicals ? (technicals.source === "bitget_signal_technical_analysis" ? "technical-analysis skill" : "indicators computed from daily bars") : null}
+        {technicals && sentiment ? " · " : null}
+        {sentiment ? "sentiment-analyst market mood" : null}. Context for scale, not a forecast.
+      </p>
+    </div>
   );
 }

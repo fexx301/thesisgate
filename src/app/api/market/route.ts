@@ -1,6 +1,7 @@
 import { MarketRequestSchema } from "@/domain/contracts";
 import { buildMarketContext } from "@/domain/priced-in";
 import { getMarket, MarketAdapterError } from "@/server/bitget";
+import { fetchMarketSignals } from "@/server/bitget-agent";
 import { getUnderlyingQuote } from "@/server/underlying";
 import { assertAllowedOrigin, checkRouteRateLimit, jsonError, parseJsonRequest, requestContext, RequestOriginError, RequestValidationError } from "@/server/http";
 import { assertRecomputeSigningConfigured, createRecomputeToken, RecomputeReceiptError } from "@/server/recompute";
@@ -15,9 +16,10 @@ export async function POST(request: Request) {
     const input = await parseJsonRequest(request, MarketRequestSchema, 8_000);
     assertRecomputeSigningConfigured();
     const now = new Date();
-    const [market, underlying] = await Promise.all([
+    const [market, underlying, signals] = await Promise.all([
       getMarket(input.asset, input.mode),
       getUnderlyingQuote(input.asset, input.mode, now).then((quote) => ({ quote, warning: null }), (error: unknown) => ({ quote: null, warning: `Underlying quote unavailable: ${error instanceof Error ? error.message : "request failed"}` })),
+      input.mode === "live" ? fetchMarketSignals(input.asset).catch(() => null) : Promise.resolve(null),
     ]);
     const marketContext = buildMarketContext({
       asset: input.asset,
@@ -25,6 +27,7 @@ export async function POST(request: Request) {
       observedAt: input.mode === "captured_real" ? market.snapshot.receivedAt : now.toISOString(),
       underlying: underlying.quote,
       snapshot: market.snapshot,
+      signals,
       warnings: underlying.warning ? [underlying.warning] : [],
     });
     return Response.json({ ...market, marketContext, recomputeToken: createRecomputeToken(market.instrument, market.snapshot) }, { headers: { "cache-control": "no-store" } });

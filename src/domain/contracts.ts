@@ -192,7 +192,7 @@ export const SourceDocumentSchema = z
     fetchedAt: z.string().datetime({ offset: true }),
     cleanedText: z.string().min(1),
     textHash: z.string().min(8),
-    provenance: z.enum(["retrieved_official", "retrieved_feed_summary", "user_pasted_unverified", "captured_official_excerpt", "synthetic_test"]),
+    provenance: z.enum(["retrieved_official", "retrieved_feed_summary", "retrieved_platform_data", "user_pasted_unverified", "captured_official_excerpt", "synthetic_test"]),
     truncated: z.boolean(),
   })
   .strict();
@@ -317,15 +317,45 @@ export const HeadlineSchema = z
     asset: AssetSchema,
     title: z.string().trim().min(1).max(400),
     summary: z.string().trim().max(2_000),
-    url: z.string().url(),
+    // Structured Bitget data records and Bitget news have no public article URL.
+    url: z.string().url().nullable(),
     publisher: z.string().trim().min(1).max(120),
     // Exact instant when the feed states one; otherwise only the publication day is known.
     publishedAt: z.string().datetime({ offset: true }).nullable(),
     publishedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
-    feed: z.enum(["issuer_newsroom", "yahoo_finance_ticker", "sec_edgar_8k"]),
-    kind: z.enum(["issuer_official", "regulatory_filing", "news_aggregator"]),
+    feed: z.enum(["issuer_newsroom", "yahoo_finance_ticker", "sec_edgar_8k", "bitget_news", "bitget_analyst_targets", "bitget_earnings_calendar"]),
+    kind: z.enum(["issuer_official", "regulatory_filing", "news_aggregator", "platform_news", "market_data"]),
     fullTextAvailable: z.boolean(),
     mode: z.enum(["live", "captured_real"]),
+  })
+  .strict();
+
+export const MarketSignalsSchema = z
+  .object({
+    // Descriptive context from the Bitget Agent Hub skills; never a verdict, stop or forecast.
+    technicals: z
+      .object({
+        atrPercent: DecimalStringSchema,
+        rsi14: DecimalStringSchema.nullable(),
+        price: DecimalStringSchema.nullable(),
+        ma7: DecimalStringSchema.nullable(),
+        ma25: DecimalStringSchema.nullable(),
+        source: z.enum(["bitget_signal_technical_analysis", "computed_from_daily_bars"]),
+      })
+      .strict()
+      .nullable(),
+    sentiment: z
+      .object({
+        score: DecimalStringSchema,
+        rating: z.string().min(1).max(40),
+        asOf: z.string().datetime({ offset: true }),
+        previousWeek: DecimalStringSchema.nullable(),
+        previousMonth: DecimalStringSchema.nullable(),
+        source: z.literal("bitget_market_fear_greed"),
+      })
+      .strict()
+      .nullable(),
+    warnings: z.array(z.string()),
   })
   .strict();
 
@@ -369,6 +399,7 @@ export const MarketContextSchema = z
     moveSinceClose: DecimalStringSchema.nullable(),
     // rToken mid versus the freshest underlying print (regular or extended hours), only when that print is fresh.
     basisVsLatest: DecimalStringSchema.nullable(),
+    signals: MarketSignalsSchema.nullable().default(null),
     warnings: z.array(z.string()),
   })
   .strict();
@@ -548,6 +579,7 @@ export type RecomputeResult = z.infer<typeof RecomputeResultSchema>;
 export type Headline = z.infer<typeof HeadlineSchema>;
 export type SessionState = z.infer<typeof SessionStateSchema>;
 export type MarketContext = z.infer<typeof MarketContextSchema>;
+export type MarketSignals = z.infer<typeof MarketSignalsSchema>;
 export type RadarResult = z.infer<typeof RadarResultSchema>;
 export type PlanPatch = z.infer<typeof PlanPatchSchema>;
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
@@ -563,5 +595,5 @@ export const FORMULA_VERSION = "economics-v1";
 export const SCHEMA_VERSION = "research-v3";
 // Pasted-source-only briefs keep the frozen benchmark prompt; retrieved sources add dated provenance.
 export const PROMPT_VERSION = "claims-v4";
-export const MULTI_SOURCE_PROMPT_VERSION = "claims-v5-multisource";
+export const MULTI_SOURCE_PROMPT_VERSION = "claims-v6-multisource";
 export const CHAT_PROMPT_VERSION = "chat-v1";

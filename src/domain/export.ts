@@ -110,6 +110,8 @@ export function toMarkdown(report: ResearchResult) {
     `- Scenario level: ${level(view.scenario)}`,
     `- Share of the goal's move from the close already made: ${view.shareOfGoalAlreadyMoved === null ? "Not applicable" : percent(view.shareOfGoalAlreadyMoved)}`,
     "- Levels are the best bid moved by the whole-book threshold: an indicator, not a fill price. One rToken is assumed to track one underlying share.",
+    `- Typical daily range (14-day ATR): ${context.signals?.technicals ? `${context.signals.technicals.atrPercent}% (${context.signals.technicals.source === "bitget_signal_technical_analysis" ? "Bitget technical-analysis skill" : "computed from daily bars"})${context.signals.technicals.rsi14 ? `; RSI(14) ${context.signals.technicals.rsi14}` : ""}` : "Not available"}`,
+    `- Market mood: ${context.signals?.sentiment ? `${context.signals.sentiment.rating} ${context.signals.sentiment.score} on the US Fear & Greed index at ${context.signals.sentiment.asOf} (Bitget market data)${context.signals.sentiment.previousMonth ? `; ${context.signals.sentiment.previousMonth} a month earlier` : ""}` : "Not available"}`,
     ...context.warnings.map((warning) => `- Warning: ${warning}`),
   ].join("\n") : "- Market context was not recorded for this report.";
   const scenarioLines = economics.scenarioTable

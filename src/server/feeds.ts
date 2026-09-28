@@ -2,6 +2,7 @@ import "server-only";
 
 import capturedContext from "../../fixtures/captured-context.json";
 import { HeadlineSchema, type Asset, type Headline } from "@/domain/contracts";
+import { fetchBitgetEvidence } from "./bitget-agent";
 import { createTtlCache, decodeEntities, fetchBoundedText, htmlToText } from "./fetch-text";
 import { sha256 } from "./identifiers";
 
@@ -74,12 +75,19 @@ function feedsFor(asset: Asset): FeedDefinition[] {
 }
 
 const headlineCache = new Map<string, { headline: Headline; cachedAt: number }>();
+// Full text for Bitget records, kept server-side so browsers only ever send headline IDs.
+const headlineBodies = new Map<string, string>();
+
+export function cachedHeadlineBody(id: string) {
+  return headlineBodies.get(id) ?? null;
+}
 
 function remember(headline: Headline) {
   const now = Date.now();
   for (const [id, entry] of headlineCache) {
     if (now - entry.cachedAt < HEADLINE_CACHE_TTL_MS && headlineCache.size < HEADLINE_CACHE_MAX) break;
     headlineCache.delete(id);
+    headlineBodies.delete(id);
   }
   headlineCache.delete(headline.id);
   headlineCache.set(headline.id, { headline, cachedAt: now });
@@ -98,6 +106,7 @@ export function cachedHeadline(id: string): Headline | null {
 
 export function resetHeadlineCacheForTests() {
   headlineCache.clear();
+  headlineBodies.clear();
   feedCache.clear();
 }
 
@@ -181,7 +190,7 @@ export function capturedHeadlines(asset?: Asset): Headline[] {
     .filter((item) => !asset || item.asset === asset)
     .map((item) => HeadlineSchema.parse({
       ...item,
-      id: headlineId(`captured:${item.feed}`, item.url, item.title),
+      id: headlineId(`captured:${item.feed}`, item.url ?? "", item.title),
       fullTextAvailable: true,
       mode: "captured_real",
     }));
@@ -190,6 +199,7 @@ export function capturedHeadlines(asset?: Asset): Headline[] {
 export async function fetchHeadlines(asset: Asset, mode: "live" | "captured_real") {
   if (mode === "captured_real") return { headlines: capturedHeadlines(asset), warnings: [] as string[] };
   const warnings: string[] = [];
+  const bitgetPromise = fetchBitgetEvidence(asset).catch(() => ({ items: [], warnings: ["Bitget market data unavailable."] }));
   const results = await Promise.allSettled(feedsFor(asset).map((definition) => feedCache.get(definition.url, async () => {
     const { text } = await fetchBoundedText(definition.url, {
       allowedHosts: new Set([definition.host]),
@@ -217,7 +227,15 @@ export async function fetchHeadlines(asset: Asset, mode: "live" | "captured_real
     }
   });
   headlines.sort((left, right) => (right.publishedAt ?? right.publishedDate ?? "").localeCompare(left.publishedAt ?? left.publishedDate ?? ""));
-  const bounded = headlines.slice(0, MAX_HEADLINES);
+  const bitget = await bitgetPromise;
+  warnings.push(...bitget.warnings);
+  // Structured Bitget data (analyst targets, earnings calendar) leads the list; Bitget news joins the dated feed.
+  const data = bitget.items.filter((item) => item.headline.kind === "market_data");
+  const news = bitget.items.filter((item) => item.headline.kind === "platform_news");
+  const merged = [...headlines, ...news.map((item) => item.headline)]
+    .sort((left, right) => (right.publishedAt ?? right.publishedDate ?? "").localeCompare(left.publishedAt ?? left.publishedDate ?? ""));
+  const bounded = [...data.map((item) => item.headline), ...merged].slice(0, MAX_HEADLINES + data.length);
+  for (const item of bitget.items) headlineBodies.set(item.headline.id, item.body);
   bounded.forEach(remember);
   return { headlines: bounded, warnings };
 }

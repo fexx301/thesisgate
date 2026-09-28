@@ -1,6 +1,7 @@
 import { RadarRequestSchema, RadarResultSchema } from "@/domain/contracts";
 import { buildMarketContext } from "@/domain/priced-in";
 import { getMarket } from "@/server/bitget";
+import { fetchMarketSignals } from "@/server/bitget-agent";
 import { fetchHeadlines } from "@/server/feeds";
 import { assertAllowedOrigin, checkRouteRateLimit, jsonError, parseJsonRequest, requestContext, RequestOriginError, RequestValidationError } from "@/server/http";
 import { getUnderlyingQuote } from "@/server/underlying";
@@ -15,10 +16,12 @@ export async function POST(request: Request) {
     checkRouteRateLimit(requestContext(request).visitorKey, "radar");
     const input = await parseJsonRequest(request, RadarRequestSchema, 4_000);
     const now = new Date();
-    const [feeds, market, underlying] = await Promise.all([
+    const [feeds, market, underlying, signals] = await Promise.all([
       fetchHeadlines(input.asset, input.mode),
       getMarket(input.asset, input.mode).catch((error: unknown) => ({ error })),
       getUnderlyingQuote(input.asset, input.mode, now).catch((error: unknown) => ({ error })),
+      // Skill signals describe the market now, so captured replay does not show them.
+      input.mode === "live" ? fetchMarketSignals(input.asset).catch(() => null) : Promise.resolve(null),
     ]);
     const snapshot = "snapshot" in market ? market.snapshot : null;
     const quote = "error" in underlying ? null : underlying;
@@ -31,6 +34,7 @@ export async function POST(request: Request) {
       observedAt: input.mode === "captured_real" && snapshot ? snapshot.receivedAt : now.toISOString(),
       underlying: quote,
       snapshot,
+      signals,
       warnings,
     });
     const result = RadarResultSchema.parse({

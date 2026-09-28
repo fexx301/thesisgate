@@ -17,6 +17,7 @@ import { withMarketModeLimitations } from "@/domain/limitations";
 import { getMarket, MarketAdapterError } from "./bitget";
 import { newId } from "./identifiers";
 import { sourceFromHeadline } from "./articles";
+import { fetchMarketSignals } from "./bitget-agent";
 import { cachedHeadline } from "./feeds";
 import { assessClaims, claimPromptFor, ModelAdapterError, unavailableEvidence } from "./model";
 import { CAPTURED_AT_UTC, getUnderlyingQuote } from "./underlying";
@@ -148,7 +149,8 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
       return { result: null, error };
     }
   })();
-  const [marketOutcome, evidenceOutcome, underlyingOutcome] = await Promise.all([marketPromise, evidencePromise, underlyingPromise]);
+  const signalsPromise = request.marketMode === "live" ? fetchMarketSignals(request.plan.asset).catch(() => null) : Promise.resolve(null);
+  const [marketOutcome, evidenceOutcome, underlyingOutcome, signals] = await Promise.all([marketPromise, evidencePromise, underlyingPromise, signalsPromise]);
 
   let instrument = null;
   let snapshot = null;
@@ -230,6 +232,7 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     observedAt: snapshot && request.marketMode === "captured_real" ? snapshot.receivedAt : new Date().toISOString(),
     underlying: underlyingOutcome.quote,
     snapshot,
+    signals,
     warnings: underlyingOutcome.warning ? [underlyingOutcome.warning] : [],
   });
   const economicsHash = instrument && snapshot

@@ -40,6 +40,8 @@ function provenanceNote(provenance: SourceDocument["provenance"]) {
       return "full text retrieved by the application from the issuer's official newsroom";
     case "captured_official_excerpt":
       return "full text captured earlier from the issuer's official newsroom";
+    case "retrieved_platform_data":
+      return "retrieved by the application from Bitget's market-data platform: dated structured records such as analyst price targets or earnings dates, or a Bitget news article in full";
     case "retrieved_feed_summary":
       return "headline and feed summary only, retrieved by the application; the full article was not read";
     case "user_pasted_unverified":
@@ -72,6 +74,7 @@ export function multiSourceClaimPrompt(plan: Plan, sources: SourceDocument[], no
     ...rules,
     `Today is ${now.toISOString().slice(0, 10)}. Compare each source's publication date with the thesis. If the thesis treats an announcement as new but the source was published earlier, say the source shows an earlier announcement; do not call it a new event.`,
     "Each exactText must be a complete, self-contained sentence a trader can read alone, for example \"The announcement will cause rNVDA to rise before Monday's open\", never a fragment such as \"so\".",
+    "Structured market-data records (analyst price targets with firm and date, earnings report dates) are direct evidence for claims about analyst targets or about when results were reported; compare the thesis's figures and timing with them exactly.",
     "When sources disagree, keep the claim-level disagreement visible instead of averaging it away. Prefer the issuer's official text over a feed summary for what the issuer stated, and say when only a headline summary was available.",
     `THESIS:\n${plan.thesis}`,
     sourcePacket,

@@ -67,6 +67,8 @@ The price levels in the priced-in card are the best bid moved by the whole-book 
 
 | Source | Used for | Mode |
 | --- | --- | --- |
+| **Bitget Agent Hub: `bitget-mcp-server`** (`agent.bitget.com/mcp`) | Dated analyst price targets, earnings calendar, Bitget news and the daily macro briefing as selectable evidence; the US Fear & Greed index for market mood | Live |
+| **Bitget Agent Hub: `bitget-signal` technical-analysis skill** | 14-day ATR (typical daily range) and RSI, shown as scale context next to the goal; falls back to the same indicators computed from daily bars | Live |
 | Bitget public API (`/api/v3/market/*`) | rToken instrument rules, ticker, 50-level order book | Live; captured Sep 8 fixture for replay |
 | Yahoo Finance chart endpoint | Underlying last regular close and latest extended-hours print | Live; captured values for replay |
 | Yahoo Finance ticker RSS | Company headlines and summaries (filtered to stories naming the company) | Live |
@@ -90,12 +92,13 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 ### Built
 
 - Conversational plan builder: one bounded JSON-mode model call per message returns a plan patch, evidence selection and action. The patch is applied by a pure, schema-validated applier (`src/domain/plan-patch.ts`) that cannot touch protected fields. A deterministic fallback handles common edits when the model is unavailable.
-- After-hours radar: live company headlines, official newsroom full text, optional SEC 8-K filings, US session state, and the rToken's move since the last close.
+- After-hours radar: live company headlines, official newsroom full text, SEC 8-K filings, US session state, and the rToken's move since the last close.
+- Bitget Agent Hub integration (the Track 3 recommended toolchain): `bitget-mcp-server` supplies dated analyst price targets, the earnings calendar, Bitget news and the macro briefing as evidence, plus market mood; the `bitget-signal` technical-analysis skill supplies the typical daily range. With it, "analysts say $660" is contradicted by the actual $300–515 targets, and "Tesla just reported earnings" by the Jul 22 report date. Skill output is shown as descriptive context only: its verdicts and suggested stops are never displayed.
 - Multi-source claim review with dated provenance, recirculation detection, tolerant but verified citation matching, and honest downgrading of unverifiable quotes.
 - Priced-in card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
 - Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the priced-in context and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
-- Current local verification: typecheck, lint, 162 unit/integration tests across 22 files, production build, and 26 Chromium/mobile browser journeys pass.
+- Current local verification: typecheck, lint, 169 unit/integration tests across 23 files, production build, and 26 Chromium/mobile browser journeys pass.
 
 ### Not ready for public AI use
 

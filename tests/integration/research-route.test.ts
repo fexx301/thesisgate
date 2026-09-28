@@ -90,7 +90,7 @@ describe("research with retrieved headlines", () => {
     expect(report.sources).toHaveLength(1);
     expect(report.sources[0].provenance).toBe("captured_official_excerpt");
     expect(report.sources[0].publicationDate).toBe("2026-08-26");
-    expect(report.promptVersion).toBe("claims-v5-multisource");
+    expect(report.promptVersion).toBe("claims-v6-multisource");
     expect(report.marketContext.session.state).toBe("post_market");
     expect(report.marketContext.underlying.lastClose).toBe("225.73");
     expect(report.partialErrors.some((error: { kind: string }) => error.kind === "source_missing")).toBe(false);

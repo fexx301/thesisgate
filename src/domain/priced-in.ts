@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { MarketContextSchema, type Asset, type EconomicsResult, type MarketContext, type MarketSnapshot } from "./contracts";
+import { MarketContextSchema, type Asset, type EconomicsResult, type MarketContext, type MarketSignals, type MarketSnapshot } from "./contracts";
 import { classifySession } from "./session";
 
 // An underlying print older than this is context, not a tracking reference.
@@ -21,6 +21,7 @@ export function buildMarketContext(input: {
   observedAt: string;
   underlying: UnderlyingQuote | null;
   snapshot: MarketSnapshot | null;
+  signals?: MarketSignals | null;
   warnings?: string[];
 }): MarketContext {
   const warnings = [...(input.warnings ?? [])];
@@ -61,6 +62,7 @@ export function buildMarketContext(input: {
     rToken,
     moveSinceClose,
     basisVsLatest,
+    signals: input.signals ?? null,
     warnings,
   });
 }

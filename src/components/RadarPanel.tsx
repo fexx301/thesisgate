@@ -1,7 +1,7 @@
 "use client";
 
 import Decimal from "decimal.js";
-import { ArrowClockwise, Broadcast, CheckSquare, FileText, Newspaper, Scroll, Square } from "@phosphor-icons/react";
+import { ArrowClockwise, Broadcast, ChartBar, CheckSquare, FileText, Newspaper, Scroll, Square } from "@phosphor-icons/react";
 import type { Headline, MarketContext, RadarResult } from "@/domain/contracts";
 
 export function signedPercent(value: string | null, digits = 2) {
@@ -44,12 +44,16 @@ export function isNewSinceClose(headline: Headline, context: MarketContext | nul
 }
 
 function kindLabel(headline: Headline) {
+  if (headline.kind === "market_data") return "Bitget market data";
+  if (headline.kind === "platform_news") return headline.publisher === "Bitget macro briefing" ? "Bitget macro briefing" : "Bitget news · full text";
   if (headline.kind === "issuer_official") return headline.fullTextAvailable ? "Official release · full text" : "Official · summary";
   if (headline.kind === "regulatory_filing") return "SEC filing";
   return "News summary";
 }
 
 function KindIcon({ headline }: { headline: Headline }) {
+  if (headline.kind === "market_data") return <ChartBar size={15} weight="bold" aria-hidden="true" />;
+  if (headline.kind === "platform_news") return <Newspaper size={15} weight="fill" aria-hidden="true" />;
   if (headline.kind === "issuer_official") return <FileText size={15} weight="bold" aria-hidden="true" />;
   if (headline.kind === "regulatory_filing") return <Scroll size={15} weight="bold" aria-hidden="true" />;
   return <Newspaper size={15} weight="bold" aria-hidden="true" />;
@@ -130,7 +134,7 @@ export function RadarPanel({
             {radar.headlines.map((headline) => {
               const checked = selected.includes(headline.id);
               const disabled = !checked && selected.length >= maxSelected;
-              const fresh = isNewSinceClose(headline, context);
+              const fresh = headline.kind !== "market_data" && isNewSinceClose(headline, context);
               return (
                 <li key={headline.id} className={`headline ${checked ? "headline-selected" : ""}`}>
                   <button type="button" className="headline-toggle" aria-pressed={checked} disabled={disabled} onClick={() => onToggle(headline.id)}>
@@ -141,11 +145,11 @@ export function RadarPanel({
                         <span className={`headline-kind headline-kind-${headline.kind}`}><KindIcon headline={headline} />{kindLabel(headline)}</span>
                         <span>{headline.publisher}</span>
                         <span>{relativeTime(headline.publishedAt, headline.publishedDate, radar.mode === "captured_real" && context ? new Date(context.observedAt).getTime() : now)}</span>
-                        {fresh ? <span className="headline-fresh">New since close</span> : context?.underlying ? <span className="headline-old">Before last close</span> : null}
+                        {fresh ? <span className="headline-fresh">New since close</span> : context?.underlying && headline.kind !== "market_data" ? <span className="headline-old">Before last close</span> : null}
                       </span>
                     </span>
                   </button>
-                  <a className="headline-link" href={headline.url} target="_blank" rel="noreferrer">Open</a>
+                  {headline.url ? <a className="headline-link" href={headline.url} target="_blank" rel="noreferrer">Open</a> : <span className="headline-link headline-link-static" title="Retrieved from Bitget's data platform; no public article page">Bitget</span>}
                 </li>
               );
             })}
@@ -154,6 +158,7 @@ export function RadarPanel({
           <p className="muted-copy">No company headlines were found for r{asset} {radar.mode === "captured_real" ? "in the captured replay" : "right now"}. Paste a source in the plan below instead.</p>
         )
       ) : null}
+      {radar?.mode === "live" ? <p className="radar-note">Sources: Bitget market data (bitget-mcp-server: analyst targets, earnings calendar, Bitget news), NVIDIA Newsroom, SEC EDGAR and Yahoo Finance.</p> : null}
       {radar?.feedWarnings.map((warning) => <p key={warning} className="radar-note radar-warning">{warning}</p>)}
     </section>
   );

@@ -113,7 +113,7 @@ export function createTtlCache<T>(ttlMs: number, maxEntries = 50) {
   const entries = new Map<string, { value: T; expiresAt: number }>();
   const inFlight = new Map<string, Promise<T>>();
   return {
-    async get(key: string, load: () => Promise<T>): Promise<T> {
+    async get(key: string, load: () => Promise<T>, shouldCache: (value: T) => boolean = () => true): Promise<T> {
       const now = Date.now();
       const hit = entries.get(key);
       if (hit && hit.expiresAt > now) return hit.value;
@@ -122,6 +122,7 @@ export function createTtlCache<T>(ttlMs: number, maxEntries = 50) {
       const promise = load()
         .then((value) => {
           entries.delete(key);
+          if (!shouldCache(value)) return value;
           entries.set(key, { value, expiresAt: Date.now() + ttlMs });
           while (entries.size > maxEntries) entries.delete(entries.keys().next().value as string);
           return value;
