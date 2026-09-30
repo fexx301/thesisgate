@@ -18,7 +18,9 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
     # Next's own SIGTERM handler exits within milliseconds; the app's shutdown hook needs to finish
-    # closing Bitget MCP sessions first (see src/server/mcp-client.ts), so it owns the exit.
+    # closing Bitget MCP sessions first, so it owns the exit. The handler is installed eagerly at boot
+    # by src/instrumentation.ts (not lazily on the first MCP call), so a deploy's SIGTERM is always
+    # handled and the process exits 143 gracefully instead of being SIGKILLed (137) with a session open.
     NEXT_MANUAL_SIG_HANDLE=true
 RUN groupadd --system --gid 1001 app && useradd --system --uid 1001 --gid app app
 COPY --from=build --chown=app:app /app/.next/standalone ./

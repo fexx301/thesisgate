@@ -119,7 +119,14 @@ export async function closeMcpSessions() {
 }
 
 let shutdownHookInstalled = false;
-function installShutdownHook() {
+/**
+ * Installs the SIGTERM/SIGINT handler that closes open Bitget MCP sessions (DELETE) before exit.
+ * Idempotent. Registered eagerly at server boot from `src/instrumentation.ts` so the handler exists
+ * even if no MCP request has run yet — otherwise a deploy's SIGTERM is unhandled and Docker SIGKILLs
+ * the process (exit 137), leaking the session against Bitget's per-IP cap. Also called lazily when a
+ * session opens, as a belt-and-braces fallback.
+ */
+export function registerMcpShutdownHook() {
   if (shutdownHookInstalled || typeof process === "undefined" || typeof process.once !== "function") return;
   shutdownHookInstalled = true;
   for (const signal of ["SIGTERM", "SIGINT"] as const) {
@@ -132,7 +139,7 @@ function installShutdownHook() {
 }
 
 async function openSession(url: string, timeoutMs: number) {
-  installShutdownHook();
+  registerMcpShutdownHook();
   const init = await post(url, {
     jsonrpc: "2.0",
     id: ++requestCounter,
