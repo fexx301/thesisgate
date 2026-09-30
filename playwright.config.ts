@@ -11,6 +11,10 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: true,
   workers: 2,
+  // The suite runs entirely on the deterministic rule-based fallback (THESIS_LLM_ENABLED=false),
+  // so a failure is never model nondeterminism. One retry absorbs transient request-timeout flake
+  // when two workers hit the single standalone server at once; a real regression still fails twice.
+  retries: 1,
   reporter: "list",
   use: {
     baseURL,

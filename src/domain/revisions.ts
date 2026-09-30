@@ -30,6 +30,7 @@ export type WorkbenchAction =
   | { type: "set-source-text"; sourceText: string }
   | { type: "set-source-url"; sourceUrl: string }
   | { type: "set-headlines"; headlineIds: string[]; changedMessage: string | null }
+  | { type: "load-example"; plan: Plan; sourceText: string; sourceUrl: string; headlineIds: string[]; marketMode: MarketMode; changedMessage: string }
   | { type: "request-success"; requestId: number; report: ResearchResult; requestedMarketMode: MarketMode }
   | { type: "set-market-mode"; marketMode: MarketMode; changedMessage?: string }
   | { type: "restore-draft"; plan: Plan; sourceText: string; sourceUrl: string; marketMode: MarketMode; changedMessage: string }
@@ -65,6 +66,21 @@ export function revisionReducer(state: WorkbenchState, action: WorkbenchAction):
         planRevision: state.planRevision + 1,
         thesisRevision: state.thesisRevision + 1,
         changedMessage: "Source URL changed. The reference remains unverified until retrieval is enabled.",
+      };
+    case "load-example":
+      // One atomic revision, so the request made for the example can name it exactly.
+      return {
+        ...state,
+        plan: action.plan,
+        sourceText: action.sourceText,
+        sourceUrl: action.sourceUrl,
+        selectedHeadlineIds: action.headlineIds,
+        marketMode: action.marketMode,
+        planRevision: state.planRevision + 1,
+        thesisRevision: state.thesisRevision + 1,
+        scenarioRevision: state.scenarioRevision + 1,
+        changedMessage: action.changedMessage,
+        errorMessage: null,
       };
     case "set-headlines":
       if (JSON.stringify(action.headlineIds) === JSON.stringify(state.selectedHeadlineIds)) return state;

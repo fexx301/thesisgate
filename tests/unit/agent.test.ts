@@ -33,8 +33,15 @@ describe("model chat turns", () => {
     expect(result.changed).toEqual(["thesis updated", "amount set to 3000 USDT", "objective set to 60 USDT net profit"]);
   });
 
+  it("never turns a short or another asset into a plan change, even when the model tries", () => {
+    const result = finalizeModelTurn({ reply: "Set up your trade.", patch: { thesis: "rNVDA falls.", purchaseNotional: "2000" }, action: "run_brief" }, request("I want to short rNVDA with 2000 USDT"), "test-model");
+    expect(result.plan).toEqual(plan);
+    expect(result.action).toBe("none");
+    expect(result.reply).toContain("can't model shorts");
+  });
+
   it("refuses an invalid patch without changing the plan and says why", () => {
-    const result = finalizeModelTurn({ reply: "Going short.", patch: { side: "short" }, action: "none" }, request("short it"), "test-model");
+    const result = finalizeModelTurn({ reply: "Updated.", patch: { side: "short" }, action: "none" }, request("change the plan"), "test-model");
     expect(result.plan).toEqual(plan);
     expect(result.reply).toContain("could not apply");
   });
@@ -110,5 +117,34 @@ describe("chat thesis restatement", () => {
     for (const phrase of ["\"today\"", "analysts say", "price expectation with its timeframe", "Never drop or soften"]) {
       expect(CHAT_SYSTEM_PROMPT).toContain(phrase);
     }
+  });
+});
+
+describe("quick-edit mode: unsupported requests and the displayed suggestions", () => {
+  it("refuses other assets and shorts instead of producing an rNVDA long brief", () => {
+    for (const message of ["I want to buy 2000 USDT of BTC because Bitcoin will rise by tomorrow", "I want to short rNVDA with 2000 USDT until tomorrow", "3x long rTSLA on futures", "buy puts on Tesla"]) {
+      const result = ruleBasedTurn(request(message));
+      expect(result.action, message).toBe("none");
+      expect(result.plan, message).toEqual(plan);
+      expect(result.changed, message).toEqual([]);
+    }
+    // Mentioning another company alongside a supported token is fine (e.g. AWS or Apple news about NVIDIA).
+    expect(ruleBasedTurn(request("Apple signed a GPU deal with Nvidia, put 2k into rNVDA")).plan.purchaseNotionalExcludingFee).toBe("2000");
+    expect(ruleBasedTurn(request("hold rNVDA for the short term, use 3000")).plan.purchaseNotionalExcludingFee).toBe("3000");
+  });
+
+  it("applies every suggestion the UI shows after a brief", async () => {
+    const { POST_BRIEF_SUGGESTIONS, RUN_CHECKS, switchAssetSuggestion } = await import("../../src/domain/suggestions");
+    const withBrief = (message: string) => ruleBasedTurn(request(message, { briefSummary: "Evidence verdict: mixed." }));
+    expect(withBrief(POST_BRIEF_SUGGESTIONS.halveAmount).plan.purchaseNotionalExcludingFee).toBe("500");
+    expect(withBrief(POST_BRIEF_SUGGESTIONS.halveDepth).plan.exitAssumptions.depthMultiplier).toBe("0.5");
+    expect(withBrief(POST_BRIEF_SUGGESTIONS.bidsRise).plan.scenario).toEqual({ bidPriceShift: "0.01", assumptionOrigin: "user" });
+    expect(withBrief(POST_BRIEF_SUGGESTIONS.refreshLive).action).toBe("refresh_market");
+    expect(withBrief(POST_BRIEF_SUGGESTIONS.useLive).action).toBe("refresh_market");
+    for (const message of Object.values(POST_BRIEF_SUGGESTIONS)) expect(withBrief(message).action, message).not.toBe("none");
+    expect(ruleBasedTurn(request(switchAssetSuggestion("NVDA"))).plan.asset).toBe("TSLA");
+    const withThesis = ruleBasedTurn(request(RUN_CHECKS, { plan: { ...plan, thesis: "rNVDA rises." } }));
+    expect(withThesis.action).toBe("run_brief");
+    expect(ruleBasedTurn(request("what if bids drop 3%")).plan.scenario?.bidPriceShift).toBe("-0.03");
   });
 });

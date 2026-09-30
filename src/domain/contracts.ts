@@ -25,11 +25,21 @@ function checkedDecimal(value: string) {
   }
 }
 
+// Decimal.js treats huge exponents as finite, and fixed-point formatting then expands a nine-character
+// input like "1e1000000" into a million characters. Every accepted number is bounded here instead.
+const MAX_MAGNITUDE = "1e15";
+
 export const DecimalStringSchema = z
   .string()
   .trim()
+  .max(64, "Enter a shorter number")
   .regex(DECIMAL_PATTERN, "Enter a decimal number")
-  .refine(isFiniteDecimal, "Enter a finite decimal number");
+  .refine(isFiniteDecimal, "Enter a finite decimal number")
+  .refine((value) => checkedDecimal(value)?.abs().lte(MAX_MAGNITUDE) === true, "Enter a number below 1,000,000,000,000,000")
+  .refine((value) => {
+    const parsed = checkedDecimal(value);
+    return parsed !== null && (parsed.isZero() || parsed.abs().gte("1e-18"));
+  }, "Enter a number with at most 18 decimal places");
 
 export const NonNegativeDecimalStringSchema = DecimalStringSchema.refine(
   (value) => checkedDecimal(value)?.gte(0) === true,

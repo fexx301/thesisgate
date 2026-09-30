@@ -1,5 +1,5 @@
 import { FORMULA_VERSION, RecomputeRequestSchema, RecomputeResultSchema } from "@/domain/contracts";
-import { calculateEconomics } from "@/domain/economics";
+import { calculateEconomics, marketIdentityError } from "@/domain/economics";
 import { economicsInputHash } from "@/domain/revisions";
 import { assertAllowedOrigin, checkRouteRateLimit, jsonError, parseJsonRequest, requestContext, RequestOriginError, RequestValidationError } from "@/server/http";
 import { newId } from "@/server/identifiers";
@@ -17,6 +17,8 @@ export async function POST(request: Request) {
     if (!verifyRecomputeToken(input.recomputeToken, input.instrument, input.snapshot)) {
       return jsonError("The market snapshot was not issued by this server. Run a fresh research request.", 409);
     }
+    const mismatch = marketIdentityError(input.plan, input.instrument, input.snapshot);
+    if (mismatch) return jsonError(`${mismatch} Load market data for r${input.plan.asset} first.`, 400);
     const economics = calculateEconomics({
       plan: input.plan,
       instrument: input.instrument,

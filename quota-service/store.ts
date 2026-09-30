@@ -47,6 +47,8 @@ export type ReconciliationRow = {
   requestId: string;
   visitorKey: string;
   reservedUsd: number;
+  // A provider-reported cost above the reservation, kept for reconciliation and counted as spend.
+  reportedOverrunUsd: number | null;
   createdAt: string;
   leaseExpiresAt: string;
 };
@@ -171,6 +173,11 @@ export class QuotaStore {
       defensive: true,
     });
     this.database.exec(SCHEMA);
+    // Additive migration for ledgers created before overrun accounting existed.
+    const columns = this.database.prepare("PRAGMA table_info(reservations)").all() as Array<{ name?: unknown }>;
+    if (!columns.some((column) => column.name === "reported_micros")) {
+      this.database.exec("ALTER TABLE reservations ADD COLUMN reported_micros INTEGER");
+    }
     this.limits = limits;
   }
 
@@ -217,7 +224,7 @@ export class QuotaStore {
   private spendForDay(dayKey: string) {
     const row = this.database.prepare(`
       SELECT COALESCE(SUM(
-        CASE WHEN status = 'settled' THEN actual_micros ELSE reserved_micros END
+        CASE WHEN status = 'settled' THEN actual_micros ELSE MAX(reserved_micros, COALESCE(reported_micros, 0)) END
       ), 0) AS used_micros
       FROM reservations
       WHERE day_key = ?
@@ -228,7 +235,7 @@ export class QuotaStore {
   private spendForVisitor(visitorKey: string, dayKey: string) {
     const row = this.database.prepare(`
       SELECT COALESCE(SUM(
-        CASE WHEN status = 'settled' THEN actual_micros ELSE reserved_micros END
+        CASE WHEN status = 'settled' THEN actual_micros ELSE MAX(reserved_micros, COALESCE(reported_micros, 0)) END
       ), 0) AS used_micros
       FROM reservations
       WHERE visitor_key = ? AND day_key = ?
@@ -351,8 +358,13 @@ export class QuotaStore {
 
       const reservedMicros = Number(reservation.reserved_micros);
       if (!Number.isSafeInteger(reservedMicros) || actualMicros > reservedMicros) {
-        // Keep the reservation pending. A later authoritative settlement can still
-        // close it; no excess provider spend is ever accepted into the ledger.
+        // Keep the reservation pending for reconciliation, but record the reported cost: it is real spend,
+        // and every later budget check must count it rather than the smaller reservation.
+        this.database.prepare(`
+          UPDATE reservations
+          SET reported_micros = MAX(COALESCE(reported_micros, 0), ?)
+          WHERE id = ? AND status = 'pending'
+        `).run(actualMicros, input.reservationId);
         return { allowed: false, reason: "The provider-reported cost exceeded the reserved maximum; reconciliation is required." };
       }
 
@@ -382,7 +394,7 @@ export class QuotaStore {
   reconciliation(limit = 100, now = new Date()): ReconciliationRow[] {
     const boundedLimit = Math.min(100, Math.max(1, Math.trunc(limit)));
     const rows = this.database.prepare(`
-      SELECT id, request_id, visitor_key, reserved_micros, created_at, lease_expires_at
+      SELECT id, request_id, visitor_key, reserved_micros, reported_micros, created_at, lease_expires_at
       FROM reservations
       WHERE status = 'pending' AND lease_expires_at <= ?
       ORDER BY lease_expires_at ASC
@@ -393,6 +405,7 @@ export class QuotaStore {
       requestId: String(row.request_id),
       visitorKey: String(row.visitor_key),
       reservedUsd: usdValue(Number(row.reserved_micros)),
+      reportedOverrunUsd: row.reported_micros === null || row.reported_micros === undefined ? null : usdValue(Number(row.reported_micros)),
       createdAt: String(row.created_at),
       leaseExpiresAt: String(row.lease_expires_at),
     }));

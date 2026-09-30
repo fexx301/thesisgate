@@ -51,7 +51,7 @@ test("captured research flow keeps evidence and economics distinct", async ({ pa
 
   await sendChat(page, "Halve the amount");
   await expect(page.locator("#notional")).toHaveValue("5000");
-  await expect(page.locator(".chat-log")).toContainText("purchase notional halved");
+  await expect(page.locator(".chat-log")).toContainText("amount set to 5000 USDT");
   await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
   await expect.poll(() => recomputeRequests.length).toBe(1);
   expect(researchRequests).toHaveLength(1);
@@ -248,4 +248,36 @@ test("downloaded markdown preserves calculated warnings and position details", a
   expect(markdown).toContain(report.economics.unmatchedExitQuantity);
   expect(markdown).toContain("## Priced in since the close?");
   expect(markdown).toContain(`NVDA ${report.marketContext.underlying.lastClose} USD`);
+});
+
+test("a captured example that finishes loading after a manual edit does not overwrite it", async ({ page }) => {
+  let release!: () => void;
+  let arrived!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const requested = new Promise<void>((resolve) => { arrived = resolve; });
+  let held = false;
+  await page.route("**/api/radar", async (route) => {
+    const body = route.request().postDataJSON() as { mode?: string };
+    if (body.mode !== "captured_real" || held) return route.continue();
+    held = true;
+    arrived();
+    await gate;
+    await route.continue();
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Replay captured example" }).click();
+  await requested;
+  await page.fill("#notional", "9000");
+  release();
+  await expect(page.locator(".change-banner")).toContainText("was not loaded");
+  await expect(page.locator("#notional")).toHaveValue("9000");
+});
+
+test("every suggestion shown after a brief works in quick-edit mode", async ({ page }) => {
+  await replayCaptured(page);
+  await sendChat(page, "What if I only put in half?");
+  await expect(page.locator("#notional")).toHaveValue("5000");
+  await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled({ timeout: 30_000 });
+  await page.getByRole("button", { name: "What if exit liquidity halves?" }).click();
+  await expect(page.locator(".chat-log")).toContainText("exit depth set to 50% of the book");
 });

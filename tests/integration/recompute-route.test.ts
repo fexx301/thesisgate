@@ -61,4 +61,23 @@ describe("economics recompute route", () => {
     }));
     expect(response.status).toBe(409);
   });
+
+  it("rejects a genuine receipt for a different asset than the plan", async () => {
+    const instrument = syntheticInstrument();
+    const snapshot = syntheticSnapshot();
+    const response = await POST(new Request("http://localhost/api/recompute", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        plan: { ...plan, asset: "TSLA" },
+        instrument,
+        snapshot,
+        recomputeToken: createRecomputeToken(instrument, snapshot),
+        planRevision: 4,
+        scenarioRevision: 4,
+      }),
+    }));
+    expect(response.status).toBe(400);
+    expect((await response.json() as { error: string }).error).toContain("plan is for rTSLA");
+  });
 });

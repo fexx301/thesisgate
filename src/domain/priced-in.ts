@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { MarketContextSchema, type Asset, type EconomicsResult, type MarketContext, type MarketSignals, type MarketSnapshot } from "./contracts";
+import { normalizeBook } from "./economics";
 import { classifySession, SESSION_CALENDAR_COVERAGE } from "./session";
 
 // An underlying print older than this is context, not a tracking reference.
@@ -30,9 +31,13 @@ export function buildMarketContext(input: {
     warnings.push(`The US market holiday calendar built into ThesisGate ends ${SESSION_CALENDAR_COVERAGE.to}; session and holiday labels after that date may be wrong.`);
   }
   let rToken: MarketContext["rToken"] = null;
-  if (input.snapshot?.bids.length && input.snapshot.asks.length) {
-    const bestBid = new Decimal(input.snapshot.bids[0][0]);
-    const bestAsk = new Decimal(input.snapshot.asks[0][0]);
+  // Same normalized book as the calculator: zero-size levels are skipped and an invalid book yields no context.
+  const book = input.snapshot ? normalizeBook(input.snapshot) : null;
+  if (input.snapshot && book && !book.valid) {
+    warnings.push("The order book failed validation, so no price context is derived from it.");
+  } else if (input.snapshot && book) {
+    const bestBid = new Decimal(book.bids.levels[0][0]);
+    const bestAsk = new Decimal(book.asks.levels[0][0]);
     rToken = {
       bestBid: bestBid.toString(),
       bestAsk: bestAsk.toString(),

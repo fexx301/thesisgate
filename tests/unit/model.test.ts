@@ -111,8 +111,15 @@ describe("model availability boundary", () => {
     expect(result.claims[0].citations[0].excerpt).toBe("planned deployment.");
     expect(result.claims[1].status).toBe("insufficient");
     expect(result.claims[1].citations).toEqual([]);
-    expect(result.claims[1].explanation).toContain("could not verify the quoted text");
+    expect(result.claims[1].explanation).toContain("could not find the quoted text");
+    // The model's affirmative text for the rejected claim is gone.
+    expect(result.claims[1].explanation).not.toContain("Invented quote");
     expect(result.evidence.verdict).toBe("mixed");
+    // The model's summary is replaced by one derived from the validated claims.
+    expect(result.evidence.summary).not.toBe("Mixed.");
+    expect(result.evidence.summary).toContain("1 supported");
+    expect(result.evidence.summary).toContain("could not be found");
+    expect(result.evidence.mostConsequentialUnknown).toContain("Revenue is already realized");
   });
 
   it("locates quotes across typographic quotes and dashes", () => {

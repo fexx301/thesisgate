@@ -137,3 +137,15 @@ export function createTtlCache<T>(ttlMs: number, maxEntries = 50) {
     },
   };
 }
+
+/**
+ * Resolves with the promise's value, or with `onTimeout()` once `ms` passes. Optional enrichment uses this so
+ * a stalled upstream cannot hold the core brief hostage; the abandoned work is still bounded by its own timeout.
+ */
+export function withDeadline<T>(promise: Promise<T>, ms: number, onTimeout: () => T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(onTimeout()), ms);
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}

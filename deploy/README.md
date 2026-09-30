@@ -21,9 +21,9 @@ Live at **https://thesisgate.duckdns.org** (also `https://34-196-4-213.sslip.io`
 ### What the script does, and how it fails safe
 
 - **Preflight:** aborts if `/data` is not mounted (the ledger would otherwise land on the root disk and reset) or if the root disk has under 3 GB free.
-- **Builds while the site keeps serving**, tags images by commit, and validates the Caddyfile before touching anything.
+- **Builds while the site keeps serving**, tags images by commit, and validates the Caddyfile before touching anything. Each deploy copies its Caddyfile to `/opt/thesisgate-runtime/caddy/Caddyfile.<sha>` (mode 444) and binds that commit-tagged copy into `tg-caddy`, so a rollback reuses the exact config that shipped with the parked generation instead of whatever the shared file happens to hold now. The five newest copies are kept.
 - **Swaps gracefully:** `docker stop -t 25` (never `rm -f`, which sends SIGKILL and skips cleanup), parks the running generation as `tg-*-prev` with its restart policy off, and starts the new one.
-- **Checks end to end:** the app container must be healthy *and* `https://<primary host>/` must answer 200 through Caddy. Any failure restores `tg-*-prev`, i.e. the last good version. `bash deploy/aws-upgrade.sh --rollback` does the same by hand until the next deploy replaces the parked generation.
+- **Checks end to end:** the app container must be healthy *and* `https://<primary host>/` must answer 200 through Caddy (`site_check`). Any failure restores `tg-*-prev`, i.e. the last good version. `bash deploy/aws-upgrade.sh --rollback` does the same by hand until the next deploy replaces the parked generation; it now counts the containers it restored, **fails loudly (non-zero) if there is nothing to restore**, and re-runs `site_check` afterwards so a rollback that does not actually bring the site back is reported as a failure rather than a success.
 - **Prunes** unused images older than 72 h and build cache older than 24 h.
 - The first-generation containers from Sep 19 (`thesisgate-*`) are obsolete and are not used by rollback.
 

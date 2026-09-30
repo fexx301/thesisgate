@@ -3,7 +3,7 @@ import "server-only";
 import Decimal from "decimal.js";
 import { HeadlineSchema, MarketSignalsSchema, type Asset, type Headline, type MarketSignals } from "@/domain/contracts";
 import { atrPercent, rsi, simpleAverage, type DailyBar } from "@/domain/technicals";
-import { createTtlCache, fetchBoundedText, htmlToText } from "./fetch-text";
+import { createTtlCache, fetchBoundedText, htmlToText, withDeadline } from "./fetch-text";
 import { sha256 } from "./identifiers";
 import { callMcpTool } from "./mcp-client";
 
@@ -23,6 +23,9 @@ const COMPANY: Record<Asset, { name: string; pattern: RegExp }> = {
 };
 
 const NEWS_BODY_MAX_CHARS = 6_000;
+// Everything in this module is optional context. None of it may delay the core brief by more than this.
+export const OPTIONAL_DEADLINE_MS = 8_000;
+const timedOut = (label: string) => () => { throw new Error(`${label} timed out`); };
 const RATING: Record<string, string> = { "买入": "Buy", "强力买入": "Strong Buy", "强力买进": "Strong Buy", "增持": "Overweight", "跑赢大市": "Outperform", "跑赢大盘": "Outperform", "跑输大盘": "Underperform", "持有": "Hold", "中性": "Neutral", "减持": "Underweight", "跑输大市": "Underperform", "卖出": "Sell" };
 const ACTION: Record<string, string> = { "首次覆盖": "initiated coverage", "维持": "maintained", "重申": "reiterated", "上调": "raised", "下调": "lowered", "上调评级": "upgraded", "下调评级": "downgraded" };
 const REPORT: Record<string, string> = { "一季报": "Q1 report", "二季报": "Q2 / half-year report", "三季报": "Q3 report", "四季报": "Q4 report", "年报": "annual report" };
@@ -172,11 +175,12 @@ const evidenceCache = createTtlCache<{ items: BitgetEvidence[]; warnings: string
 export async function fetchBitgetEvidence(asset: Asset, now = new Date()) {
   return evidenceCache.get(asset, async () => {
     const today = now.toISOString().slice(0, 10);
+    const bounded = (entry: string, params: Record<string, unknown>) => withDeadline(bitgetQuery(entry, params), OPTIONAL_DEADLINE_MS, timedOut(entry));
     const [targets, calendar, stockNews, macroNews] = await Promise.allSettled([
-      bitgetQuery("equity_estimates_price_target", { symbol: asset, limit: 40 }),
-      bitgetQuery("equity_calendar", { symbol: asset }),
-      bitgetQuery("news_label_search", { label: 2, page_size: 40 }),
-      bitgetQuery("news_label_search", { label: 1, page_size: 5 }),
+      bounded("equity_estimates_price_target", { symbol: asset, limit: 40 }),
+      bounded("equity_calendar", { symbol: asset }),
+      bounded("news_label_search", { label: 2, page_size: 40 }),
+      bounded("news_label_search", { label: 1, page_size: 5 }),
     ]);
     const warnings: string[] = [];
     const items: BitgetEvidence[] = [];
@@ -283,7 +287,7 @@ export async function fetchSkillNews(asset: Asset): Promise<Headline[]> {
   return skillNewsCache.get(asset, async () => {
     const text = await callMcpTool(BITGET_SIGNAL_MCP, "tradfi_news", { action: "company", symbol: asset, limit: 10 }, 15_000);
     return parseSkillNews(text, asset);
-  }, (headlines) => headlines.length > 0).catch(() => []);
+  }, (headlines) => headlines.length > 0).catch(() => [] as Headline[]);
 }
 
 // ---- Signals: technical-analysis and sentiment-analyst skills ----
@@ -335,29 +339,27 @@ const signalsCache = createTtlCache<MarketSignals>(10 * 60_000, 10);
 export async function fetchMarketSignals(asset: Asset): Promise<MarketSignals> {
   return signalsCache.get(asset, async () => {
     const warnings: string[] = [];
-    const technicals = await signalTechnicals(asset).catch(async () => {
-      warnings.push("The technical-analysis skill was unavailable; indicators were computed from daily bars instead.");
-      return computedTechnicals(asset).catch(() => {
-        warnings.push("Technical context is unavailable.");
-        return null;
-      });
-    });
-    const [sentiment, cryptoSentiment, macro, bitgetQuote, skillNews] = await Promise.all([
-      fearGreed().catch(() => {
-        warnings.push("Market sentiment is unavailable.");
-        return null;
-      }),
-      callMcpTool(BITGET_SIGNAL_MCP, "sentiment_index", { action: "current" }, 15_000).then(parseSkillSentiment).catch(() => null),
-      callMcpTool(BITGET_SIGNAL_MCP, "rates_yields", { action: "rates_snapshot" }, 15_000).then(parseSkillRates).catch(() => null),
-      bitgetQuery("equity_price_quote", { symbol: asset }).then(([row]) => {
+    const late = <T>(promise: Promise<T>, fallback: T) => withDeadline(promise.catch(() => fallback), OPTIONAL_DEADLINE_MS, () => fallback);
+    // Everything starts at once under one shared deadline; the daily-bar fallback runs alongside the skill
+    // rather than after it, so a stalled skill server cannot also delay the fallback.
+    const [skillTechnicals, computed, sentiment, cryptoSentiment, macro, bitgetQuote, skillNews] = await Promise.all([
+      late(signalTechnicals(asset), null),
+      late(computedTechnicals(asset), null),
+      late(fearGreed(), null),
+      late(callMcpTool(BITGET_SIGNAL_MCP, "sentiment_index", { action: "current" }, 15_000).then(parseSkillSentiment), null),
+      late(callMcpTool(BITGET_SIGNAL_MCP, "rates_yields", { action: "rates_snapshot" }, 15_000).then(parseSkillRates), null),
+      late(bitgetQuery("equity_price_quote", { symbol: asset }).then(([row]) => {
         const last = num(row?.last_price);
         if (last === null || last <= 0) return null;
         const prev = num(row?.prev_close);
         const change = num(row?.change_percent);
         return { lastPrice: new Decimal(last).toString(), prevClose: prev && prev > 0 ? new Decimal(prev).toString() : null, changePercent: change === null ? null : new Decimal(change).mul(100).toDecimalPlaces(3).toString() };
-      }).catch(() => null),
-      fetchSkillNews(asset),
+      }), null),
+      late(fetchSkillNews(asset), [] as Headline[]),
     ]);
+    const technicals = skillTechnicals ?? computed;
+    if (!skillTechnicals) warnings.push(computed ? "The technical-analysis skill was unavailable; indicators were computed from daily bars instead." : "Technical context is unavailable.");
+    if (!sentiment) warnings.push("Market sentiment is unavailable.");
     const skills: MarketSignals["skills"] = [
       { skill: "technical-analysis", status: technicals?.source === "bitget_signal_technical_analysis" ? "used" : technicals ? "fallback" : "unavailable", detail: technicals?.source === "bitget_signal_technical_analysis" ? "ATR and RSI from the skill" : technicals ? "indicators computed from daily bars instead" : "no indicator data" },
       { skill: "news-briefing", status: skillNews.length ? "used" : "fallback", detail: skillNews.length ? `${skillNews.length} company stories from the skill` : "skill did not answer; Bitget news used instead" },

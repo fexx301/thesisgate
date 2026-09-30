@@ -68,3 +68,28 @@ describe("calendar coverage", () => {
     expect(current.warnings.some((warning) => warning.includes("calendar"))).toBe(false);
   });
 });
+
+describe("book normalization shared with the calculator", () => {
+  it("skips zero-size levels exactly as the calculator does (the review's repro)", () => {
+    const zeroTop: MarketSnapshot = { ...snapshot, bids: [["199", "0"], ["198", "100"]], asks: [["200", "0"], ["201", "100"]] };
+    const context = buildMarketContext({ asset: "NVDA", mode: "live", observedAt: snapshot.receivedAt, underlying, snapshot: zeroTop });
+    expect(context.rToken?.bestBid).toBe("198");
+    expect(context.rToken?.bestAsk).toBe("201");
+    const economics = calculateEconomics({ plan: { ...plan, purchaseNotionalExcludingFee: "1000" }, instrument, snapshot: zeroTop, planRevision: 1, scenarioRevision: 1 });
+    expect(economics.entryVWAP).toBe("201");
+  });
+
+  it("derives no price context from a crossed book", () => {
+    const crossed: MarketSnapshot = { ...snapshot, bids: [["202", "10"]], asks: [["201", "10"]] };
+    const context = buildMarketContext({ asset: "NVDA", mode: "live", observedAt: snapshot.receivedAt, underlying, snapshot: crossed });
+    expect(context.rToken).toBeNull();
+    expect(context.moveSinceClose).toBeNull();
+    expect(context.warnings.some((warning) => warning.includes("failed validation"))).toBe(true);
+  });
+
+  it("refuses to calculate when the book is for another asset", () => {
+    const economics = calculateEconomics({ plan: { ...plan, asset: "TSLA" }, instrument, snapshot, planRevision: 1, scenarioRevision: 1 });
+    expect(economics.computationStatus).toBe("invalid_instrument");
+    expect(economics.warnings.join(" ")).toContain("plan is for rTSLA");
+  });
+});

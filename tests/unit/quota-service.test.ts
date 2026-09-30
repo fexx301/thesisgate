@@ -70,6 +70,32 @@ describe("durable quota ledger", () => {
     expect(afterSpend).toMatchObject({ allowed: false, reason: "The daily model budget is exhausted." });
   });
 
+  it("counts a reported cost above the reservation toward the caps instead of discarding it", () => {
+    const first = store.reserve(reserve(), new Date("2026-09-19T10:00:00.000Z"));
+    if (!first.reservationId) throw new Error("Expected a reservation.");
+    const over = store.settle({ operation: "settle", idempotencyKey: first.reservationId, reservationId: first.reservationId, actualCostUsd: 0.05 }, new Date("2026-09-19T10:00:05.000Z"));
+    expect(over.allowed).toBe(false);
+    // After the concurrency lease expires, the known 0.05 overrun must still block a new 0.02 reservation.
+    const later = store.reserve(reserve({ idempotencyKey: "request-00000002" }), new Date("2026-09-19T10:01:30.000Z"));
+    expect(later.allowed).toBe(false);
+    const [row] = store.reconciliation(10, new Date("2026-09-19T10:02:00.000Z"));
+    expect(row.reportedOverrunUsd).toBe(0.05);
+  });
+
+  it("migrates a ledger created before overrun accounting", async () => {
+    const { DatabaseSync } = await import("node:sqlite");
+    const legacyPath = join(directory, "legacy.sqlite");
+    const legacy = new DatabaseSync(legacyPath);
+    legacy.exec("CREATE TABLE reservations (id TEXT PRIMARY KEY, request_id TEXT NOT NULL UNIQUE, visitor_key TEXT NOT NULL, day_key TEXT NOT NULL, reserved_micros INTEGER NOT NULL CHECK (reserved_micros > 0), actual_micros INTEGER, status TEXT NOT NULL CHECK (status IN ('pending', 'settled')), created_at TEXT NOT NULL, lease_expires_at TEXT NOT NULL, settled_at TEXT) STRICT;");
+    legacy.close();
+    const migrated = new QuotaStore(legacyPath, limits);
+    try {
+      expect(migrated.reserve(reserve(), new Date("2026-09-19T10:00:00.000Z")).allowed).toBe(true);
+    } finally {
+      migrated.close();
+    }
+  });
+
   it("keeps reserved spend held until settlement and settles idempotently", () => {
     const now = new Date("2026-09-19T10:00:00.000Z");
     const first = store.reserve(reserve(), now);

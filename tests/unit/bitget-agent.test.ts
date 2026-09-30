@@ -150,19 +150,28 @@ describe("skill tool parsing (defensive)", () => {
 });
 
 describe("Agent Hub handoff", () => {
-  it("builds a dry-run-first IOC limit at the deepest ask needed, and nothing without a fillable quantity", async () => {
+  it("builds a dry-run-first IOC limit whose total can never exceed the plan's amount", async () => {
     const { agentHubHandoff, sweepLimitPrice } = await import("../../src/domain/handoff");
     expect(sweepLimitPrice([["100", "1"], ["100.5", "2"], ["101", "5"]], "2.5")).toBe("100.5");
     expect(sweepLimitPrice([["100", "1"]], "2")).toBeNull();
-    const instrument = { symbol: "RNVDAUSDT", baseCoin: "rNVDA", quantityStep: "0.0001" } as never;
-    const snapshot = { mode: "live", asks: [["222.58", "10"], ["222.6", "30"]] } as never;
-    const handoff = agentHubHandoff({ quantity: "17.9", computationStatus: "threshold_only" } as never, instrument, snapshot);
-    expect(handoff?.limitPrice).toBe("222.6");
-    expect(handoff?.commands[1].command).toBe("bgc order --action place --category SPOT --symbol RNVDAUSDT --side buy --orderType limit --price 222.6 --qty 17.9 --timeInForce ioc --dry-run");
-    expect(handoff?.commands[2].command.endsWith("--timeInForce ioc")).toBe(true);
-    expect(handoff?.commands[0].command).toContain("--read-only");
-    expect(agentHubHandoff({ quantity: "5", computationStatus: "invalid_instrument" } as never, instrument, snapshot)).toBeNull();
-    expect(agentHubHandoff({ quantity: null, computationStatus: "calculated" } as never, instrument, snapshot)).toBeNull();
+    expect(sweepLimitPrice([["99", "0"], ["100", "3"]], "2")).toBe("100");
+    const instrument = { symbol: "RNVDAUSDT", baseCoin: "rNVDA", quantityStep: "0.0001", minOrderQty: "0.0001", minOrderNotional: "10" } as never;
+    // The review's repro: asks 100x1 and 200x1, 300 USDT models 2 units; a 200 limit on 2 units could spend 400.
+    const gap = agentHubHandoff({ quantity: "2", requestedNotional: "300", computationStatus: "calculated" } as never, instrument, { mode: "live", asks: [["100", "1"], ["200", "1"]] } as never, "0.001");
+    expect(gap?.limitPrice).toBe("200");
+    expect(gap?.quantity).toBe("1.5");
+    expect(gap?.maxSpend).toBe("300");
+    expect(gap?.maxSpendWithFee).toBe("300.3");
+    expect(gap?.reducedToFitBudget).toBe(true);
+    expect(gap?.commands[1].command).toBe("bgc order --action place --category SPOT --symbol RNVDAUSDT --side buy --orderType limit --price 200 --qty 1.5 --timeInForce ioc --dry-run");
+    expect(gap?.commands[0].command).toContain("--read-only");
+    // A deep book where the modeled quantity already fits keeps it.
+    const deep = agentHubHandoff({ quantity: "4.4", requestedNotional: "1000", computationStatus: "threshold_only" } as never, instrument, { mode: "live", asks: [["222.58", "10"]] } as never);
+    expect(deep?.quantity).toBe("4.4");
+    expect(deep?.reducedToFitBudget).toBe(false);
+    expect(Number(deep?.maxSpend)).toBeLessThanOrEqual(1000);
+    expect(agentHubHandoff({ quantity: "5", requestedNotional: "1000", computationStatus: "invalid_instrument" } as never, instrument, { mode: "live", asks: [["100", "10"]] } as never)).toBeNull();
+    expect(agentHubHandoff({ quantity: null, requestedNotional: "1000", computationStatus: "calculated" } as never, instrument, { mode: "live", asks: [["100", "10"]] } as never)).toBeNull();
   });
 });
 
@@ -198,6 +207,42 @@ describe("MCP idle close", () => {
     } finally {
       vi.useRealTimers();
       vi.unstubAllGlobals();
+      resetMcpSessionsForTests();
+    }
+  });
+});
+
+describe("optional signals deadline", () => {
+  it("returns within the shared deadline when both MCP servers stall, using the daily-bar fallback", async () => {
+    const { vi } = await import("vitest");
+    const { fetchMarketSignals, resetBitgetCachesForTests, OPTIONAL_DEADLINE_MS } = await import("../../src/server/bitget-agent");
+    const { resetMcpSessionsForTests } = await import("../../src/server/mcp-client");
+    resetBitgetCachesForTests();
+    resetMcpSessionsForTests();
+    vi.useFakeTimers();
+    const closes = Array.from({ length: 40 }, (_, index) => 100 + (index % 5));
+    const chart = JSON.stringify({ chart: { result: [{ indicators: { quote: [{ close: closes, high: closes.map((c) => c + 2), low: closes.map((c) => c - 2) }] } }] } });
+    vi.stubGlobal("fetch", vi.fn((input: URL | string, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("query1.finance.yahoo.com")) return Promise.resolve(new Response(chart));
+      // Both MCP servers stall until the caller aborts.
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      });
+    }));
+    try {
+      let settled = false;
+      const pending = fetchMarketSignals("NVDA").then((value) => { settled = true; return value; });
+      await vi.advanceTimersByTimeAsync(OPTIONAL_DEADLINE_MS + 500);
+      expect(settled).toBe(true);
+      const signals = await pending;
+      expect(signals.technicals?.source).toBe("computed_from_daily_bars");
+      expect(signals.sentiment).toBeNull();
+      expect(signals.skills.find((item) => item.skill === "technical-analysis")?.status).toBe("fallback");
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      resetBitgetCachesForTests();
       resetMcpSessionsForTests();
     }
   });

@@ -115,7 +115,8 @@ function validateInstrument(instrument: Instrument) {
   return { valid: warnings.length === 0, warnings };
 }
 
-function validateBook(snapshot: MarketSnapshot): { bids: BookCheck; asks: BookCheck; warnings: string[]; valid: boolean } {
+/** The single book normalization shared by the calculator, the priced-in context and the order handoff. */
+export function normalizeBook(snapshot: Pick<MarketSnapshot, "bids" | "asks">): { bids: BookCheck; asks: BookCheck; warnings: string[]; valid: boolean } {
   const warnings: string[] = [];
   const fatal: string[] = [];
   const normalize = (levels: MarketLevel[], side: "bid" | "ask"): BookCheck => {
@@ -271,12 +272,22 @@ function buildScenarioTable(
   });
 }
 
+/** The plan, the instrument and the book must all describe the same token. */
+export function marketIdentityError(plan: Pick<Plan, "asset">, instrument: Instrument, snapshot: Pick<MarketSnapshot, "asset" | "symbol">) {
+  if (instrument.asset !== plan.asset || snapshot.asset !== plan.asset || snapshot.symbol !== instrument.symbol) {
+    return `The market data is for ${snapshot.symbol} (${snapshot.asset}), but the plan is for r${plan.asset}.`;
+  }
+  return null;
+}
+
 export function calculateEconomics(input: EconomicsInput): EconomicsResult {
   const instrumentCheck = validateInstrument(input.instrument);
   const initialWarnings = [...input.snapshot.validationWarnings, ...instrumentCheck.warnings];
   if (!instrumentCheck.valid) return emptyResult(input, "invalid_instrument", initialWarnings);
+  const identity = marketIdentityError(input.plan, input.instrument, input.snapshot);
+  if (identity) return emptyResult(input, "invalid_instrument", [...initialWarnings, identity]);
 
-  const bookCheck = validateBook(input.snapshot);
+  const bookCheck = normalizeBook(input.snapshot);
   const warnings = [...initialWarnings, ...bookCheck.warnings];
   if (!bookCheck.valid) return emptyResult(input, "invalid_book", warnings);
 

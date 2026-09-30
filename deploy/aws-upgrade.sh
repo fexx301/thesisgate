@@ -14,6 +14,9 @@ ROOT=/opt/thesisgate
 ENV_FILE="$ROOT/deploy/production.env"
 EXAMPLE="$ROOT/deploy/production.env.example"
 STOP_TIMEOUT=25
+# Each deployed generation binds its own immutable copy of the Caddyfile, so a rollback restores the
+# configuration that generation was validated with, not whatever the checkout holds now.
+CADDY_DIR=/opt/thesisgate-runtime/caddy
 cd "$ROOT"
 
 # Non-secret settings whose source of truth is the repository (production.env keeps only secrets and addresses).
@@ -27,20 +30,37 @@ TUNABLES=(THESIS_LLM_BASE_URL THESIS_LLM_MODEL THESIS_LLM_PROTOCOL THESIS_LLM_RE
 exists() { docker inspect "$1" >/dev/null 2>&1; }
 value() { grep -E "^$1=" "$2" 2>/dev/null | head -1 | cut -d= -f2- || true; }
 
+site_check() {
+  local host code
+  host="$(printf '%s' "$1" | cut -d, -f1 | tr -d ' ')"
+  for _ in $(seq 1 20); do
+    code="$(curl -sk -m 8 -o /dev/null -w '%{http_code}' --resolve "$host:443:127.0.0.1" "https://$host/" || true)"
+    [ "$code" = "200" ] && return 0
+    sleep 3
+  done
+  echo "site did not answer 200 over HTTPS for $host (last code: ${code:-none})"
+  return 1
+}
+
 rollback() {
   echo "Restoring the previous containers."
+  local restored=0
   for n in caddy app quota; do docker rm -f "tg-$n" >/dev/null 2>&1 || true; done
   for n in quota app caddy; do
     if exists "tg-$n-prev"; then
       docker rename "tg-$n-prev" "tg-$n"
       docker update --restart unless-stopped "tg-$n" >/dev/null
       docker start "tg-$n" >/dev/null || true
+      restored=$((restored + 1))
     fi
   done
   docker ps --format '{{.Names}}  {{.Status}}' | grep -E '^tg-' || true
+  [ "$restored" -gt 0 ] || { echo "ROLLBACK FAILED: there was no previous generation to restore."; return 1; }
+  site_check "$(value SITE_ADDRESS "$ENV_FILE")" || { echo "ROLLBACK FAILED: the restored generation is not serving the site."; return 1; }
+  echo "Rollback verified: the previous generation is serving the site."
 }
 
-if [ "${1:-}" = "--rollback" ]; then rollback; exit 0; fi
+if [ "${1:-}" = "--rollback" ]; then rollback; exit $?; fi
 
 BRANCH="${1:?branch}"
 SITE_ADDRESS="${2:?site addresses, e.g. \"thesisgate.duckdns.org, 34-196-4-213.sslip.io\"}"
@@ -95,7 +115,11 @@ chmod 600 "$ENV_FILE"
 echo "Building images ($SHA)."
 docker build --quiet -t "thesisgate-app:$SHA" -f Dockerfile . >/dev/null
 docker build --quiet -t "thesisgate-quota:$SHA" -f quota-service/Dockerfile . >/dev/null
-docker run --rm -e SITE_ADDRESS="$SITE_ADDRESS" -v "$ROOT/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine \
+mkdir -p "$CADDY_DIR"
+CADDYFILE="$CADDY_DIR/Caddyfile.$SHA"
+cp "$ROOT/deploy/Caddyfile" "$CADDYFILE"
+chmod 444 "$CADDYFILE"
+docker run --rm -e SITE_ADDRESS="$SITE_ADDRESS" -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" caddy:2-alpine \
   caddy validate --config /etc/caddy/Caddyfile >/dev/null 2>&1 || { echo "ABORT: the Caddyfile is invalid; nothing was changed."; exit 1; }
 
 docker network inspect thesisgate-edge >/dev/null 2>&1 || docker network create thesisgate-edge >/dev/null
@@ -150,7 +174,7 @@ docker network connect --alias app thesisgate-edge tg-app
 docker run -d --name tg-caddy --restart unless-stopped --stop-timeout "$STOP_TIMEOUT" \
   --network thesisgate-edge -p 80:80 -p 443:443 \
   -e SITE_ADDRESS="$SITE_ADDRESS" \
-  -v "$ROOT/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
   -v thesisgate-caddy-data:/data -v thesisgate-caddy-config:/config \
   caddy:2-alpine >/dev/null
 
@@ -161,19 +185,14 @@ done
 [ "$(docker inspect -f '{{.State.Health.Status}}' tg-app)" = "healthy" ] || { echo "app did not become healthy"; docker logs --tail 40 tg-app; false; }
 
 # End-to-end: the public name must answer over HTTPS through Caddy, not just the app container.
-PRIMARY="$(printf '%s' "$SITE_ADDRESS" | cut -d, -f1 | tr -d ' ')"
-ok=0
-for _ in $(seq 1 20); do
-  code="$(curl -sk -m 8 -o /dev/null -w '%{http_code}' --resolve "$PRIMARY:443:127.0.0.1" "https://$PRIMARY/" || true)"
-  [ "$code" = "200" ] && { ok=1; break; }
-  sleep 3
-done
-[ "$ok" = "1" ] || { echo "site did not answer 200 over HTTPS for $PRIMARY (last code: ${code:-none})"; docker logs --tail 20 tg-caddy; false; }
+site_check "$SITE_ADDRESS" || { docker logs --tail 20 tg-caddy; false; }
 
 trap - ERR
 # Keep the parked previous generation (and its images) for the next rollback; drop everything older.
 docker image prune -af --filter "until=72h" >/dev/null
 docker builder prune -af --filter "until=24h" >/dev/null
+# Keep the Caddyfile copies of the last few generations (the running and parked ones are always among them).
+{ ls -1t "$CADDY_DIR"/Caddyfile.* 2>/dev/null | tail -n +6 | xargs -r rm -f; } || true
 echo "Upgrade complete ($SHA)."
 docker ps -a --format '{{.Names}}  {{.Status}}' | grep -E '^tg-'
 df -h / | tail -1

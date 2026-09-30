@@ -58,10 +58,18 @@ export function toMarkdown(report: ResearchResult) {
     `- Maximum position quantity: ${instrument.maxPositionQty} ${instrument.baseCoin} (zero means no configured cap)`,
     `- Instrument metadata time: ${instrument.rawMetadataTime}`,
   ].join("\n") : "- Instrument metadata: Not available; venue rules could not be validated.";
+  const sourceReference = (sourceId: string) => {
+    const index = validated.sources.findIndex((source) => source.id === sourceId);
+    if (index < 0) return `unknown source ${sourceId}`;
+    const source = validated.sources[index];
+    return `[S${index + 1}] ${source.publisher}${source.publicationDate ? `, ${source.publicationDate.slice(0, 10)}` : ""}${source.originalUrl ? `, ${source.originalUrl}` : ""}`;
+  };
   const sourceLines = validated.sources.length
     ? validated.sources
-        .map((source) => [
-          `- ${source.title}`,
+        .map((source, index) => [
+          `- [S${index + 1}] ${source.title}`,
+          `  - Publisher: ${source.publisher}`,
+          `  - Source ID (as cited in JSON): ${source.id}`,
           `  - Supplied URL domain: ${suppliedUrlDomain(source.originalUrl)}`,
           `  - URL: ${source.originalUrl ?? "Not supplied"}`,
           `  - Provenance: ${source.provenance}`,
@@ -77,7 +85,7 @@ export function toMarkdown(report: ResearchResult) {
     ? validated.claims
         .map((claim) => {
           const citations = claim.citations.length
-            ? claim.citations.map((citation) => `> ${citation.excerpt}\n> — source ${citation.sourceId} @ ${citation.startOffset}–${citation.endOffset}`).join("\n")
+            ? claim.citations.map((citation) => `> ${citation.excerpt}\n> — ${sourceReference(citation.sourceId)}, characters ${citation.startOffset}–${citation.endOffset}`).join("\n")
             : "> No validated citation";
           return [
             `### ${claim.claimId}: ${claim.status}`,
@@ -91,7 +99,7 @@ export function toMarkdown(report: ResearchResult) {
         })
         .join("\n\n")
     : "No runtime claim assessments were recorded.";
-  const handoff = agentHubHandoff(economics, validated.instrument, validated.snapshot);
+  const handoff = agentHubHandoff(economics, validated.instrument, validated.snapshot, plan.feeIn);
   const openClaim = validated.claims.find((claim) => claim.materiality === "material" && claim.status !== "supported")
     ?? validated.claims.find((claim) => claim.status !== "supported");
   const context = validated.marketContext;

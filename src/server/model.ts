@@ -426,14 +426,27 @@ function validateCitations(claim: ModelClaim, sources: SourceDocument[]) {
   });
   // A verdict that loses every verifiable quote is not trusted: it is downgraded, and the reason is shown.
   if ((claim.status === "supported" || claim.status === "contradicted") && !citations.length) {
+    // The model's explanation relied on the quote that could not be found, so it is not shown at all.
     return {
       citations,
       status: "insufficient" as const,
-      explanation: `${claim.explanation} (ThesisGate could not verify the quoted text in the source, so this claim is treated as unverified rather than ${claim.status}.)`.slice(0, 900),
+      explanation: `ThesisGate could not find the quoted text in the source, so this claim is unverified. The model had marked it ${claim.status}; that judgement relied on the missing quote and is not shown.`,
+      missingEvidence: claim.missingEvidence ?? "A passage in the supplied sources that states this directly.",
+      downgraded: true,
       unverified,
     };
   }
-  return { citations, status: claim.status, explanation: claim.explanation, unverified };
+  return { citations, status: claim.status, explanation: claim.explanation, missingEvidence: claim.missingEvidence, downgraded: false, unverified };
+}
+
+export function validatedSummary(claims: ClaimAssessment[], downgraded: number) {
+  const count = (status: ClaimAssessment["status"]) => claims.filter((claim) => claim.status === status).length;
+  const parts = [
+    count("supported") ? `${count("supported")} supported` : null,
+    count("contradicted") ? `${count("contradicted")} contradicted` : null,
+    count("insufficient") ? `${count("insufficient")} not established by the sources` : null,
+  ].filter(Boolean);
+  return `Of ${claims.length} claim${claims.length === 1 ? "" : "s"} checked: ${parts.join(", ")}. ${downgraded === 1 ? "One quote" : `${downgraded} quotes`} given by the model could not be found in the source text, so ${downgraded === 1 ? "that claim is" : "those claims are"} treated as unverified and the model's own summary is not shown.`;
 }
 
 function overallVerdict(claims: ClaimAssessment[]): EvidenceResult["verdict"] {
@@ -487,7 +500,8 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
     });
   }
 
-  let claims: ClaimAssessment[];
+  let claims: ClaimAssessment[] = [];
+  let downgradedClaims: ModelClaim[] = [];
   try {
     claims = parsed.claims.map((claim, index) => {
       const validated = validateCitations(claim, sources);
@@ -496,9 +510,11 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
         claimId: claim.claimId || `claim-${index + 1}`,
         status: validated.status,
         explanation: validated.explanation,
+        missingEvidence: validated.missingEvidence,
         citations: validated.citations,
       });
     });
+    downgradedClaims = parsed.claims.filter((claim, index) => claims[index].status !== claim.status);
   } catch (error) {
     throw new ModelAdapterError(
       "model_invalid_output",
@@ -513,8 +529,12 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
       assessmentOrigin: "runtime_model",
       verdict: overallVerdict(claims),
       scope: "by the supplied evidence",
-      mostConsequentialUnknown: parsed.mostConsequentialUnknown,
-      summary: parsed.summary,
+      // When any verdict was withdrawn, the model's narrative may rest on the rejected quote, so a
+      // deterministic summary built from the validated claims replaces it.
+      mostConsequentialUnknown: downgradedClaims.length
+        ? `Whether the sources support "${downgradedClaims[0].exactText.slice(0, 200)}": the model's quote for it could not be found.`
+        : parsed.mostConsequentialUnknown,
+      summary: downgradedClaims.length ? validatedSummary(claims, downgradedClaims.length) : parsed.summary,
     });
   } catch (error) {
     throw modelError(error, result.durationMs, true, result.usage, result.modelId);

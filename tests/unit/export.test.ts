@@ -93,6 +93,23 @@ function report(): ResearchResult {
 }
 
 describe("deterministic export", () => {
+  it("maps every quoted citation to a numbered source with publisher and link", () => {
+    const base = report();
+    const source = base.sources[0];
+    const withClaim = {
+      ...base,
+      claims: [{
+        claimId: "c1", exactText: "The plan exists.", distinction: "factual" as const, materiality: "material" as const, status: "supported" as const,
+        explanation: "Quoted.", missingEvidence: null,
+        citations: [{ sourceId: source.id, excerpt: source.cleanedText.slice(0, 20), startOffset: 0, endOffset: 20 }],
+      }],
+    };
+    const md = toMarkdown(withClaim);
+    expect(md).toContain(`— [S1] ${source.publisher}`);
+    expect(md).toContain(`- [S1] ${source.title}`);
+    expect(md).toContain(`Source ID (as cited in JSON): ${source.id}`);
+  });
+
   it("markdown includes origins, hashes, effective shift and invalidation", () => {
     const md = toMarkdown(report());
     expect(md).toContain("origin:");

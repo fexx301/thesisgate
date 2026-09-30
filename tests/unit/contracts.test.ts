@@ -24,6 +24,15 @@ const basePlan: Plan = {
 };
 
 describe("contract boundary validation", () => {
+  it("rejects numbers whose formatting would explode (the review's repro)", () => {
+    expect(PlanSchema.safeParse({ ...basePlan, goal: { kind: "profit_usdt", amount: "1e100000000" } }).success).toBe(false);
+    expect(PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "1e16" }).success).toBe(false);
+    expect(PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "1e-400" }).success).toBe(false);
+    expect(PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "1".repeat(70) }).success).toBe(false);
+    expect(PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "999999999999999" }).success).toBe(true);
+    expect(PlanSchema.safeParse({ ...basePlan, purchaseNotionalExcludingFee: "1e3" }).success).toBe(true);
+  });
+
   it("accepts a scenario shift up to +1,000% and rejects anything beyond it", () => {
     expect(PlanSchema.safeParse({ ...basePlan, scenario: { bidPriceShift: "10", assumptionOrigin: "user" } }).success).toBe(true);
     const beyond = PlanSchema.safeParse({ ...basePlan, scenario: { bidPriceShift: "10.01", assumptionOrigin: "user" } });

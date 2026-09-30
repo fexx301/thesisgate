@@ -24,6 +24,7 @@ import {
 import { toJson, toMarkdown } from "@/domain/export";
 import { ChatResultSchema, InstrumentSchema, MarketContextSchema, MAX_SELECTED_HEADLINES, MAX_SOURCE_CHARS, MarketSnapshotSchema, MULTI_SOURCE_PROMPT_VERSION, PlanSchema, PROMPT_VERSION, RadarResultSchema, RecomputeResultSchema, ResearchResultSchema, type Asset, type Instrument, type MarketContext, type MarketSnapshot, type Plan, type RadarResult, type ResearchResult } from "@/domain/contracts";
 import { pricedInView } from "@/domain/priced-in";
+import { POST_BRIEF_SUGGESTIONS, RUN_CHECKS, switchAssetSuggestion } from "@/domain/suggestions";
 import { AgentHubHandoffCard } from "./AgentHubHandoff";
 import { ChatPanel, type ChatEntry } from "./ChatPanel";
 import { PricedInCard } from "./PricedInCard";
@@ -450,13 +451,29 @@ function EmptyReport({ onReplay }: { onReplay: () => void }) {
   );
 }
 
-function ClaimCard({ claim }: { claim: ResearchResult["claims"][number] }) {
+function citationSource(sources: ResearchResult["sources"], sourceId: string) {
+  const index = sources.findIndex((source) => source.id === sourceId);
+  if (index < 0) return { label: "Unknown source", url: null };
+  const source = sources[index];
+  const date = source.publicationDate ? ` · ${source.publicationDate.slice(0, 10)}` : "";
+  return { label: `Source ${index + 1} · ${source.provenance === "user_pasted_unverified" ? "Pasted passage" : source.publisher}${date}`, url: source.originalUrl };
+}
+
+function ClaimCard({ claim, sources }: { claim: ResearchResult["claims"][number]; sources: ResearchResult["sources"] }) {
   return (
     <article className="claim" key={claim.claimId}>
       <div className="claim-meta"><span>{claim.distinction}</span><StatusTag tone={claim.status === "supported" ? "good" : claim.status === "contradicted" ? "bad" : "warn"}>{readableStatus(claim.status)}</StatusTag></div>
       <h3>{claim.exactText}</h3>
       <p>{claim.explanation}</p>
-      {claim.citations.map((citation) => <blockquote key={`${citation.sourceId}-${citation.startOffset}`}>{citation.excerpt}</blockquote>)}
+      {claim.citations.map((citation) => {
+        const origin = citationSource(sources, citation.sourceId);
+        return (
+          <blockquote key={`${citation.sourceId}-${citation.startOffset}`}>
+            {citation.excerpt}
+            <cite className="citation-source">{origin.url ? <a href={origin.url} target="_blank" rel="noreferrer">{origin.label}</a> : origin.label}</cite>
+          </blockquote>
+        );
+      })}
       {claim.missingEvidence ? <small>Missing: {claim.missingEvidence}</small> : null}
     </article>
   );
@@ -486,12 +503,12 @@ function EvidencePanel({ report }: { report: ResearchResult }) {
       ) : null}
       {report.claims.length ? (
         <div className="claim-list">
-          <ClaimCard claim={report.claims[0]} />
+          <ClaimCard claim={report.claims[0]} sources={report.sources} />
           {report.claims.length > 1 ? (
             <details className="claim-details">
               <summary><span>View {report.claims.length - 1} supporting claim{report.claims.length === 2 ? "" : "s"}</span><CaretDown size={17} aria-hidden="true" /></summary>
               <div className="claim-list claim-list-secondary">
-                {report.claims.slice(1).map((claim) => <ClaimCard key={claim.claimId} claim={claim} />)}
+                {report.claims.slice(1).map((claim) => <ClaimCard key={claim.claimId} claim={claim} sources={report.sources} />)}
               </div>
             </details>
           ) : null}
@@ -1144,6 +1161,8 @@ export default function Workbench() {
   async function replayCapturedExample() {
     invalidateFollowUp();
     setPercentInputs({});
+    // Any edit made while the example loads bumps this generation; the example then yields to the edit.
+    const generation = inputGenerationRef.current;
     const replayPlan = capturedExamplePlan();
     let headlineIds: string[] = [];
     try {
@@ -1157,24 +1176,20 @@ export default function Workbench() {
     } catch {
       headlineIds = [];
     }
-    dispatch({ type: "set-plan", plan: replayPlan, changedMessage: "Captured example loaded: the Sep 8, 2026 after-hours book with the NVIDIA/AWS release as evidence.", evidenceChanged: true });
-    dispatch({ type: "set-source-text", sourceText: headlineIds.length ? "" : CAPTURED_SOURCE_TEXT });
-    dispatch({ type: "set-source-url", sourceUrl: headlineIds.length ? "" : CAPTURED_SOURCE_URL });
-    dispatch({ type: "set-headlines", headlineIds, changedMessage: null });
-    dispatch({ type: "set-market-mode", marketMode: "captured_real", changedMessage: "Captured example selected. No live fallback is used." });
+    if (generation !== inputGenerationRef.current) {
+      dispatch({ type: "set-changed-message", changedMessage: "The captured example was not loaded because you edited the plan while it was loading. Click Replay again to load it." });
+      return;
+    }
+    const sourceText = headlineIds.length ? "" : CAPTURED_SOURCE_TEXT;
+    const sourceUrl = headlineIds.length ? "" : CAPTURED_SOURCE_URL;
+    const inputRevision = currentInputsRef.current.revision + 1;
+    dispatch({ type: "load-example", plan: replayPlan, sourceText, sourceUrl, headlineIds, marketMode: "captured_real", changedMessage: "Captured example loaded: the Sep 8, 2026 after-hours book with the NVIDIA/AWS release as evidence." });
     setChatEntries((entries) => [...entries, {
       id: entryId(),
       role: "assistant",
       content: "Loaded the captured Sep 8 example: someone reads the NVIDIA/AWS GPU release after the US close and wants 100 USDT from 10,000 USDT of rNVDA by tomorrow evening. Try asking “what if I only put in 3k?” or “what if exit liquidity halves?”",
     }]);
-    submitResearch({
-      plan: replayPlan,
-      sourceText: headlineIds.length ? "" : CAPTURED_SOURCE_TEXT,
-      sourceUrl: headlineIds.length ? "" : CAPTURED_SOURCE_URL,
-      headlineIds,
-      marketMode: "captured_real",
-      inputRevision: state.planRevision + 4 + (JSON.stringify(headlineIds) === JSON.stringify(state.selectedHeadlineIds) ? -1 : 0),
-    });
+    submitResearch({ plan: replayPlan, sourceText, sourceUrl, headlineIds, marketMode: "captured_real", inputRevision });
   }
 
   function toggleHeadline(id: string) {
@@ -1287,16 +1302,15 @@ export default function Workbench() {
   const goalKind = state.plan.goal?.kind ?? "none";
   const radarContext: MarketContext | null = radar?.asset === state.plan.asset && radar.mode === state.marketMode ? radar.marketContext : null;
   const topHeadline = radar?.asset === state.plan.asset ? radar.headlines.find((headline) => headline.kind === "issuer_official") ?? radar.headlines[0] : undefined;
-  const otherAsset = state.plan.asset === "NVDA" ? "TSLA" : "NVDA";
   const chatSuggestions = chatPending
     ? []
     : state.report && reportIsCurrent
-      ? ["What if I only put in half?", "What if exit liquidity halves?", "What if bids only rise 1%?", state.marketMode === "live" ? "Refresh with live prices" : "Use live prices instead"]
+      ? [POST_BRIEF_SUGGESTIONS.halveAmount, POST_BRIEF_SUGGESTIONS.halveDepth, POST_BRIEF_SUGGESTIONS.bidsRise, state.marketMode === "live" ? POST_BRIEF_SUGGESTIONS.refreshLive : POST_BRIEF_SUGGESTIONS.useLive]
       : state.plan.thesis.trim()
-        ? ["Run the checks", `Switch to r${otherAsset}`]
+        ? [RUN_CHECKS, switchAssetSuggestion(state.plan.asset)]
         : [
             topHeadline ? `Put 2k into r${state.plan.asset} on "${topHeadline.title.length > 70 ? `${topHeadline.title.slice(0, 68).trimEnd()}…` : topHeadline.title}", hold until tomorrow's open, I want 40 USDT` : `Put 2k into r${state.plan.asset} and hold until tomorrow's open, I want 40 USDT`,
-            `Switch to r${otherAsset}`,
+            switchAssetSuggestion(state.plan.asset),
           ];
 
   return (

@@ -8,7 +8,7 @@ import { agentHubHandoff } from "@/domain/handoff";
 /** Copy-only handoff to Bitget's official Agent Hub CLI. ThesisGate itself never sends an order. */
 export function AgentHubHandoffCard({ report }: { report: ResearchResult }) {
   const [copied, setCopied] = useState<string | null>(null);
-  const handoff = agentHubHandoff(report.economics, report.instrument, report.snapshot);
+  const handoff = agentHubHandoff(report.economics, report.instrument, report.snapshot, report.confirmedPlan.feeIn);
   if (!handoff) return null;
   const captured = report.snapshot?.mode !== "live";
   async function copy(command: string) {
@@ -30,6 +30,7 @@ export function AgentHubHandoffCard({ report }: { report: ResearchResult }) {
         ThesisGate never places orders. These are commands for Bitget&apos;s official Agent Hub CLI (<code>bgc</code>), for you to review and run yourself, starting with a dry run.
         {captured ? " This brief uses a captured historical book: switch to live data first, because these prices are not current." : ""}
       </p>
+      <p className="handoff-max"><strong>Maximum spend: {handoff.maxSpendWithFee} USDT</strong> including the entry fee (plan amount {handoff.budget} USDT){handoff.reducedToFitBudget ? `. Sized down from the modeled ${handoff.modeledQuantity} so the order can never exceed your amount.` : "."}</p>
       <ol className="handoff-commands">
         {handoff.commands.map((item) => (
           <li key={item.command}>

@@ -2,8 +2,8 @@ import "server-only";
 
 import capturedContext from "../../fixtures/captured-context.json";
 import { HeadlineSchema, type Asset, type Headline } from "@/domain/contracts";
-import { fetchBitgetEvidence, fetchSkillNews } from "./bitget-agent";
-import { createTtlCache, decodeEntities, fetchBoundedText, htmlToText } from "./fetch-text";
+import { fetchBitgetEvidence, fetchSkillNews, OPTIONAL_DEADLINE_MS } from "./bitget-agent";
+import { createTtlCache, decodeEntities, fetchBoundedText, htmlToText, withDeadline } from "./fetch-text";
 import { sha256 } from "./identifiers";
 
 const FEED_TIMEOUT_MS = 8_000;
@@ -287,7 +287,10 @@ export async function fetchHeadlines(asset: Asset, mode: "live" | "captured_real
     }
   });
   headlines.sort((left, right) => (right.publishedAt ?? right.publishedDate ?? "").localeCompare(left.publishedAt ?? left.publishedDate ?? ""));
-  const [bitget, skillNews] = await Promise.all([bitgetPromise, fetchSkillNews(asset)]);
+  const [bitget, skillNews] = await Promise.all([
+    withDeadline(bitgetPromise, OPTIONAL_DEADLINE_MS + 1_000, () => ({ items: [], warnings: ["Bitget market data timed out."] })),
+    withDeadline(fetchSkillNews(asset), OPTIONAL_DEADLINE_MS, () => []),
+  ]);
   warnings.push(...bitget.warnings);
   for (const headline of skillNews) {
     const key = headline.title.toLowerCase();
