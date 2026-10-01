@@ -334,6 +334,71 @@ async function fearGreed(): Promise<NonNullable<MarketSignals["sentiment"]>> {
   return { score: new Decimal(score).toString(), rating: str(row?.rating) ?? "unknown", asOf: new Date(asOf).toISOString(), previousWeek: decimal(row?.previous_1_week), previousMonth: decimal(row?.previous_1_month), source: "bitget_market_fear_greed" };
 }
 
+// ---- SEC EDGAR XBRL financials (primary-source fundamentals, independent of Bitget and the news feeds) ----
+const SEC_CIK: Record<Asset, string> = { NVDA: "0001045810", TSLA: "0001318605" };
+// NVIDIA now reports revenue under `Revenues`; the ExcludingAssessedTax concept went stale at FY2022, so
+// several concepts are merged and the most recent quarterly figure is chosen across all of them.
+const SEC_REVENUE_CONCEPTS = ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax"] as const;
+const SEC_XBRL_HOSTS = new Set(["data.sec.gov"]);
+
+type SecFactRow = { start?: unknown; end?: unknown; val?: unknown; fp?: unknown; fy?: unknown; form?: unknown; filed?: unknown };
+
+/**
+ * Picks the most recent consolidated quarterly revenue from one or more SEC companyconcept payloads. XBRL
+ * mixes quarterly (~91-day), year-to-date (~182-day) and annual (~365-day) durations plus restatements of
+ * the same period across later filings, so entries are filtered by duration and, within a period, the most
+ * recently filed and largest (consolidated) value wins. Falls back to annual revenue when no quarter is found.
+ */
+export function parseSecRevenue(texts: string[]): MarketSignals["secFinancials"] {
+  const rows: { start: string; end: string; val: Decimal; fp: string | null; fy: number | null; form: string; filed: string; days: number }[] = [];
+  for (const text of texts) {
+    let units: unknown;
+    try { units = (JSON.parse(text) as { units?: { USD?: unknown } }).units?.USD; } catch { continue; }
+    if (!Array.isArray(units)) continue;
+    for (const raw of units as SecFactRow[]) {
+      const start = typeof raw.start === "string" ? raw.start : null;
+      const end = typeof raw.end === "string" ? raw.end : null;
+      const form = typeof raw.form === "string" ? raw.form : null;
+      const filed = typeof raw.filed === "string" ? raw.filed : null;
+      const val = typeof raw.val === "number" && Number.isFinite(raw.val) ? raw.val : null;
+      if (!start || !end || !form || !filed || val === null || val <= 0) continue;
+      const days = (Date.parse(end) - Date.parse(start)) / 86_400_000;
+      if (!Number.isFinite(days) || days <= 0) continue;
+      rows.push({ start, end, val: new Decimal(val), fp: typeof raw.fp === "string" ? raw.fp : null, fy: typeof raw.fy === "number" ? raw.fy : null, form, filed, days });
+    }
+  }
+  const quarterly = rows.filter((row) => row.days >= 80 && row.days <= 100);
+  const pool = quarterly.length ? quarterly : rows.filter((row) => row.days >= 350 && row.days <= 380);
+  if (!pool.length) return null;
+  pool.sort((a, b) => {
+    if (a.end !== b.end) return a.end < b.end ? 1 : -1; // latest period end first
+    if (a.filed !== b.filed) return a.filed < b.filed ? 1 : -1; // latest filing (restatement) first
+    return b.val.cmp(a.val); // consolidated total over any narrower figure
+  });
+  const best = pool[0];
+  return {
+    label: quarterly.length ? "Quarterly revenue" : "Annual revenue",
+    valueUsd: best.val.toString(),
+    periodEnd: best.end,
+    fiscalPeriod: best.fp && best.fy ? `${best.fp} FY${best.fy}` : best.fp,
+    form: best.form,
+    filed: best.filed,
+    source: "sec_edgar_xbrl",
+  };
+}
+
+async function fetchSecFinancials(asset: Asset): Promise<MarketSignals["secFinancials"]> {
+  const agent = process.env.THESIS_SEC_USER_AGENT?.trim();
+  if (!agent) return null; // SEC requires a declared contact; without one the feed is skipped, like the 8-K feed.
+  const settled = await Promise.allSettled(SEC_REVENUE_CONCEPTS.map((concept) =>
+    fetchBoundedText(`https://data.sec.gov/api/xbrl/companyconcept/CIK${SEC_CIK[asset]}/us-gaap/${concept}.json`, {
+      allowedHosts: SEC_XBRL_HOSTS, maxBytes: 2_000_000, timeoutMs: 8_000, accept: "application/json", userAgent: agent,
+    }).then((response) => response.text),
+  ));
+  const texts = settled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+  return texts.length ? parseSecRevenue(texts) : null;
+}
+
 const signalsCache = createTtlCache<MarketSignals>(10 * 60_000, 10);
 
 export async function fetchMarketSignals(asset: Asset): Promise<MarketSignals> {
@@ -342,7 +407,7 @@ export async function fetchMarketSignals(asset: Asset): Promise<MarketSignals> {
     const late = <T>(promise: Promise<T>, fallback: T) => withDeadline(promise.catch(() => fallback), OPTIONAL_DEADLINE_MS, () => fallback);
     // Everything starts at once under one shared deadline; the daily-bar fallback runs alongside the skill
     // rather than after it, so a stalled skill server cannot also delay the fallback.
-    const [skillTechnicals, computed, sentiment, cryptoSentiment, macro, bitgetQuote, skillNews] = await Promise.all([
+    const [skillTechnicals, computed, sentiment, cryptoSentiment, macro, bitgetQuote, skillNews, secFinancials] = await Promise.all([
       late(signalTechnicals(asset), null),
       late(computedTechnicals(asset), null),
       late(fearGreed(), null),
@@ -356,6 +421,7 @@ export async function fetchMarketSignals(asset: Asset): Promise<MarketSignals> {
         return { lastPrice: new Decimal(last).toString(), prevClose: prev && prev > 0 ? new Decimal(prev).toString() : null, changePercent: change === null ? null : new Decimal(change).mul(100).toDecimalPlaces(3).toString() };
       }), null),
       late(fetchSkillNews(asset), [] as Headline[]),
+      late(fetchSecFinancials(asset), null),
     ]);
     const technicals = skillTechnicals ?? computed;
     if (!skillTechnicals) warnings.push(computed ? "The technical-analysis skill was unavailable; indicators were computed from daily bars instead." : "Technical context is unavailable.");
@@ -367,7 +433,7 @@ export async function fetchMarketSignals(asset: Asset): Promise<MarketSignals> {
       { skill: "macro-analyst", status: macro ? "used" : "fallback", detail: macro ? "rates snapshot from the skill" : "skill did not answer; Bitget macro briefing on the radar used instead" },
       { skill: "market-intel", status: "not_applicable", detail: "crypto on-chain flows; not relevant to US stock tokens" },
     ];
-    return MarketSignalsSchema.parse({ technicals, sentiment, bitgetQuote, macro, cryptoSentiment, skills, warnings });
+    return MarketSignalsSchema.parse({ technicals, sentiment, bitgetQuote, macro, cryptoSentiment, secFinancials, skills, warnings });
   }, (signals) => signals.technicals !== null && signals.sentiment !== null);
 }
 

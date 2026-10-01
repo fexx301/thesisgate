@@ -98,7 +98,7 @@ function moodLabel(rating: string) {
 function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; goalVsBids: string | null; asset: string }) {
   const signals = context.signals;
   if (!signals) return null;
-  const { technicals, sentiment, macro, cryptoSentiment, bitgetQuote } = signals;
+  const { technicals, sentiment, macro, cryptoSentiment, bitgetQuote, secFinancials } = signals;
   const goalPercent = goalVsBids ? new Decimal(goalVsBids).mul(100).toString() : null;
   const days = technicals && goalPercent ? requiredMoveInTypicalDays(goalPercent, technicals.atrPercent) : null;
   const symbol = context.underlying?.symbol ?? asset;
@@ -106,7 +106,7 @@ function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; 
   const quoteMatches = bitgetQuote?.prevClose && close ? new Decimal(bitgetQuote.prevClose).minus(close).abs().div(close).lte("0.0025") : null;
   const used = signals.skills.filter((item) => item.status === "used").map((item) => item.skill);
   const fellBack = signals.skills.filter((item) => item.status === "fallback").map((item) => item.skill);
-  if (!technicals && !sentiment && !macro && !cryptoSentiment && !bitgetQuote) return null;
+  if (!technicals && !sentiment && !macro && !cryptoSentiment && !bitgetQuote && !secFinancials) return null;
   return (
     <div className="skill-context" aria-label="Market context from Bitget Agent Hub">
       {technicals ? (
@@ -143,8 +143,17 @@ function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; 
           </small>
         </div>
       ) : null}
+      {secFinancials ? (
+        <div className="skill-item">
+          <span className="skill-label">{secFinancials.label}</span>
+          <strong>${new Decimal(secFinancials.valueUsd).div("1000000000").toDecimalPlaces(1).toString()}B</strong>
+          <small>
+            {symbol} {secFinancials.fiscalPeriod ? `${secFinancials.fiscalPeriod} · ` : ""}period ended {secFinancials.periodEnd} · SEC {secFinancials.form} filed {secFinancials.filed}
+          </small>
+        </div>
+      ) : null}
       <p className="skill-source">
-        Bitget Agent Hub skills: {used.length ? `${used.join(", ")} answered` : "none answered"}{fellBack.length ? `; ${fellBack.join(", ")} fell back to Bitget market data` : ""}. Context for scale, not a forecast.
+        Bitget Agent Hub skills: {used.length ? `${used.join(", ")} answered` : "none answered"}{fellBack.length ? `; ${fellBack.join(", ")} fell back to Bitget market data` : ""}.{secFinancials ? " Revenue from SEC EDGAR XBRL." : ""} Context for scale, not a forecast.
       </p>
     </div>
   );

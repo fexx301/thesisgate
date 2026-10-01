@@ -170,7 +170,8 @@ export function RadarPanel({
             <li><strong>Bitget Agent Hub · bitget-mcp-server</strong> — US Fear &amp; Greed market mood</li>
             <li><strong>Bitget Agent Hub · bitget-signal skill</strong> — technical-analysis (14-day ATR, RSI)</li>
             <li><strong>NVIDIA Newsroom</strong> — allowlisted primary-source releases</li>
-            <li><strong>SEC EDGAR</strong> — latest filings &amp; analyst actions</li>
+            <li><strong>SEC EDGAR</strong> — latest 8-K filings &amp; analyst actions</li>
+            <li><strong>SEC EDGAR XBRL</strong> — last reported revenue (primary-source fundamentals)</li>
             <li><strong>Yahoo Finance</strong> — underlying US quote and official close</li>
           </ul>
           <p className="sources-note">Each source is consulted live with its own timeout; any that does not answer is listed below and the brief proceeds with the rest. Skill output is scale context only, never a forecast.</p>

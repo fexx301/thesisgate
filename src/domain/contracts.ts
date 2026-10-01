@@ -384,6 +384,21 @@ export const MarketSignalsSchema = z
       .strict()
       .nullable()
       .default(null),
+    // Last reported revenue from SEC EDGAR's XBRL financial data (primary-source fundamentals), used as
+    // scale context for the goal; never a forecast. Independent of Bitget and of the Yahoo/SEC news feeds.
+    secFinancials: z
+      .object({
+        label: z.string().min(1).max(60),
+        valueUsd: PositiveDecimalStringSchema,
+        periodEnd: z.string().min(1).max(40),
+        fiscalPeriod: z.string().max(20).nullable(),
+        form: z.string().min(1).max(12),
+        filed: z.string().min(1).max(40),
+        source: z.literal("sec_edgar_xbrl"),
+      })
+      .strict()
+      .nullable()
+      .default(null),
     // Which Bitget Agent Hub skills answered for this context, and what was used when one did not.
     skills: z
       .array(z.object({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analystTargetsEvidence, earningsCalendarEvidence, newsEvidence } from "../../src/server/bitget-agent";
+import { analystTargetsEvidence, earningsCalendarEvidence, newsEvidence, parseSecRevenue } from "../../src/server/bitget-agent";
 import { parseRpcBody } from "../../src/server/mcp-client";
 import { atrPercent, requiredMoveInTypicalDays, rsi, simpleAverage } from "../../src/domain/technicals";
 import { createTtlCache } from "../../src/server/fetch-text";
@@ -79,6 +79,49 @@ describe("technical context", () => {
     expect(requiredMoveInTypicalDays("2.9", "1.9")).toBe("1.5");
     expect(requiredMoveInTypicalDays("-0.4", "2")).toBe("0.2");
     expect(requiredMoveInTypicalDays("1", "0")).toBeNull();
+  });
+});
+
+describe("SEC XBRL revenue", () => {
+  const facts = (rows: object[]) => JSON.stringify({ units: { USD: rows } });
+
+  it("picks the latest consolidated quarterly revenue across mixed durations and restatements", () => {
+    // A quarter (~91d), its year-to-date roll-up (~182d), an annual figure, a later restatement of the
+    // same quarter, and a narrower segment value for that quarter. The latest quarter, latest filing wins.
+    const result = parseSecRevenue([
+      facts([
+        { start: "2026-01-26", end: "2026-04-26", val: 81615000000, fp: "Q1", fy: 2027, form: "10-Q", filed: "2026-05-20" },
+        { start: "2026-01-26", end: "2026-07-26", val: 177837000000, fp: "Q2", fy: 2027, form: "10-Q", filed: "2026-08-26" }, // YTD (6 months) — excluded
+        { start: "2025-01-27", end: "2026-01-25", val: 300000000000, fp: "FY", fy: 2026, form: "10-K", filed: "2026-02-25" }, // annual — excluded while a quarter exists
+        { start: "2026-04-27", end: "2026-07-26", val: 90000000000, fp: "Q2", fy: 2027, form: "10-Q", filed: "2026-08-26" }, // original quarter
+        { start: "2026-04-27", end: "2026-07-26", val: 96221000000, fp: "Q2", fy: 2027, form: "10-Q", filed: "2026-09-01" }, // restated, later filing — wins
+      ]),
+    ]);
+    expect(result).toEqual({
+      label: "Quarterly revenue",
+      valueUsd: "96221000000",
+      periodEnd: "2026-07-26",
+      fiscalPeriod: "Q2 FY2027",
+      form: "10-Q",
+      filed: "2026-09-01",
+      source: "sec_edgar_xbrl",
+    });
+  });
+
+  it("merges concepts, ignores non-positive/malformed rows, and falls back to annual when no quarter exists", () => {
+    const result = parseSecRevenue([
+      "not json",
+      facts([{ start: "2025-01-01", end: "2025-12-31", val: 97690000000, fp: "FY", fy: 2025, form: "10-K", filed: "2026-01-29" }]),
+      facts([{ start: "x", end: "y", val: 5 }, { start: "2024-01-01", end: "2024-12-31", val: -1, form: "10-K", filed: "2025-01-29" }]),
+    ]);
+    expect(result?.label).toBe("Annual revenue");
+    expect(result?.valueUsd).toBe("97690000000");
+    expect(result?.form).toBe("10-K");
+  });
+
+  it("returns null when nothing usable is present", () => {
+    expect(parseSecRevenue([])).toBeNull();
+    expect(parseSecRevenue(["{}", JSON.stringify({ units: {} })])).toBeNull();
   });
 });
 
