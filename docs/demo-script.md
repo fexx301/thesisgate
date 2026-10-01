@@ -45,15 +45,15 @@ Scroll to **Evidence behind your thesis**. Show one supported claim with its quo
 
 > "Each part of my thesis is checked separately, against quotes verified in the source. The news can be true without proving the price will move."
 
-### 1:25–1:35 · Bitget Agent Hub, on screen (a scoring criterion)
+### 1:25–1:40 · Data sources & integrations, on screen (a scoring criterion)
 
-Point at the small line under the priced-in card that reads **"Bitget Agent Hub skills: … answered"**, then at the analyst-targets and earnings-calendar entries in the radar.
+In the radar, expand **Data sources & integrations** so the whole list is on screen at once (this is the "integration count and effectiveness" criterion, made visible in one shot): the Bitget order book, the five Bitget MCP-server feeds (analyst targets, earnings calendar, Bitget news, macro, Fear & Greed), the technical-analysis skill, NVIDIA Newsroom, SEC EDGAR filings, **SEC EDGAR XBRL financials**, and Yahoo. Then point at the priced-in card's context row — typical daily range, market mood, and the **last reported revenue from SEC's XBRL data**.
 
-> "This is built on Bitget's own Agent Hub: analyst targets, earnings dates and news from the Bitget MCP server, the technical-analysis skill for the stock's typical daily range, and the news, sentiment and macro skills. The brief shows which skills answered, and falls back to Bitget market data when one doesn't."
+> "It's built on Bitget's own Agent Hub — analyst targets, earnings, news, macro and the technical-analysis skill — plus independent primary sources: NVIDIA's newsroom, SEC filings, and SEC's XBRL financials for the last reported revenue. The brief shows which answered and falls back when one doesn't."
 
-Check the line the morning you record: if the skills server is still returning errors, say so plainly and don't claim those three answered.
+Check the skills line the morning you record: if Bitget's skill server is still erroring, say so plainly and don't claim those answered — the honest fallback is part of the story, not a flaw to hide.
 
-### 1:35–2:00 · Follow-ups change only what they should
+### 1:40–2:00 · Follow-ups change only what they should
 
 In the chat, click **What if I only put in half?**, then **What if exit liquidity halves?**.
 
@@ -71,7 +71,7 @@ Point at the **contradicted** tag and the Aug 26 date in Sources.
 
 Open **If you decide to trade: hand off to Bitget Agent Hub** and show the three `bgc` commands: a read-only price check, a dry-run preview, then the real order that you run yourself.
 
-> "ThesisGate never places orders. When you decide, it hands you the exact Bitget CLI command, dry run first."
+> "ThesisGate never places orders. When you decide, it hands you the exact Bitget CLI command — dry run first, and sized so it can never spend more than your amount, fees included."
 
 ### 2:30–2:50 · Proof, not claims
 
