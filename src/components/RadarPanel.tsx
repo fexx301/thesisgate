@@ -158,7 +158,24 @@ export function RadarPanel({
           <p className="muted-copy">No company headlines were found for r{asset} {radar.mode === "captured_real" ? "in the captured replay" : "right now"}. Paste a source in the plan below instead.</p>
         )
       ) : null}
-      {radar?.mode === "live" ? <p className="radar-note">Sources: Bitget market data (bitget-mcp-server: analyst targets, earnings calendar, Bitget news), NVIDIA Newsroom, SEC EDGAR and Yahoo Finance.</p> : null}
+      {radar?.mode === "live" ? (
+        <details className="sources-detail">
+          <summary>Data sources &amp; integrations</summary>
+          <ul className="sources-list">
+            <li><strong>Bitget public market API</strong> — validated 50-level rToken order book (the economics run on this)</li>
+            <li><strong>Bitget Agent Hub · bitget-mcp-server</strong> — dated analyst price targets</li>
+            <li><strong>Bitget Agent Hub · bitget-mcp-server</strong> — earnings calendar</li>
+            <li><strong>Bitget Agent Hub · bitget-mcp-server</strong> — Bitget newsroom</li>
+            <li><strong>Bitget Agent Hub · bitget-mcp-server</strong> — macro briefing &amp; rates</li>
+            <li><strong>Bitget Agent Hub · bitget-mcp-server</strong> — US Fear &amp; Greed market mood</li>
+            <li><strong>Bitget Agent Hub · bitget-signal skill</strong> — technical-analysis (14-day ATR, RSI)</li>
+            <li><strong>NVIDIA Newsroom</strong> — allowlisted primary-source releases</li>
+            <li><strong>SEC EDGAR</strong> — latest filings &amp; analyst actions</li>
+            <li><strong>Yahoo Finance</strong> — underlying US quote and official close</li>
+          </ul>
+          <p className="sources-note">Each source is consulted live with its own timeout; any that does not answer is listed below and the brief proceeds with the rest. Skill output is scale context only, never a forecast.</p>
+        </details>
+      ) : null}
       {radar?.feedWarnings.length ? (
         <p className="radar-note">Not every source answered in time ({radar.feedWarnings.map((warning) => warning.split(/ (?:feed )?unavailable/)[0]).join(", ")}); the rest are shown.</p>
       ) : null}

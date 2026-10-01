@@ -103,6 +103,14 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
 - Current local verification: typecheck, lint, 192 unit/integration tests across 23 files, production build, and 30 Chromium/mobile browser journeys pass.
 
+### What is measurably different
+
+Held to the honest version of our own benchmark, the edge is specific and we state it plainly:
+
+- **The proven advantage is the deterministic trade math.** Given the identical live order book, a same-model general chatbot got **3/12** break-even/goal thresholds wrong in the v1 comparison (and more in v2); ThesisGate's Decimal.js economics were **correct on every case**. Without the book, a chatbot cannot produce the thresholds at all. This is the differentiator a judge can reproduce.
+- **On reading evidence alone, a well-prompted same-model chatbot ties us** — we do not claim otherwise. After paired correction review, ThesisGate corrected **zero** *unique* evidence omissions over that baseline, so our research-gate's ≥3-omission threshold is **not met** (`evidence/benchmark-gate-final/correction-review.json`: `historicalPerformanceGate: "failed"`). We publish the failing corrected report alongside the original rather than quietly keeping the flattering number.
+- **What the math advantage rests on** is verified, reproducible machinery: excerpt-grounded citations with server-side offset checks, honest downgrading of unverifiable quotes, recirculation/date detection, and a frozen, hash-bound benchmark manifest. The claim is *reliable, reproducible trade economics with honest evidence handling* — not out-reading the same model.
+
 ### Not ready for public AI use
 
 - **UNVERIFIED — real trader validation:** No five-trader study has been completed. The [practitioner validation sheet](evals/practitioner-validation-sheet.md) is a protocol, not results; code, automated tests, and developer review do not satisfy it.
