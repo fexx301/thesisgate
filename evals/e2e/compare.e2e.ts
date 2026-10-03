@@ -366,7 +366,9 @@ run("end-to-end comparison", async () => {
         claimError = error instanceof Error ? error.message : String(error);
       }
     }
-    const candidateMarket = pack.market(plan.asset);
+    // The frozen comparison benchmark only contains NVDA/TSLA cases, so a plan here is always one of those
+    // even though the Asset type now spans more Reality tokens.
+    const candidateMarket = pack.market(plan.asset as "NVDA" | "TSLA");
     const candidateEconomics = calculateEconomics({ plan, instrument: candidateMarket.instrument, snapshot: candidateMarket.snapshot, planRevision: 0, scenarioRevision: 0 });
     const candidateContext = buildMarketContext({ asset: plan.asset, mode: "captured_real", observedAt: pack.asOf, underlying: candidateMarket.underlying, snapshot: candidateMarket.snapshot });
     const candidateText = renderCandidate(evidence, claims, candidateEconomics, candidateContext, plan.asset);

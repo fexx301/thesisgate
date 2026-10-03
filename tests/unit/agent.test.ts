@@ -128,9 +128,28 @@ describe("quick-edit mode: unsupported requests and the displayed suggestions", 
       expect(result.plan, message).toEqual(plan);
       expect(result.changed, message).toEqual([]);
     }
-    // Mentioning another company alongside a supported token is fine (e.g. AWS or Apple news about NVIDIA).
-    expect(ruleBasedTurn(request("Apple signed a GPU deal with Nvidia, put 2k into rNVDA")).plan.purchaseNotionalExcludingFee).toBe("2000");
+    // Mentioning another company alongside a supported token is fine, and the explicit token wins over the
+    // bare company name: this stays on rNVDA rather than switching to rAAPL.
+    const mixed = ruleBasedTurn(request("Apple signed a GPU deal with Nvidia, put 2k into rNVDA"));
+    expect(mixed.plan.purchaseNotionalExcludingFee).toBe("2000");
+    expect(mixed.plan.asset).toBe("NVDA");
     expect(ruleBasedTurn(request("hold rNVDA for the short term, use 3000")).plan.purchaseNotionalExcludingFee).toBe("3000");
+  });
+
+  it("supports the added Reality tokens (Magnificent 7) and still refuses genuinely unsupported ones", () => {
+    expect(ruleBasedTurn(request("switch to apple")).plan.asset).toBe("AAPL");
+    expect(ruleBasedTurn(request("buy rMSFT, use 2000")).plan.asset).toBe("MSFT");
+    expect(ruleBasedTurn(request("move me to amazon")).plan.asset).toBe("AMZN");
+    expect(ruleBasedTurn(request("switch to google")).plan.asset).toBe("GOOGL");
+    expect(ruleBasedTurn(request("put 3k into rMETA")).plan.asset).toBe("META");
+    // A supported-ticker switch is a real change, not a refusal.
+    expect(ruleBasedTurn(request("switch to apple")).changed.length).toBeGreaterThan(0);
+    // Still-unsupported assets are refused with the plan unchanged.
+    for (const message of ["switch to coinbase", "put 2000 into PLTR", "I want to buy SPY"]) {
+      const result = ruleBasedTurn(request(message));
+      expect(result.action, message).toBe("none");
+      expect(result.plan, message).toEqual(plan);
+    }
   });
 
   it("applies every suggestion the UI shows after a brief", async () => {

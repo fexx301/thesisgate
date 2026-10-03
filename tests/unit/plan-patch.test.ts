@@ -37,7 +37,7 @@ describe("plan patch", () => {
   it("rejects protected fields and unknown keys from the model", () => {
     expect(applyPlanPatch(plan, { side: "short" }).ok).toBe(false);
     expect(applyPlanPatch(plan, { category: "FUTURES" }).ok).toBe(false);
-    expect(applyPlanPatch(plan, { asset: "AAPL" }).ok).toBe(false);
+    expect(applyPlanPatch(plan, { asset: "COIN" }).ok).toBe(false);
   });
 
   it("rejects values the plan schema would not accept", () => {

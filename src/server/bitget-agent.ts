@@ -20,6 +20,11 @@ export const BITGET_SIGNAL_MCP = "https://datahub.noxiaohao.com/mcp";
 const COMPANY: Record<Asset, { name: string; pattern: RegExp }> = {
   NVDA: { name: "NVIDIA", pattern: /\b(nvidia|nvda|jensen huang|blackwell|rubin)\b/i },
   TSLA: { name: "Tesla", pattern: /\b(tesla|tsla|elon musk|cybertruck|robotaxi|cybercab)\b/i },
+  AAPL: { name: "Apple", pattern: /\b(apple|aapl|tim cook|iphone|ipad|mac ?book|vision pro)\b/i },
+  MSFT: { name: "Microsoft", pattern: /\b(microsoft|msft|satya nadella|azure|copilot|windows|xbox)\b/i },
+  AMZN: { name: "Amazon", pattern: /\b(amazon|amzn|andy jassy|aws|prime|bezos)\b/i },
+  GOOGL: { name: "Alphabet", pattern: /\b(alphabet|googl|google|sundar pichai|gemini|youtube|waymo|deepmind)\b/i },
+  META: { name: "Meta Platforms", pattern: /\b(meta|facebook|instagram|whatsapp|zuckerberg|threads|reality labs)\b/i },
 };
 
 const NEWS_BODY_MAX_CHARS = 6_000;
@@ -335,7 +340,7 @@ async function fearGreed(): Promise<NonNullable<MarketSignals["sentiment"]>> {
 }
 
 // ---- SEC EDGAR XBRL financials (primary-source fundamentals, independent of Bitget and the news feeds) ----
-const SEC_CIK: Record<Asset, string> = { NVDA: "0001045810", TSLA: "0001318605" };
+const SEC_CIK: Record<Asset, string> = { NVDA: "0001045810", TSLA: "0001318605", AAPL: "0000320193", MSFT: "0000789019", AMZN: "0001018724", GOOGL: "0001652044", META: "0001326801" };
 // NVIDIA now reports revenue under `Revenues`; the ExcludingAssessedTax concept went stale at FY2022, so
 // several concepts are merged and the most recent quarterly figure is chosen across all of them.
 const SEC_REVENUE_CONCEPTS = ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax"] as const;

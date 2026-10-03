@@ -20,6 +20,11 @@ const MAX_RESPONSE_BYTES = 1_000_000;
 const ASSET_CONFIG: Record<Asset, { symbol: string; baseCoin: string }> = {
   NVDA: { symbol: "RNVDAUSDT", baseCoin: "rNVDA" },
   TSLA: { symbol: "RTSLAUSDT", baseCoin: "rTSLA" },
+  AAPL: { symbol: "RAAPLUSDT", baseCoin: "rAAPL" },
+  MSFT: { symbol: "RMSFTUSDT", baseCoin: "rMSFT" },
+  AMZN: { symbol: "RAMZNUSDT", baseCoin: "rAMZN" },
+  GOOGL: { symbol: "RGOOGLUSDT", baseCoin: "rGOOGL" },
+  META: { symbol: "RMETAUSDT", baseCoin: "rMETA" },
 };
 
 type MarketAdapterErrorKind = "market_unavailable" | "market_invalid";

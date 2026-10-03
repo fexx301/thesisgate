@@ -56,7 +56,7 @@ const BoundedFractionSchema = NonNegativeDecimalStringSchema.refine(
   "Enter a fraction below 1",
 );
 
-export const AssetSchema = z.enum(["NVDA", "TSLA"]);
+export const AssetSchema = z.enum(["NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "GOOGL", "META"]);
 export const EvidenceModeSchema = z.enum(["live", "captured_real", "synthetic"]);
 export const CategorySchema = z.literal("SPOT");
 

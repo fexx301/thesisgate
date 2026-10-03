@@ -18,10 +18,18 @@ const feedCache = createTtlCache<Headline[]>(FEED_CACHE_TTL_MS);
 // Only these hosts can be fetched for full article text; every other headline is summary-only.
 export const OFFICIAL_ARTICLE_HOSTS = new Set(["nvidianews.nvidia.com"]);
 
-const COMPANY_NAME: Record<Asset, string> = { NVDA: "NVIDIA", TSLA: "Tesla" };
-const SEC_CIK: Record<Asset, string> = { NVDA: "0001045810", TSLA: "0001318605" };
+const COMPANY_NAME: Record<Asset, string> = { NVDA: "NVIDIA", TSLA: "Tesla", AAPL: "Apple", MSFT: "Microsoft", AMZN: "Amazon", GOOGL: "Alphabet", META: "Meta Platforms" };
+const SEC_CIK: Record<Asset, string> = { NVDA: "0001045810", TSLA: "0001318605", AAPL: "0000320193", MSFT: "0000789019", AMZN: "0001018724", GOOGL: "0001652044", META: "0001326801" };
 // Aggregator feeds tagged by ticker still carry market-wide stories; keep only ones that name the company.
-const RELEVANCE: Record<Asset, RegExp> = { NVDA: /\b(nvidia|nvda|jensen huang|geforce|cuda|blackwell|rubin)\b/i, TSLA: /\b(tesla|tsla|elon musk|musk|cybertruck|robotaxi|model [3sxy]|optimus)\b/i };
+const RELEVANCE: Record<Asset, RegExp> = {
+  NVDA: /\b(nvidia|nvda|jensen huang|geforce|cuda|blackwell|rubin)\b/i,
+  TSLA: /\b(tesla|tsla|elon musk|musk|cybertruck|robotaxi|model [3sxy]|optimus)\b/i,
+  AAPL: /\b(apple|aapl|tim cook|iphone|ipad|mac ?book|app store|vision pro)\b/i,
+  MSFT: /\b(microsoft|msft|satya nadella|azure|copilot|windows|xbox)\b/i,
+  AMZN: /\b(amazon|amzn|andy jassy|aws|prime|bezos)\b/i,
+  GOOGL: /\b(alphabet|googl|google|sundar pichai|gemini|youtube|waymo|deepmind)\b/i,
+  META: /\b(meta|meta platforms|facebook|instagram|whatsapp|zuckerberg|threads|reality labs)\b/i,
+};
 
 export function isRelevant(headline: Pick<Headline, "title" | "summary" | "kind">, asset: Asset) {
   return headline.kind !== "news_aggregator" || RELEVANCE[asset].test(`${headline.title} ${headline.summary}`);

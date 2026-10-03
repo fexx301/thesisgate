@@ -1408,6 +1408,11 @@ export default function Workbench() {
                 <select id="asset" value={state.plan.asset} onChange={(event) => setAsset(event.target.value as Asset)}>
                   <option value="NVDA">rNVDA</option>
                   <option value="TSLA">rTSLA</option>
+                  <option value="AAPL">rAAPL</option>
+                  <option value="MSFT">rMSFT</option>
+                  <option value="AMZN">rAMZN</option>
+                  <option value="GOOGL">rGOOGL</option>
+                  <option value="META">rMETA</option>
                 </select>
                 <span className="field-help">Reality SPOT token</span>
               </div>
