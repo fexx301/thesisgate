@@ -99,11 +99,11 @@ export function toMarkdown(report: ResearchResult) {
         })
         .join("\n\n")
     : "No runtime claim assessments were recorded.";
-  const handoff = agentHubHandoff(economics, validated.instrument, validated.snapshot, plan.feeIn);
+  const handoff = agentHubHandoff(economics, validated.instrument, validated.snapshot, plan.feeIn, plan.side);
   const openClaim = validated.claims.find((claim) => claim.materiality === "material" && claim.status !== "supported")
     ?? validated.claims.find((claim) => claim.status !== "supported");
   const context = validated.marketContext;
-  const view = pricedInView(context, economics);
+  const view = pricedInView(context, economics, plan.side);
   const level = (item: { level: string; vsClose: string | null } | null) => item
     ? `${new Decimal(item.level).toFixed(4)} USDT top bid (${item.vsClose ? `${percent(item.vsClose)} vs close` : "close unavailable"})`
     : "Not available";

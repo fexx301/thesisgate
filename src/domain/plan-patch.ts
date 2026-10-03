@@ -15,8 +15,9 @@ function display(value: string) {
 
 /**
  * Applies a conversational patch to a confirmed plan. Every field is re-validated through the plan
- * schema, so a model can never set protected fields (category, side, quote currency) or out-of-range
- * values. The returned change list is generated here, not taken from the model.
+ * schema, so a model can never set protected fields (category, quote currency) or out-of-range values.
+ * Direction (side: long/short) is settable, but leverage/futures/options are refused upstream in the
+ * agent before a patch is built. The returned change list is generated here, not taken from the model.
  */
 export function applyPlanPatch(plan: Plan, rawPatch: unknown): PatchOutcome {
   const parsedPatch = PlanPatchSchema.safeParse(rawPatch);
@@ -29,6 +30,10 @@ export function applyPlanPatch(plan: Plan, rawPatch: unknown): PatchOutcome {
     if (patch.asset && patch.asset !== plan.asset) {
       next.asset = patch.asset;
       changed.push(`asset set to r${patch.asset}`);
+    }
+    if (patch.side && patch.side !== plan.side) {
+      next.side = patch.side;
+      changed.push(patch.side === "short" ? "switched to a short (profit if the price falls)" : "switched to a long (profit if the price rises)");
     }
     if (patch.thesis !== undefined && patch.thesis !== plan.thesis) {
       next.thesis = patch.thesis;

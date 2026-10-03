@@ -35,9 +35,19 @@ describe("plan patch", () => {
   });
 
   it("rejects protected fields and unknown keys from the model", () => {
-    expect(applyPlanPatch(plan, { side: "short" }).ok).toBe(false);
+    expect(applyPlanPatch(plan, { side: "sideways" }).ok).toBe(false); // invalid side value
     expect(applyPlanPatch(plan, { category: "FUTURES" }).ok).toBe(false);
     expect(applyPlanPatch(plan, { asset: "COIN" }).ok).toBe(false);
+  });
+
+  it("accepts a direction change to short (evidence-neutral)", () => {
+    const outcome = applyPlanPatch(plan, { side: "short" });
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.plan.side).toBe("short");
+      expect(outcome.evidenceChanged).toBe(false);
+      expect(outcome.changed).toContain("switched to a short (profit if the price falls)");
+    }
   });
 
   it("rejects values the plan schema would not accept", () => {

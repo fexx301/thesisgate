@@ -521,6 +521,7 @@ export const RadarResultSchema = z
 export const PlanPatchSchema = z
   .object({
     asset: AssetSchema.optional(),
+    side: z.enum(["long", "short"]).optional(),
     thesis: z.string().trim().min(1).max(4000).optional(),
     purchaseNotional: PositiveDecimalStringSchema.optional(),
     horizonText: z.string().trim().max(240).optional(),

@@ -530,8 +530,10 @@ function EconomicsPanel({ report, requestedMode, now, onRefresh, isRefreshing }:
   const result = report.economics;
   const plan = report.confirmedPlan;
   const comparisonTone = result.goalComparison === "meets" ? "good" : result.goalComparison === "below" ? "bad" : "warn";
+  const isShort = plan.side === "short";
+  const bookWord = isShort ? "ask" : "bid";
   const computationTone = result.computationStatus === "calculated" ? "good" : result.computationStatus === "threshold_only" ? "warn" : "bad";
-  const priceReference = !report.snapshot ? "No order-book snapshot available" : report.snapshot.mode === "live" ? "Live bid prices, shifted by the scenario" : report.snapshot.mode === "captured_real" ? "Captured bid prices, shifted by the scenario" : "Synthetic test bid prices, shifted by the scenario";
+  const priceReference = !report.snapshot ? "No order-book snapshot available" : `${report.snapshot.mode === "live" ? "Live" : report.snapshot.mode === "captured_real" ? "Captured" : "Synthetic test"} ${bookWord} prices, shifted by the scenario`;
   return (
     <section className="report-card economics-card" aria-labelledby="economics-heading">
       <div className="card-topline">
@@ -539,7 +541,7 @@ function EconomicsPanel({ report, requestedMode, now, onRefresh, isRefreshing }:
         <StatusTag tone={computationTone}>{readableStatus(result.computationStatus)}</StatusTag>
       </div>
       <div className="confirmation-strip" role="note" aria-label="Interpreted plan">
-        <span>r{plan.asset} · {plan.purchaseNotionalExcludingFee} USDT excl. fee · {plan.horizon.originalText || "no horizon (partial)"} · {plan.goal ? (plan.goal.kind === "break_even" ? "break-even" : plan.goal.kind === "profit_usdt" ? `+${plan.goal.amount} USDT` : `${new Decimal(plan.goal.fractionOfEntryCash).mul(100).toString()}% on entry cash`) : "no objective"} · {plan.scenario ? `${new Decimal(plan.scenario.bidPriceShift).mul(100).toString()}% bid shift` : "threshold only"}</span>
+        <span>r{plan.asset} · {plan.purchaseNotionalExcludingFee} USDT excl. fee · {plan.horizon.originalText || "no horizon (partial)"} · {plan.goal ? (plan.goal.kind === "break_even" ? "break-even" : plan.goal.kind === "profit_usdt" ? `+${plan.goal.amount} USDT` : `${new Decimal(plan.goal.fractionOfEntryCash).mul(100).toString()}% on entry cash`) : "no objective"} · {plan.side === "short" ? "SHORT · " : ""}{plan.scenario ? `${new Decimal(plan.scenario.bidPriceShift).mul(100).toString()}% ${bookWord} shift` : "threshold only"}</span>
       </div>
       <div className="economics-reference">
         <div><span>Price reference</span><strong>{priceReference}</strong></div>
@@ -552,11 +554,11 @@ function EconomicsPanel({ report, requestedMode, now, onRefresh, isRefreshing }:
       </div>
       <dl className="metric-grid">
         <Metric label="Entry VWAP" value={formatMoney(result.entryVWAP)} note={`${formatNumber(result.quantity)} ${result.units.baseAsset}`} emphasis />
-        <Metric label="Entry cash" value={formatMoney(result.entryCash)} note="Notional plus entry fee" />
+        <Metric label={isShort ? "Open proceeds" : "Entry cash"} value={formatMoney(result.entryCash)} note={isShort ? "Net sale proceeds after fee" : "Notional plus entry fee"} />
         <Metric label="Immediate friction" value={formatMoney(result.frictionProxy)} note="Static book proxy" />
-        <Metric label="Break-even shift" value={formatPercent(result.breakEvenShift)} note="Before any haircut" emphasis />
-        <Metric label="Goal threshold" value={formatPercent(result.requiredGoalShift)} note="Required bid-price shift" />
-        <Metric label="Selected scenario" value={formatMoney(result.netPnl)} note={result.scenarioBidPriceShift ? `${formatPercent(result.scenarioBidPriceShift)} bid shift` : "No scenario selected"} />
+        <Metric label="Break-even shift" value={formatPercent(result.breakEvenShift)} note={isShort ? "Ask must fall this far" : "Before any haircut"} emphasis />
+        <Metric label="Goal threshold" value={formatPercent(result.requiredGoalShift)} note={`Required ${bookWord}-price shift`} />
+        <Metric label="Selected scenario" value={formatMoney(result.netPnl)} note={result.scenarioBidPriceShift ? `${formatPercent(result.scenarioBidPriceShift)} ${bookWord} shift` : "No scenario selected"} />
       </dl>
       <div className={`goal-result goal-${comparisonTone}`}>
         <div><span>Objective check</span><strong>{readableStatus(result.goalComparison)}</strong></div>
@@ -611,9 +613,9 @@ function BriefOverview({ report }: { report: ResearchResult }) {
       {report.economics.netPnl !== null ? (
         <div><span>Scenario net result</span><strong>{formatMoney(report.economics.netPnl)}</strong><small>{readableStatus(report.economics.goalComparison)} · under your assumptions</small><a href="#economics-heading">Review trade math</a></div>
       ) : report.economics.requiredGoalShift !== null ? (
-        <div><span>Your goal needs</span><strong>{signedPercent(report.economics.requiredGoalShift)}</strong><small>on exit bids after fees · break-even {signedPercent(report.economics.breakEvenShift)}</small><a href="#economics-heading">Review trade math</a></div>
+        <div><span>Your goal needs</span><strong>{signedPercent(report.economics.requiredGoalShift)}</strong><small>on {report.confirmedPlan.side === "short" ? "the buy-back asks" : "exit bids"} after fees · break-even {signedPercent(report.economics.breakEvenShift)}</small><a href="#economics-heading">Review trade math</a></div>
       ) : (
-        <div><span>Break-even needs</span><strong>{signedPercent(report.economics.breakEvenShift)}</strong><small>on exit bids after fees and depth</small><a href="#economics-heading">Review trade math</a></div>
+        <div><span>Break-even needs</span><strong>{signedPercent(report.economics.breakEvenShift)}</strong><small>on {report.confirmedPlan.side === "short" ? "the buy-back asks" : "exit bids"} after fees and depth</small><a href="#economics-heading">Review trade math</a></div>
       )}
     </section>
   );
@@ -674,12 +676,16 @@ function ChangePanel({ report }: { report: ResearchResult }) {
     : report.claims[0]
       ? `Every assessed claim is supported. A dated source contradicting "${report.claims[0].exactText.slice(0, 140)}" would change that.`
       : "Select a headline or paste a source so the claims can be checked.";
-  const view = pricedInView(report.marketContext, report.economics);
+  const view = pricedInView(report.marketContext, report.economics, report.confirmedPlan.side);
   const symbol = report.marketContext?.underlying?.symbol ?? report.confirmedPlan.asset;
   const numericalCondition = view.goal
-    ? `Your goal needs the r${report.confirmedPlan.asset} bid book about ${formatPercent(report.economics.requiredGoalShift, 2)} higher (top bid near ${new Decimal(view.goal.level).toFixed(2)} USDT${view.goal.vsClose ? `, ${signedPercent(view.goal.vsClose)} versus ${symbol}'s close` : ""}). Break-even needs ${formatPercent(report.economics.breakEvenShift, 2)}. Thinner exit liquidity raises both.`
+    ? (report.confirmedPlan.side === "short"
+        ? `Your goal needs the r${report.confirmedPlan.asset} ask book about ${formatPercent(report.economics.requiredGoalShift, 2)} (top ask near ${new Decimal(view.goal.level).toFixed(2)} USDT${view.goal.vsClose ? `, ${signedPercent(view.goal.vsClose)} versus ${symbol}'s close` : ""}) — the price must fall. Break-even needs ${formatPercent(report.economics.breakEvenShift, 2)}. Thinner buy-back liquidity makes both harder.`
+        : `Your goal needs the r${report.confirmedPlan.asset} bid book about ${formatPercent(report.economics.requiredGoalShift, 2)} higher (top bid near ${new Decimal(view.goal.level).toFixed(2)} USDT${view.goal.vsClose ? `, ${signedPercent(view.goal.vsClose)} versus ${symbol}'s close` : ""}). Break-even needs ${formatPercent(report.economics.breakEvenShift, 2)}. Thinner exit liquidity raises both.`)
     : report.economics.breakEvenShift
-      ? `Break-even needs the bid book about ${formatPercent(report.economics.breakEvenShift, 2)} higher after fees and depth. Set a goal to see its threshold.`
+      ? (report.confirmedPlan.side === "short"
+          ? `Break-even needs the ask book about ${formatPercent(report.economics.breakEvenShift, 2)} after fees, borrow and depth — the price must fall. Set a goal to see its threshold.`
+          : `Break-even needs the bid book about ${formatPercent(report.economics.breakEvenShift, 2)} higher after fees and depth. Set a goal to see its threshold.`)
       : "A usable order-book snapshot is needed before thresholds can be calculated.";
   return (
     <section className="change-panel" aria-labelledby="change-heading">
@@ -892,6 +898,14 @@ export default function Workbench() {
 
   function setAsset(asset: Asset) {
     commitPlan({ ...state.plan, asset }, `Asset changed to r${asset}. Market data will be reloaded on submit.`, true);
+  }
+
+  function setSide(side: Plan["side"]) {
+    commitPlan(
+      { ...state.plan, side },
+      side === "short" ? "Direction set to short (profit if the price falls). The trade math will recompute." : "Direction set to long (profit if the price rises). The trade math will recompute.",
+      false,
+    );
   }
 
   function beginRequest(nextMode: MarketMode) {
@@ -1416,8 +1430,16 @@ export default function Workbench() {
                 </select>
                 <span className="field-help">Reality SPOT token</span>
               </div>
+              <div className="field-block">
+                <label htmlFor="side">Direction</label>
+                <select id="side" value={state.plan.side} onChange={(event) => setSide(event.target.value as Plan["side"])}>
+                  <option value="long">Long — buy, profit if it rises</option>
+                  <option value="short">Short — sell, profit if it falls</option>
+                </select>
+                <span className="field-help">Spot only, no leverage</span>
+              </div>
               <div className="field-block field-span">
-                <label htmlFor="notional">Purchase notional excluding fee</label>
+                <label htmlFor="notional">{state.plan.side === "short" ? "Short notional excluding fee" : "Purchase notional excluding fee"}</label>
                 <div className="unit-input"><input id="notional" type="text" maxLength={100} inputMode="decimal" value={state.plan.purchaseNotionalExcludingFee} onChange={(event) => commitPlan({ ...state.plan, purchaseNotionalExcludingFee: event.target.value }, "Purchase notional changed. Economics will be recomputed.", false)} aria-invalid={Boolean(planErrors.purchaseNotionalExcludingFee)} aria-describedby={fieldDescribedBy("notional-help", "purchaseNotionalExcludingFee")} /><span aria-hidden="true">USDT</span></div>
                 <span id="notional-help" className="field-help">The entry fee is additional cash.</span>
                 <FieldError id="purchaseNotionalExcludingFee-error" message={planErrors.purchaseNotionalExcludingFee} />
@@ -1509,7 +1531,7 @@ export default function Workbench() {
             <>
               {!reportIsCurrent ? <div className="stale-banner" role="status"><Info size={16} weight="bold" aria-hidden="true" /><span>This report is from an earlier plan or market mode. Submit again before exporting.</span></div> : null}
               <BriefOverview report={state.report} />
-              <PricedInCard context={state.report.marketContext} economics={state.report.economics} asset={state.report.confirmedPlan.asset} />
+              <PricedInCard context={state.report.marketContext} economics={state.report.economics} asset={state.report.confirmedPlan.asset} side={state.report.confirmedPlan.side} />
               {state.report.evidence.status !== "assessed" ? <button className="button button-secondary" type="button" disabled={isBusy} onClick={() => submitResearch({ retryEvidence: true })}>Retry evidence assessment</button> : null}
               <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} requestedMode={state.reportMarketMode ?? state.marketMode} now={clock} onRefresh={() => { if (!validatePlan(state.plan)) return; invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market refresh requested." }); track("live_refresh_requested", { marketMode: "live" }); submitResearch({ marketMode: "live", forceMarketRefresh: true }); }} isRefreshing={isBusy} /></div>
               <ScenarioTable report={state.report} />

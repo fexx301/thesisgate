@@ -14,7 +14,7 @@ function timeLabel(iso: string | null) {
   return new Intl.DateTimeFormat("en", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }).format(new Date(iso));
 }
 
-export function PricedInCard({ context, economics, asset }: { context: MarketContext | null; economics: EconomicsResult; asset: string }) {
+export function PricedInCard({ context, economics, asset, side = "long" }: { context: MarketContext | null; economics: EconomicsResult; asset: string; side?: "long" | "short" }) {
   if (!context?.rToken || !context.underlying || context.moveSinceClose === null) {
     return (
       <section className="report-card priced-card" aria-labelledby="priced-heading">
@@ -25,7 +25,7 @@ export function PricedInCard({ context, economics, asset }: { context: MarketCon
       </section>
     );
   }
-  const view = pricedInView(context, economics);
+  const view = pricedInView(context, economics, side);
   const symbol = context.underlying.symbol;
   const moved = new Decimal(context.moveSinceClose);
   const markers: Marker[] = [

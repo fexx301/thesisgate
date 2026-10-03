@@ -33,15 +33,18 @@ describe("model chat turns", () => {
     expect(result.changed).toEqual(["thesis updated", "amount set to 3000 USDT", "objective set to 60 USDT net profit"]);
   });
 
-  it("never turns a short or another asset into a plan change, even when the model tries", () => {
-    const result = finalizeModelTurn({ reply: "Set up your trade.", patch: { thesis: "rNVDA falls.", purchaseNotional: "2000" }, action: "run_brief" }, request("I want to short rNVDA with 2000 USDT"), "test-model");
-    expect(result.plan).toEqual(plan);
-    expect(result.action).toBe("none");
-    expect(result.reply).toContain("can't model shorts");
+  it("still refuses leverage/derivatives even when the model tries, but applies a plain short", () => {
+    const leveraged = finalizeModelTurn({ reply: "Set up.", patch: { purchaseNotional: "2000" }, action: "run_brief" }, request("3x long rTSLA on futures"), "test-model");
+    expect(leveraged.plan).toEqual(plan);
+    expect(leveraged.action).toBe("none");
+    expect(leveraged.reply).toContain("can't model leverage");
+    const shorted = finalizeModelTurn({ reply: "Short set up.", patch: { side: "short", thesis: "rNVDA falls into the close." }, action: "run_brief" }, request("short rNVDA"), "test-model");
+    expect(shorted.plan.side).toBe("short");
+    expect(shorted.changed).toContain("switched to a short (profit if the price falls)");
   });
 
   it("refuses an invalid patch without changing the plan and says why", () => {
-    const result = finalizeModelTurn({ reply: "Updated.", patch: { side: "short" }, action: "none" }, request("change the plan"), "test-model");
+    const result = finalizeModelTurn({ reply: "Updated.", patch: { purchaseNotional: "-100" }, action: "none" }, request("change the plan"), "test-model");
     expect(result.plan).toEqual(plan);
     expect(result.reply).toContain("could not apply");
   });
@@ -121,13 +124,21 @@ describe("chat thesis restatement", () => {
 });
 
 describe("quick-edit mode: unsupported requests and the displayed suggestions", () => {
-  it("refuses other assets and shorts instead of producing an rNVDA long brief", () => {
-    for (const message of ["I want to buy 2000 USDT of BTC because Bitcoin will rise by tomorrow", "I want to short rNVDA with 2000 USDT until tomorrow", "3x long rTSLA on futures", "buy puts on Tesla"]) {
+  it("refuses other assets and leverage/derivatives, but a plain spot short is allowed", () => {
+    for (const message of ["I want to buy 2000 USDT of BTC because Bitcoin will rise by tomorrow", "3x long rTSLA on futures", "buy puts on Tesla", "open a margin trade on rNVDA"]) {
       const result = ruleBasedTurn(request(message));
       expect(result.action, message).toBe("none");
       expect(result.plan, message).toEqual(plan);
       expect(result.changed, message).toEqual([]);
     }
+    // A plain spot short is now modelled: it sets side to short rather than being refused.
+    const shorted = ruleBasedTurn(request("I want to short rNVDA with 2000 USDT until tomorrow"));
+    expect(shorted.plan.side).toBe("short");
+    expect(shorted.plan.purchaseNotionalExcludingFee).toBe("2000");
+    expect(shorted.changed).toContain("switched to a short (profit if the price falls)");
+    expect(shorted.action).not.toBe("none");
+    // "short term" must NOT be read as a short.
+    expect(ruleBasedTurn(request("hold rNVDA for the short term, use 3000")).plan.side).toBe("long");
     // Mentioning another company alongside a supported token is fine, and the explicit token wins over the
     // bare company name: this stays on rNVDA rather than switching to rAAPL.
     const mixed = ruleBasedTurn(request("Apple signed a GPU deal with Nvidia, put 2k into rNVDA"));

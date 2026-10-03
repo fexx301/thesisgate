@@ -92,4 +92,21 @@ describe("book normalization shared with the calculator", () => {
     expect(economics.computationStatus).toBe("invalid_instrument");
     expect(economics.warnings.join(" ")).toContain("plan is for rTSLA");
   });
+
+  it("prices a short off the best ask (buy-back side), not the best bid", () => {
+    const shortPlan: Plan = { ...plan, side: "short" };
+    const context = buildMarketContext({ asset: "NVDA", mode: "live", observedAt: snapshot.receivedAt, underlying, snapshot });
+    const economics = calculateEconomics({ plan: shortPlan, instrument, snapshot, planRevision: 1, scenarioRevision: 1 });
+    expect(economics.computationStatus).not.toBe("invalid_book");
+    const view = pricedInView(context, economics, "short");
+    const bestAsk = new Decimal(context.rToken?.bestAsk ?? "0"); // 101.2
+    const bestBid = new Decimal(context.rToken?.bestBid ?? "0"); // 101
+    // Levels are the best ASK moved by the (negative) close-side shift — the short trades on the asks.
+    expect(view.goal?.level).toBe(bestAsk.mul(new Decimal(1).plus(economics.requiredGoalShift ?? "0")).toString());
+    expect(view.breakEven?.level).toBe(bestAsk.mul(new Decimal(1).plus(economics.breakEvenShift ?? "0")).toString());
+    // A short's break-even needs the price to fall, so the shift is negative.
+    expect(new Decimal(economics.breakEvenShift ?? "0").isNegative()).toBe(true);
+    // The long view would have used the best bid instead — confirm the two bases differ.
+    expect(bestAsk.eq(bestBid)).toBe(false);
+  });
 });

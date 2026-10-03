@@ -85,32 +85,38 @@ export type PricedInView = {
   shareOfGoalAlreadyMoved: string | null;
 };
 
-function levelFrom(bestBid: Decimal, shift: string | null, close: Decimal | null): PriceLevel | null {
+function levelFrom(base: Decimal, shift: string | null, close: Decimal | null): PriceLevel | null {
   if (shift === null) return null;
-  const level = bestBid.mul(new Decimal(1).plus(shift));
+  const level = base.mul(new Decimal(1).plus(shift));
   return { level: level.toString(), vsClose: close ? level.div(close).minus(1).toString() : null };
 }
 
 /**
  * Translates the order-book thresholds into top-of-book price levels and compares them with the
- * underlying's last close. The levels use the best bid moved by the whole-book shift, so they are an
- * indicator of where the market must trade, not an exact fill price.
+ * underlying's last close. A long's thresholds are moves of the best bid (the sell side), so they sit above
+ * the close; a short's are moves of the best ask (the buy-back side) and sit below it — the same shift field,
+ * read against the side that side actually trades on. These are indicators of where the market must trade,
+ * not exact fill prices.
  */
-export function pricedInView(context: MarketContext | null, economics: EconomicsResult): PricedInView {
+export function pricedInView(context: MarketContext | null, economics: EconomicsResult, side: "long" | "short" = "long"): PricedInView {
   if (!context?.rToken) return { breakEven: null, goal: null, scenario: null, shareOfGoalAlreadyMoved: null };
-  const bestBid = new Decimal(context.rToken.bestBid);
+  const base = new Decimal(side === "short" ? context.rToken.bestAsk : context.rToken.bestBid);
   const close = context.underlying ? new Decimal(context.underlying.lastClose) : null;
-  const goal = levelFrom(bestBid, economics.requiredGoalShift, close);
+  const goal = levelFrom(base, economics.requiredGoalShift, close);
   let shareOfGoalAlreadyMoved: string | null = null;
   if (goal?.vsClose && context.moveSinceClose) {
     const required = new Decimal(goal.vsClose);
     const moved = new Decimal(context.moveSinceClose);
-    if (required.gt(0) && moved.gt(0)) shareOfGoalAlreadyMoved = Decimal.min(moved.div(required), 1).toString();
+    // Same-sign only: a long needs the price above the close (both positive); a short needs it below (both
+    // negative). Either way the fraction of the needed move already made is moved/required, clamped to 1.
+    if (!required.isZero() && !moved.isZero() && required.isPositive() === moved.isPositive()) {
+      shareOfGoalAlreadyMoved = Decimal.min(moved.div(required), 1).toString();
+    }
   }
   return {
-    breakEven: levelFrom(bestBid, economics.breakEvenShift, close),
+    breakEven: levelFrom(base, economics.breakEvenShift, close),
     goal,
-    scenario: levelFrom(bestBid, economics.scenarioBidPriceShift, close),
+    scenario: levelFrom(base, economics.scenarioBidPriceShift, close),
     shareOfGoalAlreadyMoved,
   };
 }
