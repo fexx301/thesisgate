@@ -16,8 +16,8 @@ export type BriefFindings = {
     | { kind: "not_checked"; reason: string };
   /** The link between the news and the expected price move that no source establishes. */
   assumption: { claim: string; detail: string } | null;
-  /** One specific thing to investigate or change next. */
-  nextCheck: { kind: "evidence" | "scenario"; text: string };
+  /** One specific thing to investigate or change next; `about` names the claim it would settle. */
+  nextCheck: { kind: "evidence" | "scenario"; text: string; about: string | null };
 };
 
 const RANK = { material: 0, contextual: 1 } as const;
@@ -52,12 +52,15 @@ export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence"
   const factualGap = claims
     .filter((claim) => claim.distinction === "factual" && claim.status === "insufficient" && claim.missingEvidence)
     .sort(byMateriality)[0];
-  const evidenceQuestion = factualGap?.missingEvidence ?? top?.missingEvidence ?? (checked ? report.evidence.mostConsequentialUnknown : null);
-  const nextCheck: BriefFindings["nextCheck"] = evidenceQuestion
-    ? { kind: "evidence", text: evidenceQuestion }
-    : !checked
-      ? { kind: "evidence", text: "Select a dated headline or paste the source so each part of the thesis can be checked." }
-      : { kind: "scenario", text: `Stress the trade math: "${report.economics.requiredGoalShift !== null ? POST_BRIEF_SUGGESTIONS.halveDepth : POST_BRIEF_SUGGESTIONS.halveAmount}"` };
+  // Always name the claim a question would settle: a model's "missing evidence" line can be generic on its own.
+  const target = factualGap ?? (top?.missingEvidence ? top : null);
+  const nextCheck: BriefFindings["nextCheck"] = target?.missingEvidence
+    ? { kind: "evidence", text: target.missingEvidence, about: target.exactText }
+    : checked && report.evidence.mostConsequentialUnknown
+      ? { kind: "evidence", text: report.evidence.mostConsequentialUnknown, about: null }
+      : !checked
+        ? { kind: "evidence", text: "Select a dated headline or paste the source so each part of the thesis can be checked.", about: null }
+        : { kind: "scenario", text: `Stress the trade math: "${report.economics.requiredGoalShift !== null ? POST_BRIEF_SUGGESTIONS.halveDepth : POST_BRIEF_SUGGESTIONS.halveAmount}"`, about: null };
 
   return { correction, assumption, nextCheck };
 }

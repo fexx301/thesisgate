@@ -27,7 +27,7 @@ describe("brief findings (top of the brief)", () => {
     expect(findings.correction).toMatchObject({ kind: "contradicted", claim: "NVIDIA and AWS announced 2 million more GPUs today", sourceId: "src_nvidia_0826" });
     expect(findings.assumption?.claim).toBe("rNVDA rises before tomorrow's open");
     // The forecast's "missing evidence" is not a checkable question; the claim review's unknown is.
-    expect(findings.nextCheck).toEqual({ kind: "evidence", text: "Whether any deployment produces revenue before 2027." });
+    expect(findings.nextCheck).toEqual({ kind: "evidence", text: "Whether any deployment produces revenue before 2027.", about: null });
   });
 
   it("prefers a checkable factual gap as the next check, and a material contradiction over a contextual one", () => {
@@ -41,7 +41,7 @@ describe("brief findings (top of the brief)", () => {
       economics: economics(null),
     });
     expect(findings.correction).toMatchObject({ kind: "contradicted", claim: "earnings were reported today" });
-    expect(findings.nextCheck).toEqual({ kind: "evidence", text: "A dated analyst action raising the target." });
+    expect(findings.nextCheck).toEqual({ kind: "evidence", text: "A dated analyst action raising the target.", about: "analysts raised targets" });
   });
 
   it("says plainly when nothing was checked, without inventing an assumption", () => {

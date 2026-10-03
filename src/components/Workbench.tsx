@@ -663,8 +663,8 @@ function BriefOverview({ report }: { report: ResearchResult }) {
       )}
       <div className="finding finding-next">
         <span>Check next</span>
-        <strong className="finding-quote">{clip(nextCheck.text, 180)}</strong>
-        <small>{nextCheck.kind === "evidence" ? "An evidence question: it would change the claim review, not the trade math." : "A scenario: it changes the trade math, not the claim review."}</small>
+        <strong className="finding-quote">{nextCheck.about ? <>Verify “{clip(nextCheck.about, 130)}”</> : clip(nextCheck.text, 180)}</strong>
+        <small>{nextCheck.about ? `What would settle it: ${clip(nextCheck.text, 160)} · ` : ""}{nextCheck.kind === "evidence" ? "An evidence question: it would change the claim review, not the trade math." : "A scenario: it changes the trade math, not the claim review."}</small>
         <a href={nextCheck.kind === "evidence" ? "#evidence-heading" : "#economics-heading"}>{nextCheck.kind === "evidence" ? "Go to the evidence" : "Go to the trade math"}</a>
       </div>
     </section>
