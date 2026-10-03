@@ -479,6 +479,7 @@ export const InvestigationSchema = z.object({
   modelCalls: z.number().int().min(0).max(1),
   modelUsage: ModelUsageSchema.nullable(),
   modelDurationMs: z.number().nonnegative(),
+  failure: z.object({ kind: z.string(), message: z.string().max(700) }).strict().nullable().optional(),
   durationMs: z.number().nonnegative(),
   asOf: z.string().datetime({ offset: true }),
 }).strict();

@@ -79,6 +79,7 @@ export async function investigateClaim(plan: Plan, claims: ClaimAssessment[], or
       status: "assessment_unavailable", explanation: "Evidence was retrieved, but the additional assessment could not complete. The original review and trade math remain available.",
       modelId: failure?.modelId ?? null, modelCalls: failure?.attempted ? 1 : 0, modelUsage: failure?.usage ?? null,
       modelDurationMs: failure?.durationMs ?? 0,
+      failure: { kind: failure?.kind ?? "assessment_error", message: (failure?.message ?? "The optional assessment failed.").slice(0, 700) },
     });
   }
   return finish();
