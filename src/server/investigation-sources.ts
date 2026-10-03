@@ -47,8 +47,9 @@ export async function lookupInvestigation(source: InvestigationSource, asset: As
         entry_id: source === "earnings" ? "equity_calendar" : "equity_estimates_price_target",
         params: { symbol: asset, ...(source === "analysts" ? { limit: 40 } : {}) },
       }, signal);
-      const data = JSON.parse(text) as { success?: boolean; data?: { results?: unknown } };
-      if (data.success === false || !Array.isArray(data.data?.results)) throw new Error("The data provider did not return a valid records list.");
+      const data = JSON.parse(text) as { success?: boolean; status_code?: number; data?: { results?: unknown } };
+      if (data.success === false) throw new Error(`Bitget ${source} data service returned HTTP ${data.status_code ?? "error"}. The source is unavailable; this does not contradict the claim.`);
+      if (!Array.isArray(data.data?.results)) throw new Error("The data provider did not return a valid records list.");
       const rows = data.data.results.filter((row): row is Record<string, unknown> => !!row && typeof row === "object");
       const result = source === "earnings" ? earningsCalendarEvidence(asset, rows, asOf.toISOString().slice(0, 10)) : analystTargetsEvidence(asset, rows);
       lookups[0].status = "empty";
