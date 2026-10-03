@@ -2,7 +2,7 @@
 
 ## In plain English
 
-Bitget's rNVDA and rTSLA stock tokens trade 24/7, including nights, weekends and US holidays when Wall Street is closed. That is exactly when a headline lands and the token's order book is the only place the trade exists, usually at its thinnest.
+Bitget's stock tokens (rNVDA, rTSLA, rAAPL, rMSFT, rAMZN, rGOOGL, rMETA) trade 24/7, including nights, weekends and US holidays when Wall Street is closed. That is exactly when a headline lands and the token's order book is the only place the trade exists, usually at its thinnest.
 
 ThesisGate is a research copilot for that moment. Describe the trade you're weighing in plain language, for example *"Jensen says the AI boom won't slow for 2–3 years, I think rNVDA bounces before Monday's open, thinking 3k, want about 60 USDT"*, and it:
 
@@ -14,7 +14,7 @@ ThesisGate is a research copilot for that moment. Describe the trade you're weig
 
 You make the decision. ThesisGate never places orders, predicts prices, or tells you to buy or sell. The evidence verdict and the trade math are separate conclusions, and neither is a forecast.
 
-> **Status:** a working prototype for Reality SPOT rNVDA and rTSLA, long only. It is a research tool, not a broker, execution bot or investment recommendation.
+> **Status:** a working prototype for Bitget Reality SPOT tokens of the Magnificent 7 (rNVDA, rTSLA, rAAPL, rMSFT, rAMZN, rGOOGL, rMETA), **long or short** (spot only — no leverage, futures, margin or options). A short opens on the bids, closes on the asks, and includes a labeled borrow-fee assumption. It is a research tool, not a broker, execution bot or investment recommendation.
 
 ## Start here
 
@@ -101,7 +101,7 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - Priced-in card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
 - Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the priced-in context and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
-- Current local verification: typecheck, lint, 192 unit/integration tests across 23 files, production build, and 30 Chromium/mobile browser journeys pass.
+- Current local verification: typecheck, lint, 205 unit/integration tests across 24 files, production build, and 30 Chromium/mobile browser journeys pass.
 
 ### What is measurably different
 
