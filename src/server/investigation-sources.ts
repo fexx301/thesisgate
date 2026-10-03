@@ -60,17 +60,23 @@ export async function lookupInvestigation(source: InvestigationSource, asset: As
       if (!agent) throw new Error("SEC contact user agent is not configured; no SEC request was made.");
       const today = asOf.toISOString().slice(0, 10);
       if (source === "revenue") {
-        const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${CIK[asset]}.json`;
-        const { text } = await get(url, "SEC EDGAR reported revenue", "application/json", agent);
-        const data = JSON.parse(text) as { facts?: { "us-gaap"?: Record<string, { units?: { USD?: Array<Record<string, unknown>> } }> } };
-        const lines: string[] = [];
-        for (const name of ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax"]) {
-          const rows = data.facts?.["us-gaap"]?.[name]?.units?.USD ?? [];
-          for (const row of rows.filter((row) => typeof row.filed === "string" && row.filed <= today && typeof row.start === "string" && typeof row.end === "string" && typeof row.val === "number" && Number.isFinite(row.val)).sort((a, b) => String(b.filed).localeCompare(String(a.filed))).slice(0, 12)) {
-            lines.push(`${name}: ${row.val} USD; period ${row.start} to ${row.end}; form ${row.form}; filed ${row.filed}; accession ${row.accn}.`);
+        // Company-wide facts can exceed 4 MB. Fetch only revenue concepts, with one fallback at most.
+        const concepts = asset === "NVDA" ? ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax"] : ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues"];
+        const requestedDates = claim.match(/\b\d{4}-\d{2}-\d{2}\b/g) ?? [];
+        for (const name of concepts) {
+          const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${CIK[asset]}/us-gaap/${name}.json`;
+          const { text } = await get(url, `SEC EDGAR ${name}`, "application/json", agent);
+          const data = JSON.parse(text) as { units?: { USD?: Array<Record<string, unknown>> } };
+          const rows = data.units?.USD ?? [];
+          const eligible = rows.filter((row) => typeof row.filed === "string" && row.filed <= today && typeof row.start === "string" && typeof row.end === "string" && typeof row.val === "number" && Number.isFinite(row.val))
+            .filter((row) => requestedDates.length === 0 || requestedDates.every((date) => row.start === date || row.end === date || row.filed === date))
+            .sort((a, b) => String(b.filed).localeCompare(String(a.filed))).slice(0, 12);
+          const lines = eligible.map((row) => `${name}: ${row.val} USD; period ${row.start} to ${row.end}; form ${row.form}; filed ${row.filed}; accession ${row.accn}.`);
+          if (lines.length) {
+            add(document(`${asset} reported revenue: SEC XBRL ${name}`, "SEC EDGAR", `${asset} consolidated revenue facts retrieved as of ${today}.\n${lines.join("\n")}\nThese facts do not attribute revenue to a deal, product or customer. Period start/end define the duration; quarterly and year-to-date values are not interchangeable.`, url, null, asOf));
+            break;
           }
         }
-        if (lines.length) add(document(`${asset} reported revenue: SEC XBRL facts`, "SEC EDGAR", `${asset} consolidated revenue facts retrieved as of ${today}.\n${lines.join("\n")}\nThese facts do not attribute revenue to a deal, product or customer. Period start/end define the duration; quarterly and year-to-date values are not interchangeable.`, url, null, asOf));
       } else {
         const url = `https://data.sec.gov/submissions/CIK${CIK[asset]}.json`;
         const { text } = await get(url, "SEC EDGAR filing dates", "application/json", agent);

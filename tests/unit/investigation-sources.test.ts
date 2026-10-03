@@ -24,15 +24,25 @@ describe("targeted source retrieval", () => {
   });
   it("retrieves revenue as dated evidence, preserving period durations and excluding future filings", async () => {
     vi.stubEnv("THESIS_SEC_USER_AGENT", "ThesisGate test@example.com");
-    vi.mocked(fetchBoundedText).mockResolvedValue({ finalUrl: "https://data.sec.gov/", text: JSON.stringify({ facts: { "us-gaap": { Revenues: { units: { USD: [
+    vi.mocked(fetchBoundedText).mockResolvedValue({ finalUrl: "https://data.sec.gov/", text: JSON.stringify({ units: { USD: [
       { start: "2026-04-01", end: "2026-06-30", val: 100, filed: "2026-08-01", form: "10-Q", accn: "a" },
       { start: "2026-07-01", end: "2026-09-30", val: 200, filed: "2026-11-01", form: "10-Q", accn: "b" },
-    ] } } } } }) });
+    ] } }) });
     const result = await lookupInvestigation("revenue", "NVDA", "NVIDIA reported revenue", date, signal());
     expect(fetchBoundedText).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetchBoundedText).mock.calls[0][0]).toContain("/companyconcept/");
     expect(result.sources[0].cleanedText).toContain("100 USD; period 2026-04-01 to 2026-06-30");
     expect(result.sources[0].cleanedText).not.toContain("200 USD");
     expect(result.sources[0].cleanedText).toContain("do not attribute revenue");
+  });
+  it("uses at most one fallback revenue concept when the requested period is absent", async () => {
+    vi.stubEnv("THESIS_SEC_USER_AGENT", "ThesisGate test@example.com");
+    vi.mocked(fetchBoundedText).mockResolvedValueOnce({ finalUrl: "https://data.sec.gov/", text: '{"units":{"USD":[]}}' })
+      .mockResolvedValueOnce({ finalUrl: "https://data.sec.gov/", text: JSON.stringify({ units: { USD: [{ start: "2026-04-01", end: "2026-06-30", val: 100, filed: "2026-08-01", form: "10-Q", accn: "a" }] } }) });
+    const result = await lookupInvestigation("revenue", "NVDA", "Revenue for 2026-04-01 to 2026-06-30", date, signal());
+    expect(fetchBoundedText).toHaveBeenCalledTimes(2);
+    expect(result.lookups).toHaveLength(2);
+    expect(result.sources[0].cleanedText).toContain("RevenueFromContractWithCustomerExcludingAssessedTax: 100 USD");
   });
   it("does not request SEC without configured contact information", async () => {
     vi.stubEnv("THESIS_SEC_USER_AGENT", "");
