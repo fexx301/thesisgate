@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { afterAll, expect, test } from "vitest";
 import { lookupInvestigation } from "../../src/server/investigation-sources";
 import { investigateClaim } from "../../src/server/investigation";
-import { closeMcpSessions } from "../../src/server/mcp-client";
+import { callMcpToolOnce, closeMcpSessions } from "../../src/server/mcp-client";
 import { resetLocalRateLimitsForTests } from "../../src/server/quota";
 import type { Asset, ClaimAssessment, Plan } from "../../src/domain/contracts";
 import type { InvestigationSource } from "../../src/domain/investigation";
@@ -60,6 +60,13 @@ test.skipIf(!optedIn)("bounded live investigation: source retrieval, supported/c
   process.env.THESIS_LLM_LOCAL_MAX_CONCURRENT = "1";
   resetLocalRateLimitsForTests();
   mkdirSync(output, { recursive: true });
+  const diagnostic = process.env.THESIS_LIVE_DIAGNOSTIC_ENTRY;
+  if (diagnostic && ["equity_calendar", "equity_estimates_price_target"].includes(diagnostic)) {
+    const text = await callMcpToolOnce("https://agent.bitget.com/mcp", "do_query", { entry_id: diagnostic, params: { symbol: diagnostic === "equity_calendar" ? "TSLA" : "NVDA", limit: 40 } }, AbortSignal.timeout(8000));
+    console.log(`PUBLIC_SOURCE_DIAGNOSTIC=${text.slice(0, 10000)}`);
+    cases.push({ kind: "diagnostic_only", entry: diagnostic, text });
+    return;
+  }
   const provider = process.env.THESIS_LLM_BASE_URL;
   expect(provider).toBeTruthy();
   expect(process.env.THESIS_LLM_API_KEY).toBeTruthy();
