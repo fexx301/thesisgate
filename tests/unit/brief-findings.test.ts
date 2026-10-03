@@ -26,8 +26,15 @@ describe("brief findings (top of the brief)", () => {
     });
     expect(findings.correction).toMatchObject({ kind: "contradicted", claim: "NVIDIA and AWS announced 2 million more GPUs today", sourceId: "src_nvidia_0826" });
     expect(findings.assumption?.claim).toBe("rNVDA rises before tomorrow's open");
-    // The forecast's "missing evidence" is not a checkable question; the claim review's unknown is.
-    expect(findings.nextCheck).toEqual({ kind: "evidence", text: "Whether any deployment produces revenue before 2027.", about: null });
+    // Neither the forecast nor the review's unknown (a restated forecast) is a checkable fact, so the next step
+    // is a trade-math stress rather than a duplicate of the assumption cell.
+    expect(findings.nextCheck.kind).toBe("scenario");
+    // When the contradicted premise says what would settle it, that becomes the next check, naming the claim.
+    const withMissing = briefFindings({
+      claims: [claim({ exactText: "announced today", status: "contradicted", missingEvidence: "A source dated 2026-09-08 announcing it." })],
+      evidence: evidence(), economics: economics("0.0138"),
+    });
+    expect(withMissing.nextCheck).toEqual({ kind: "evidence", text: "A source dated 2026-09-08 announcing it.", about: "announced today" });
   });
 
   it("prefers a checkable factual gap as the next check, and a material contradiction over a contextual one", () => {

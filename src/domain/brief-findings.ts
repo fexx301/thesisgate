@@ -48,17 +48,17 @@ export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence"
       ? { claim: report.evidence.mostConsequentialUnknown, detail: "The most consequential unknown the claim review found." }
       : null;
 
-  // 3. Next check: a checkable factual gap beats a restated forecast; otherwise a scenario that tests the math.
+  // 3. Next check: a checkable factual gap or the contradicted premise; otherwise a scenario that tests the math.
   const factualGap = claims
     .filter((claim) => claim.distinction === "factual" && claim.status === "insufficient" && claim.missingEvidence)
     .sort(byMateriality)[0];
   // Always name the claim a question would settle: a model's "missing evidence" line can be generic on its own.
   const target = factualGap ?? (top?.missingEvidence ? top : null);
+  // The review's "most consequential unknown" is not used here: it is almost always the price forecast, which
+  // the assumption cell already shows, and a forecast is not a fact anyone can go and check.
   const nextCheck: BriefFindings["nextCheck"] = target?.missingEvidence
     ? { kind: "evidence", text: target.missingEvidence, about: target.exactText }
-    : checked && report.evidence.mostConsequentialUnknown
-      ? { kind: "evidence", text: report.evidence.mostConsequentialUnknown, about: null }
-      : !checked
+    : !checked
         ? { kind: "evidence", text: "Select a dated headline or paste the source so each part of the thesis can be checked.", about: null }
         : { kind: "scenario", text: `Stress the trade math: "${report.economics.requiredGoalShift !== null ? POST_BRIEF_SUGGESTIONS.halveDepth : POST_BRIEF_SUGGESTIONS.halveAmount}"`, about: null };
 
