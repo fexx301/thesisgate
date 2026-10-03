@@ -134,10 +134,10 @@ export function revisionReducer(state: WorkbenchState, action: WorkbenchAction):
   }
 }
 
-async function hashInput(kind: "evidence" | "economics", input: unknown) {
+async function hashInput(kind: "evidence" | "economics", input: unknown, version = "v2") {
   const payload = new TextEncoder().encode(JSON.stringify(input));
   const digest = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", payload));
-  return `${kind}-v2:sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+  return `${kind}-${version}:sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
 function numeric(value: string) {
@@ -146,9 +146,10 @@ function numeric(value: string) {
 
 export function evidenceInputHash(
   plan: Plan,
-  sources: Array<Pick<SourceDocument, "textHash" | "provenance" | "publicationDate" | "eventDate" | "publicationDatePrecision">>,
+  sources: Array<Pick<SourceDocument, "textHash" | "provenance" | "publicationDate" | "eventDate" | "publicationDatePrecision"> & Partial<Pick<SourceDocument, "title" | "publisher" | "originalUrl" | "finalApprovedUrl" | "fetchedAt" | "truncated">>>,
   promptVersion: string,
   modelVersion: string,
+  context?: { referenceDay: string; timezone: string; validationVersion: string; investigationVersion?: string; investigationInputHash?: string | null },
 ) {
   return hashInput("evidence", {
     asset: plan.asset,
@@ -159,6 +160,7 @@ export function evidenceInputHash(
       publicationDate: source.publicationDate,
       eventDate: source.eventDate,
       publicationDatePrecision: source.publicationDatePrecision,
+      ...(context ? { title: source.title ?? null, publisher: source.publisher ?? null, originalUrl: source.originalUrl ?? null, finalApprovedUrl: source.finalApprovedUrl ?? null, fetchedAt: source.fetchedAt ?? null, truncated: source.truncated ?? null } : {}),
     })),
     horizon: {
       originalText: plan.horizon.originalText,
@@ -168,7 +170,8 @@ export function evidenceInputHash(
     invalidation: plan.invalidation,
     promptVersion,
     modelVersion,
-  });
+    ...(context ? { assessmentContext: context } : {}),
+  }, context ? "v3" : "v2");
 }
 
 export function economicsInputHash(plan: Plan, instrument: Instrument, snapshot: MarketSnapshot, formulaVersion: string) {

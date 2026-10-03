@@ -13,7 +13,7 @@ export class BoundedFetchError extends Error {
  */
 export async function fetchBoundedText(
   url: string,
-  options: { allowedHosts: ReadonlySet<string>; maxBytes: number; timeoutMs: number; accept: string; userAgent?: string },
+  options: { allowedHosts: ReadonlySet<string>; maxBytes: number; timeoutMs: number; accept: string; userAgent?: string; signal?: AbortSignal },
 ) {
   let current = new URL(url);
   for (let hop = 0; hop < 3; hop += 1) {
@@ -27,7 +27,7 @@ export async function fetchBoundedText(
         headers: { accept: options.accept, "user-agent": options.userAgent ?? "ThesisGate/0.2 (research prototype)" },
         cache: "no-store",
         redirect: "manual",
-        signal: controller.signal,
+        signal: options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal,
       });
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get("location");
@@ -144,8 +144,10 @@ export function createTtlCache<T>(ttlMs: number, maxEntries = 50) {
  */
 export function withDeadline<T>(promise: Promise<T>, ms: number, onTimeout: () => T): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<T>((resolve) => {
-    timer = setTimeout(() => resolve(onTimeout()), ms);
+  const deadline = new Promise<T>((resolve, reject) => {
+    timer = setTimeout(() => {
+      try { resolve(onTimeout()); } catch (error) { reject(error); }
+    }, ms);
   });
   return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }

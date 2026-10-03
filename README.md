@@ -1,5 +1,33 @@
 # ThesisGate
 
+## Research workflow update
+
+The brief and Markdown export lead with the same four answers: what the evidence establishes, what remains an assumption, what the trade requires, and what to check next. The required goal/break-even move stays above the selected scenario's outcome. Price-versus-close context does not establish how much news is priced in; ATR is a volatility scale, not a time-to-target estimate.
+
+The shared `evidence-rules-v1` check can recover an omitted announcement-date correction when the exact factual premise matches an official release explicitly saying “today announced.” It uses the report's reference date (September 8 in captured replay), not the recording date. Publication date alone, uncertain time zones/adjacent days, unrelated releases and user-pasted material cannot establish that contradiction. When only this narrow rule runs, the report labels its origin and does not claim the full thesis was reviewed.
+
+### Optional factual investigation
+
+Set `THESIS_INVESTIGATION_ENABLED=true` on the server to opt in; default is **false**. This is a runtime server setting, not a browser toggle. Restart the application after changing it. The deployment script deliberately does not sync this flag from the example environment, so a deployment cannot silently enable it.
+
+The investigation chooses one material factual claim that is insufficient or contradicted and matches an available source: Bitget earnings/analyst records, SEC revenue/filing metadata, or NVIDIA's newsroom. Forecasts are excluded. It performs at most two source lookups under a shared eight-second transport deadline and, when new evidence needs interpretation, at most one additional assessment with a twelve-second provider timeout using the existing quota ledger. Session cleanup and model-budget admission/settlement have their own bounded overhead; the timeout is not an end-to-end latency claim. It reports source failure, no relevant records, unresolved evidence and supported/contradicted claims separately. Historical replay never fetches current investigation records. With the flag off, there are no extra investigation lookups or model calls.
+
+SEC company totals cannot prove revenue from a specific deal; filing metadata cannot prove filing contents. Results show selected claim, reason, prior status, lookup outcomes, citations, next fact, provider usage and reference time. These local features require live-provider evaluation before making reliability or latency claims; mocked tests are not that evidence.
+
+### Reproducible trader comparison
+
+The owner selected **Claude with web search**. The [study protocol](evals/practitioner-validation-sheet.md), [fixed prompt](evals/study/baseline-prompt.md), [session log](evals/study/session-log.csv), [task log](evals/study/task-results.csv), and [results status](evals/study/results.md) distinguish preparation from observed results. No participants are claimed by the prepared package.
+
+Every new report includes a build fingerprint based on source/configuration/assets, including uncommitted source content. Find it under Run details or in either export. After final verification:
+
+```bash
+npm run study:freeze -- cohort-01
+npm run study:packet -- path/to/exported-report.json task-a workflow
+npm run study:packet -- path/to/exported-report.json task-a equal-data
+```
+
+The freeze command preserves inputs and hashes; it does not certify the running server. Match the exported `buildId` and investigation flag, and record Claude's exact displayed model/version before sessions. The packet command removes all candidate findings and numerical answers, preserving the same frozen market inputs for both systems. Raw participant runs are git-ignored. Use the [discovery-based walkthrough](docs/demo-script.md) only after the served build is frozen. Historical benchmarks below remain historical and do not certify this update.
+
 ## In plain English
 
 Bitget's stock tokens (rNVDA, rTSLA, rAAPL, rMSFT, rAMZN, rGOOGL, rMETA) trade 24/7, including nights, weekends and US holidays when Wall Street is closed. That is exactly when a headline lands and the token's order book is the only place the trade exists, usually at its thinnest.
@@ -101,7 +129,7 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - Close-comparison card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
 - Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the close comparison and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
-- Current local verification: typecheck, lint, 205 unit/integration tests across 24 files, production build, and 30 Chromium/mobile browser journeys pass.
+- Current local verification (October 3 update): typecheck, lint, **255 unit/integration tests across 31 files**, production build, and **32 Chromium/mobile browser journeys with zero retries** pass. The two previously reported mobile failures were shared test-visitor rate limits; each local test now has an isolated simulated proxy address, with production limits unchanged. A source-deadline regression now verifies that throwing timeout callbacks reject their promise instead of causing an uncaught exception.
 
 ### What is measurably different
 
@@ -111,10 +139,10 @@ Held to the honest version of our own benchmark, the edge is specific and we sta
 - **On reading evidence alone, a well-prompted same-model chatbot ties us** — we do not claim otherwise. After paired correction review, ThesisGate corrected **zero** *unique* evidence omissions over that baseline, so our research-gate's ≥3-omission threshold is **not met** (`evidence/benchmark-gate-final/correction-review.json`: `historicalPerformanceGate: "failed"`). We publish the failing corrected report alongside the original rather than quietly keeping the flattering number.
 - **What the math advantage rests on** is verified, reproducible machinery: excerpt-grounded citations with server-side offset checks, honest downgrading of unverifiable quotes, recirculation/date detection, and a frozen, hash-bound benchmark manifest. The claim is *reliable, reproducible trade economics with honest evidence handling* — not out-reading the same model.
 
-### Not ready for public AI use
+### External validation still required
 
 - **UNVERIFIED — real trader validation:** No five-trader study has been completed. The [practitioner validation sheet](evals/practitioner-validation-sheet.md) is a protocol, not results; code, automated tests, and developer review do not satisfy it.
-- **UNVERIFIED — production model spending controls:** A reference durable quota service now exists in `quota-service/`, with transactional ledger tests, but runtime claim assessment stays disabled until that service is actually deployed with a persistent volume, backup/restore, TLS, concurrent multi-instance checks, and a real provider/account hard cap. Local code and passing tests cannot prove those external controls are active.
+- **Not re-certified in this update — production spending controls:** the durable quota service has transactional ledger tests; investigation uses its own per-call reservation. This local implementation session did not re-certify the running deployment, persistent volume, backup/restore, TLS, multi-instance behavior or provider hard cap. Investigation remains default-off pending explicit enablement and live-provider verification.
 - Arbitrary URL retrieval stays disabled; only the fixed feeds and the allowlisted newsroom host are fetched.
 - A public deployment is not implied by this repository. The local app and public source repository are separate from a hosted service.
 
@@ -228,9 +256,10 @@ Browser workbench (chat, radar, plan, brief)
       -> pasted text (optional, labeled unverified)
       -> Bitget adapter or captured replay -> pure Decimal.js economics
       -> US quote -> market context
-      -> claim adapter (claims-v4 for pasted-only, claims-v6-multisource with dated provenance)
+      -> claim adapter (claims-v5 for pasted-only, claims-v7-multisource with dated provenance)
+      -> shared announcement-date validation + optional bounded factual investigation
           -> durable quota-service reserve/settle when production AI is enabled
-      -> validated ResearchResult (`research-v3`)
+      -> validated ResearchResult (`research-v4`, evidence-v3 audit fingerprint)
   -> POST /api/recompute for economics-only changes
   -> deterministic Markdown or JSON export
 ~~~
@@ -313,9 +342,9 @@ With Bitget's records, every system catches claims that none caught in v1: "anal
 
 On reading evidence, a well-prompted general chatbot ties ThesisGate. The measurable advantage is reliable trade math. Even with the full order book, the same model got 3/12 thresholds wrong, including a +1.39% break-even that is really +0.51% and one trade that ignored Bitget's 200-token position cap. Without the book, a chatbot cannot give the thresholds at all. The evaluation also caught and fixed a real bug: the chat step could drop "today" from a thesis. See [`AUDIT.md`](evidence/e2e-comparison-v1/AUDIT.md) for every judgement call and limitation. To re-run: `npm run eval:capture` (a new live pack), then `THESISGATE_COMPARE_PAID=1 npm run eval:compare`. It costs about $0.20.
 
-#### Current re-run (research-gate-v4, GPT-6 Luna)
+#### Historical re-run (research-gate-v4, GPT-6 Luna)
 
-[`evidence/benchmark-gate-v4/`](evidence/benchmark-gate-v4/) is a paid re-run of the same 12 cases on the current code with `openai/gpt-6-luna`: 22 provider calls, $0.0066 in total. With builder scoring (assistant-assisted, not independent), it has 11/12 complete-correct cases (E11 has no model call by design), every numeric check passing, no material fabrication, and **0 unique omissions corrected** versus the same model with a strong general prompt. `RESEARCH_GATE=failed`, because the gate needs at least 3.
+[`evidence/benchmark-gate-v4/`](evidence/benchmark-gate-v4/) is a paid re-run of the same 12 cases on its frozen historical implementation with `openai/gpt-6-luna`: 22 provider calls, $0.0066 in total. With builder scoring (assistant-assisted, not independent), it has 11/12 complete-correct cases (E11 has no model call by design), every numeric check passing, no material fabrication, and **0 unique omissions corrected** versus the same model with a strong general prompt. Its performance gate failed because the gate needs at least 3; the report is not a current implementation pass.
 
 What this shows: when both prompts get the same single pre-supplied passage, the claim prompt is not measurably better than a good general prompt. The baseline was slightly stronger on E06 (provenance) and E12 (injected return claim). The benchmark does not measure what the product now adds on top of that step: retrieving and dating sources, recirculation checks against publication dates, the close comparison, the order-book math, and the conversation. Those need an end-to-end comparison, such as the planned trader study.
 

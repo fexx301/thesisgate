@@ -1,4 +1,7 @@
 import "server-only";
+import Decimal from "decimal.js";
+import { EVIDENCE_VALIDATION_VERSION, referenceDay, summarizeClaims, validateAnnouncementDates } from "@/domain/evidence-validation";
+import { investigateClaim } from "./investigation";
 
 import {
   FORMULA_VERSION,
@@ -40,6 +43,7 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
   assertRecomputeSigningConfigured();
   const startedAt = Date.now();
   const generatedAt = new Date().toISOString();
+  const asOf = request.marketMode === "captured_real" ? new Date(CAPTURED_AT_UTC) : new Date(generatedAt);
   const source = request.sourceText
     ? createPastedSourceDocument({ text: request.sourceText, originalUrl: request.sourceUrl, fetchedAt: generatedAt })
     : null;
@@ -143,7 +147,6 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     if (!sources.length || !request.plan.thesis.trim()) return { result: null, error: null };
     try {
       // A captured replay is judged as of its capture instant, so "today" in a thesis means that day.
-      const asOf = request.marketMode === "captured_real" ? new Date(CAPTURED_AT_UTC) : new Date();
       return { result: await assessClaims(request.plan, sources, context, asOf), error: null };
     } catch (error) {
       return { result: null, error };
@@ -223,8 +226,26 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     evidence = unavailableEvidence(adapterError.message);
   }
 
-  const promptVersion = evidenceOutcome.result?.promptVersion ?? claimPromptFor(request.plan, sources).version;
-  const evidenceHash = await evidenceInputHash(request.plan, sources, promptVersion, modelId ?? "runtime-model-unavailable");
+  // The date check also runs when no model answered, and is independent of the investigation flag.
+  ({ claims, evidence } = validateAnnouncementDates(request.plan, sources, claims, evidence, asOf));
+  const investigationResult = await investigateClaim(request.plan, claims, sources, request.marketMode, asOf, context);
+  const investigation = investigationResult.investigation;
+  sources.push(...investigationResult.sources);
+  if (investigation.assessment) {
+    claims = claims.map((claim) => claim.claimId === investigation.claimId ? investigation.assessment! : claim);
+    evidence = summarizeClaims(claims, evidence.assessmentOrigin);
+  }
+  if (investigation.modelCalls) {
+    modelCalls += investigation.modelCalls;
+    modelDurationMs = (modelDurationMs ?? 0) + investigation.modelDurationMs;
+    const initialUsage = modelUsage;
+    const extraUsage = investigation.modelUsage;
+    const sum = (key: "promptTokens" | "completionTokens" | "totalTokens") => initialUsage?.[key] != null && extraUsage?.[key] != null ? initialUsage[key] + extraUsage[key] : null;
+    modelUsage = { promptTokens: sum("promptTokens"), completionTokens: sum("completionTokens"), totalTokens: sum("totalTokens"), costUsd: initialUsage?.costUsd != null && extraUsage?.costUsd != null ? new Decimal(initialUsage.costUsd).plus(extraUsage.costUsd).toString() : null };
+  }
+  const promptVersion = evidenceOutcome.result?.promptVersion ?? claimPromptFor(request.plan, sources, asOf).version;
+  const reference = referenceDay(asOf, request.plan.horizon.timezone);
+  const evidenceHash = await evidenceInputHash(request.plan, sources, promptVersion, modelId ?? "runtime-model-unavailable", { referenceDay: reference.date, timezone: reference.timezone, validationVersion: EVIDENCE_VALIDATION_VERSION, investigationVersion: investigation.version, investigationInputHash: investigation.inputHash });
   const marketContext = buildMarketContext({
     asset: request.plan.asset,
     mode: request.marketMode,
@@ -240,6 +261,9 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     : null;
   const recomputeToken = instrument && snapshot ? createRecomputeToken(instrument, snapshot) : null;
   const limitations = withMarketModeLimitations(BASE_LIMITATIONS, request.marketMode);
+  if (request.marketMode === "captured_real" && sources.some((source) => source.fetchedAt > asOf.toISOString())) {
+    limitations.push("Retrospective replay: at least one source was retrieved after the replay reference time. Its publication date predates the replay, but the stored text is not a contemporaneous archived snapshot; strict point-in-time provenance is not established.");
+  }
   if (source) {
     limitations.push("Pasted source text is user-supplied and unverified, even when an official-looking URL is present.");
   }
@@ -257,6 +281,9 @@ export async function runResearch(request: ResearchRequest, context: RequestCont
     evidenceInputHash: evidenceHash,
     economicsInputHash: economicsHash,
     modelId,
+    buildId: process.env.THESIS_BUILD_ID?.slice(0, 120) || "local-unversioned",
+    evidenceValidationVersion: EVIDENCE_VALIDATION_VERSION,
+    investigation,
     confirmedPlan: request.plan,
     instrument,
     snapshot,

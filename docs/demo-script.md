@@ -1,91 +1,66 @@
-# ThesisGate walkthrough: 3-minute shot list
+# ThesisGate — one discovery in three minutes
 
-**Story in one line:** stock tokens trade while Wall Street sleeps, so before you trade a headline you need three answers: is it new, how far has the token already moved, and what does your trade need after costs?
+Record only after the final build and study configuration are frozen. Record the build ID, model, investigation flag, source timestamps and scenario assumptions with the take. Preserve failed runs as validation evidence; do not report a hand-picked recording as a reliability benchmark. A captured example must stay visibly labelled captured.
 
-## Before you hit record
+## 0:00–0:20 — the trader's question
 
-- **When:** a weekday evening after 16:00 New York time (21:00 Lagos), or a weekend. The session pill then reads "US market closed" or "US after-hours", which is the whole story. Avoid US market hours.
-- **Browser:** a clean Chrome window at 1440×900 or larger, zoom 100%, bookmarks bar hidden, notifications off. Open https://thesisgate.duckdns.org and wait until the radar shows headlines.
-- **Warm-up:** send one throwaway chat message first so the first AI answer on camera isn't slow, then reload the page.
-- **Pick your live headline:** in the radar, find a real company headline marked **New since close**. Write your chat message around it (template below). If nothing good is live, use the fallback in step 3.
-- **Audio:** record the voice separately if you can; speak slowly. 3:00 is a hard maximum.
-- Don't say the AI "predicts" anything, and don't say "guaranteed".
+Show the September 8 captured NVIDIA example, including its timestamp.
 
-## Shot list
+> “I read that NVIDIA and AWS announced two million more GPUs today. I’m considering 10,000 USDT and want 100 USDT net profit by tomorrow. Before deciding, I need to know what that headline actually establishes and what my trade would require.”
 
-### 0:00–0:15 · Hook (the page header and the "right now" panel)
+The displayed reference day must be September 8, not the recording day. Never describe the captured book as current.
 
-> "rNVDA and rTSLA trade 24/7 on Bitget. Wall Street doesn't. So when a headline drops tonight, this order book is the only place the trade exists. Before I trade it, I want three answers."
+## 0:20–0:55 — the discovery
 
-Point at the session pill ("US market closed…") and "Moved since close".
+Show the first overview cell, then the official source and exact quotation.
 
-### 0:15–0:35 · The radar
+> “The matching official release is dated August 26 and explicitly says ‘today announced.’ This announcement predates September 8. That corrects my timing premise. An old publication date by itself would not be enough; ThesisGate checks that it is the same announcement.”
 
-Scroll to **After-hours radar**. Point at the live rNVDA price against NVDA's last close, at a **New since close** badge, and at an official source (NVIDIA Newsroom or an SEC filing).
+Show the still-unproven price assumption next to it. If the model is disabled and only the deterministic date check ran, say that explicitly; do not imply the rest of the thesis was model-reviewed.
 
-> "ThesisGate pulls the news itself: company headlines, NVIDIA's newsroom, SEC filings. It marks what's new since the close, and shows how far the token has already moved."
+## 0:55–1:25 — what the trade requires
 
-### 0:35–1:00 · Describe the trade in plain words
+Show the threshold first, then the selected scenario PnL. Read the actual displayed values, not numbers copied from a previous version.
 
-Click into **Describe the trade** and type (adapt to your headline):
+> “My profit goal needs this move in the exit bid book under the displayed fees and liquidity assumptions. This other number is the result of my selected scenario. Neither is a forecast. The token’s difference from the stock’s last close does not tell us how much this news is priced in.”
 
-> *"[Company] says [headline claim] — I think rNVDA pops before tomorrow's open. Thinking 3k, want about 60 USDT."*
+Change the amount, then halve exit depth. Show the changed economics while the evidence remains the same. Do not claim there is no AI parsing cost if a natural-language edit used the model; point out that the evidence review was reused.
 
-Press Enter. Show the reply and the green "changed" chips: amount, goal, horizon, and the headline it picked as evidence.
+## 1:25–2:05 — investigate one checkable premise (only if enabled and verified)
 
-> "No forms. It turns my message into a precise plan and picks the evidence, and it won't tell me whether to buy."
+Use a separate saved live case with one material factual gap, such as a precisely dated earnings claim. Show its original review, the targeted lookup, the dated record and the resulting supported/contradicted/insufficient answer. Name the source that made this check possible.
 
-### 1:00–1:25 · The brief: evidence, then the move since the close
+> “This claim is factual and material, so ThesisGate checks the relevant record. It makes at most two targeted source lookups and at most one additional assessment call. Forecasts are left as assumptions.”
 
-Show **At a glance**, then **Token price vs. the last US close**. Point along the gauge: close → token now → break-even → your goal.
+Keep the live reference time visible. Do not mix current records into the September 8 replay. If investigation is disabled at the cutoff, use this time to show the source details and a useful follow-up on the existing workflow, and state that targeted investigation is not included in this release.
 
-> "My goal needs rNVDA bids around this level, X% above yesterday's close. The token has already moved Y%, so here's how much of my move is already gone."
+## 2:05–2:30 — the honest unknown
 
-Scroll to **Evidence behind your thesis**. Show one supported claim with its quote, and the causal or forecast claim marked insufficient.
+Show a prepared case asserting that a particular deal already produced revenue, where the available SEC evidence only contains company totals.
 
-> "Each part of my thesis is checked separately, against quotes verified in the source. The news can be true without proving the price will move."
+> “The SEC facts establish reported revenue for a period. They do not establish how much came from this deal. The answer stays insufficient, and names the filing passage we would need next.”
 
-### 1:25–1:40 · Data sources & integrations, on screen (a scoring criterion)
+Do not force a contradiction, invent a missing fact, or imply the existence of a particular disclosure.
 
-In the radar, expand **Data sources & integrations** so the whole list is on screen at once (this is the "integration count and effectiveness" criterion, made visible in one shot): the Bitget order book, the five Bitget MCP-server feeds (analyst targets, earnings calendar, Bitget news, macro, Fear & Greed), the technical-analysis skill, NVIDIA Newsroom, SEC EDGAR filings, **SEC EDGAR XBRL financials**, and Yahoo. Then point at the close-comparison card's context row — typical daily range, market mood, and the **last reported revenue from SEC's XBRL data**.
+## 2:30–2:50 — evidence of usefulness
 
-> "It's built on Bitget's own Agent Hub — analyst targets, earnings, news, macro and the technical-analysis skill — plus independent primary sources: NVIDIA's newsroom, SEC filings, and SEC's XBRL financials for the last reported revenue. The brief shows which answered and falls back when one doesn't."
+Show the frozen-build comparison table and actual study results, if completed. Name Claude with web search and its recorded model label. Report sample size, failures and relevant limitations. Historical numeric comparisons belong to their historical build and restricted baseline.
 
-Check the skills line the morning you record: if Bitget's skill server is still erroring, say so plainly and don't claim those answered — the honest fallback is part of the story, not a flaw to hide.
+If no sessions happened:
 
-### 1:40–2:00 · Follow-ups change only what they should
+> “The automated checks cover the calculation and failure paths. We have zero participants and no independent trader validation yet. The comparison protocol and limitations are published.”
 
-In the chat, click **What if I only put in half?**, then **What if exit liquidity halves?**.
+## 2:50–3:00 — the portable brief
 
-> "Follow-ups update the plan. The trade math recalculates from the live order book, and the evidence check isn't re-run, so there's no extra AI cost."
+Download Markdown and show the same four answers at the top, with the source references and build ID below.
 
-### 2:00–2:20 · The trap it catches (captured replay)
+> “The evidence, trade requirements and next question stay together in a brief you can inspect. The trading decision stays with you.”
 
-Scroll to the report area and click **Replay captured example** (or reload and use the button in the empty state).
+## Final checks
 
-> "Here's a real moment from September 8, after the US close. A trader reads 'NVIDIA and AWS announce 2 million GPUs' and thinks it's today's news. ThesisGate fetched the official release: it's from August 26. 'Announced today' is contradicted, the plan is real but for 2027 to 2028, and the 100 USDT goal needs about 1.4% on the book."
-
-Point at the **contradicted** tag and the Aug 26 date in Sources.
-
-### 2:20–2:30 · The handoff (optional if you are short on time)
-
-Open **If you decide to trade: hand off to Bitget Agent Hub** and show the three `bgc` commands: a read-only price check, a dry-run preview, then the real order that you run yourself.
-
-> "ThesisGate never places orders. When you decide, it hands you the exact Bitget CLI command — dry run first, and sized so it can never spend more than your amount, fees included."
-
-### 2:30–2:50 · Proof, not claims
-
-Cut to the results table (README, "End-to-end comparison", or `evidence/e2e-comparison-v1/final/REPORT.md`):
-
-> "We tested it against the same AI used as a normal chatbot, on 12 real cases. Reading the news? A good chatbot ties us, and we say so. But on trade math, ThesisGate was right 12 out of 12. The same model, given the same order book, got 3 wrong, including ignoring Bitget's 200-token position cap. Without the data it couldn't answer at all."
-
-### 2:50–3:00 · Close
-
-> "ThesisGate never places orders or predicts prices. You decide, with the evidence, the timing and the costs in view. thesisgate.duckdns.org."
-
-## Fallbacks
-
-- **The AI reply is slow:** keep talking over the "Reading your message" state; replies usually take 5–10 seconds.
-- **No good live headline:** skip to the captured replay at 0:35. Then, for the follow-up shot, type "what if I only put in 3k instead?" in the chat.
-- **The live market data fails:** switch **Market data mode** to **Captured replay**; everything still works offline.
-- **The daily AI budget is exhausted:** the chat falls back to simple-edit mode and says so. Record at a quiet time, and don't hammer it during rehearsals (limits: 20 chat messages and 5 briefs per 10 minutes per visitor).
+- Demo opens without private credentials; source links, exports and mobile flow work.
+- The recorded build matches the published artifact and study log.
+- Include a genuine insufficient-evidence outcome, not only a successful correction.
+- Distinguish model assessment, deterministic date validation and hypothetical scenario math.
+- State observed latency and cost only from the actual report, including optional investigation calls.
+- Preserve the frozen build through judging; record any necessary repair as a new version.

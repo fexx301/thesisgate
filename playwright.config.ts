@@ -11,10 +11,8 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: true,
   workers: 2,
-  // The suite runs entirely on the deterministic rule-based fallback (THESIS_LLM_ENABLED=false),
-  // so a failure is never model nondeterminism. One retry absorbs transient request-timeout flake
-  // when two workers hit the single standalone server at once; a real regression still fails twice.
-  retries: 1,
+  // Each test has its own simulated proxy address; retries must not hide quota/test-isolation defects.
+  retries: 0,
   reporter: "list",
   use: {
     baseURL,
@@ -41,6 +39,7 @@ export default defineConfig({
         timeout: 120_000,
         env: {
           THESIS_LLM_ENABLED: "false",
+          THESIS_INVESTIGATION_ENABLED: "false",
           THESIS_PUBLIC_ORIGINS: baseURL,
           THESIS_RECOMPUTE_SIGNING_SECRET: "local-browser-test-signing-secret-not-for-deployment",
         },

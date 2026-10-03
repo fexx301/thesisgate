@@ -139,6 +139,15 @@ describe("revision safety", () => {
 });
 
 describe("semantic input fingerprints", () => {
+  it("binds v3 evidence to reference day, rule version, title and investigation inputs", async () => {
+    const context = { referenceDay: "2026-09-08", timezone: "UTC", validationVersion: "rules-v1", investigationVersion: "investigation-v1", investigationInputHash: null as string | null };
+    const base = await evidenceInputHash(plan, [source], "claims-v7", "model-a", context);
+    expect(base).toMatch(/^evidence-v3:sha256:/);
+    for (const change of [{ referenceDay: "2026-08-26" }, { timezone: "America/New_York" }, { validationVersion: "rules-v2" }, { investigationInputHash: "different-prompt-model-source-hash" }]) {
+      expect(await evidenceInputHash(plan, [source], "claims-v7", "model-a", { ...context, ...change })).not.toBe(base);
+    }
+    expect(await evidenceInputHash(plan, [{ ...source, title: "A different event identity" }], "claims-v7", "model-a", context)).not.toBe(base);
+  });
   it("uses versioned SHA-256 of the explicit evidence projection", async () => {
     const sources = [{ textHash: source.textHash, provenance: source.provenance, publicationDate: source.publicationDate, eventDate: source.eventDate, publicationDatePrecision: source.publicationDatePrecision }];
     const expected = createHash("sha256").update(JSON.stringify({

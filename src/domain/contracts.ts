@@ -223,13 +223,14 @@ export const ClaimAssessmentSchema = z
     explanation: z.string().trim().min(1).max(900),
     citations: z.array(CitationSchema).max(5),
     missingEvidence: z.string().trim().max(700).nullable(),
+    validation: z.object({ rule: z.string(), referenceDay: z.string(), timezone: z.string() }).strict().optional(),
   })
   .strict();
 
 export const EvidenceResultSchema = z
   .object({
     status: z.enum(["assessed", "not_assessed", "unavailable"]),
-    assessmentOrigin: z.enum(["runtime_model", "manual_replay", "unavailable"]),
+    assessmentOrigin: z.enum(["runtime_model", "manual_replay", "deterministic_validation", "unavailable"]),
     verdict: z.enum(["supported", "contradicted", "insufficient", "mixed", "source_unavailable", "not_assessed"]),
     scope: z.literal("by the supplied evidence"),
     mostConsequentialUnknown: z.string().nullable(),
@@ -459,6 +460,30 @@ export const MarketContextSchema = z
   })
   .strict();
 
+export const InvestigationSchema = z.object({
+  version: z.literal("investigation-v1"),
+  status: z.enum(["disabled", "no_eligible_claim", "captured_only", "supported", "contradicted", "insufficient", "no_relevant_evidence", "lookup_failed", "assessment_unavailable"]),
+  claimId: z.string().nullable(),
+  claim: z.string().nullable(),
+  reason: z.string(),
+  beforeStatus: z.enum(["supported", "contradicted", "insufficient"]).nullable(),
+  explanation: z.string(),
+  nextFact: z.string().nullable(),
+  lookups: z.array(z.object({
+    source: z.string(), status: z.enum(["found", "empty", "failed"]), detail: z.string(), sourceIds: z.array(z.string()),
+  }).strict()).max(2),
+  assessment: ClaimAssessmentSchema.nullable(),
+  modelId: z.string().nullable(),
+  promptVersion: z.string().nullable(),
+  inputHash: z.string().nullable(),
+  modelCalls: z.number().int().min(0).max(1),
+  modelUsage: ModelUsageSchema.nullable(),
+  modelDurationMs: z.number().nonnegative(),
+  durationMs: z.number().nonnegative(),
+  asOf: z.string().datetime({ offset: true }),
+}).strict();
+export type Investigation = z.infer<typeof InvestigationSchema>;
+
 export const ResearchResultSchema = z
   .object({
     reportId: z.string().min(8),
@@ -470,6 +495,9 @@ export const ResearchResultSchema = z
     evidenceInputHash: z.string().min(8),
     economicsInputHash: z.string().min(8).nullable(),
     modelId: z.string().nullable(),
+    buildId: z.string().max(120).optional(),
+    evidenceValidationVersion: z.string().optional(),
+    investigation: InvestigationSchema.optional(),
     confirmedPlan: PlanSchema,
     instrument: InstrumentSchema.nullable(),
     snapshot: MarketSnapshotSchema.nullable(),
@@ -477,7 +505,7 @@ export const ResearchResultSchema = z
     sources: z.array(SourceDocumentSchema),
     headlineIds: z.array(z.string()).max(MAX_SELECTED_HEADLINES_LIMIT).default([]),
     marketContext: MarketContextSchema.nullable().default(null),
-    claims: z.array(ClaimAssessmentSchema).max(5),
+    claims: z.array(ClaimAssessmentSchema).max(6),
     evidence: EvidenceResultSchema,
     economics: EconomicsResultSchema,
     performance: ReportPerformanceSchema,
@@ -648,8 +676,8 @@ export const MAX_SOURCE_CHARS = 15_000;
 export const MAX_MODEL_SOURCE_COUNT = 5;
 export const MAX_SELECTED_HEADLINES = MAX_SELECTED_HEADLINES_LIMIT;
 export const FORMULA_VERSION = "economics-v1";
-export const SCHEMA_VERSION = "research-v3";
+export const SCHEMA_VERSION = "research-v4";
 // Pasted-source-only briefs keep the frozen benchmark prompt; retrieved sources add dated provenance.
-export const PROMPT_VERSION = "claims-v4";
-export const MULTI_SOURCE_PROMPT_VERSION = "claims-v6-multisource";
+export const PROMPT_VERSION = "claims-v5";
+export const MULTI_SOURCE_PROMPT_VERSION = "claims-v7-multisource";
 export const CHAT_PROMPT_VERSION = "chat-v1";

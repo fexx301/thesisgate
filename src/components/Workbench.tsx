@@ -24,7 +24,7 @@ import {
 import { toJson, toMarkdown } from "@/domain/export";
 import { ChatResultSchema, InstrumentSchema, MarketContextSchema, MAX_SELECTED_HEADLINES, MAX_SOURCE_CHARS, MarketSnapshotSchema, MULTI_SOURCE_PROMPT_VERSION, PlanSchema, PROMPT_VERSION, RadarResultSchema, RecomputeResultSchema, ResearchResultSchema, type Asset, type Instrument, type MarketContext, type MarketSnapshot, type Plan, type RadarResult, type ResearchResult } from "@/domain/contracts";
 import { pricedInView } from "@/domain/priced-in";
-import { briefFindings } from "@/domain/brief-findings";
+import { briefFindings, tradeRequirement } from "@/domain/brief-findings";
 import { POST_BRIEF_SUGGESTIONS, RUN_CHECKS, switchAssetSuggestion } from "@/domain/suggestions";
 import { AgentHubHandoffCard } from "./AgentHubHandoff";
 import { ChatPanel, type ChatEntry } from "./ChatPanel";
@@ -426,7 +426,7 @@ function Metric({ label, value, note, emphasis = false }: { label: string; value
 function ReportSkeleton() {
   return (
     <div className="report-skeleton" aria-label="Loading research brief" role="status">
-      <p className="skeleton-note">Checking the sources and building your brief. This usually takes 10 to 25 seconds.</p>
+      <p className="skeleton-note">Checking dated sources and calculating your trade requirements. Evidence and scenario results will be shown separately.</p>
       <div className="skeleton-line skeleton-wide" />
       <div className="skeleton-grid"><div /><div /></div>
       <div className="skeleton-line" />
@@ -613,12 +613,13 @@ function clip(text: string, max: number) {
 
 function BriefOverview({ report }: { report: ResearchResult }) {
   const findings = briefFindings(report);
+  const requirement = tradeRequirement(report);
   const { correction, assumption, nextCheck } = findings;
   const correctionSource = correction.kind === "contradicted" && correction.sourceId ? citationSource(report.sources, correction.sourceId).label : null;
   return (
     <section className="brief-overview" aria-label="Brief at a glance">
       <div className="finding finding-correction">
-        <span>What the sources correct</span>
+        <span>What the evidence establishes</span>
         {correction.kind === "contradicted" ? (
           <>
             <strong className="finding-quote">“{clip(correction.claim, 150)}” — contradicted</strong>
@@ -652,21 +653,30 @@ function BriefOverview({ report }: { report: ResearchResult }) {
         )}
         <a href="#evidence-heading">See the open claims</a>
       </div>
-      {report.economics.netPnl !== null ? (
-        <div><span>Scenario net result</span><strong>{formatMoney(report.economics.netPnl)}</strong><small>{readableStatus(report.economics.goalComparison)} · under your assumptions</small><a href="#economics-heading">Review trade math</a></div>
-      ) : report.economics.requiredGoalShift !== null ? (
-        <div><span>Your goal needs</span><strong>{signedPercent(report.economics.requiredGoalShift)}</strong><small>on {report.confirmedPlan.side === "short" ? "the buy-back asks" : "exit bids"} after fees · break-even {signedPercent(report.economics.breakEvenShift)}</small><a href="#economics-heading">Review trade math</a></div>
-      ) : report.economics.breakEvenShift === null ? (
-        <div><span>What the trade requires</span><strong>Trade math unavailable</strong><small>{clip(report.economics.warnings[report.economics.warnings.length - 1] ?? "The order book did not support a calculation.", 200)}</small><a href="#economics-heading">Review trade math</a></div>
-      ) : (
-        <div><span>Break-even needs</span><strong>{signedPercent(report.economics.breakEvenShift)}</strong><small>on {report.confirmedPlan.side === "short" ? "the buy-back asks" : "exit bids"} after fees and depth</small><a href="#economics-heading">Review trade math</a></div>
-      )}
+      <div className="finding"><span>What the trade requires</span><strong>{requirement.headline}</strong><small>{requirement.detail}</small>{requirement.scenario ? <small>{requirement.scenario}</small> : null}<a href="#economics-heading">Review trade math</a></div>
       <div className="finding finding-next">
         <span>Check next</span>
         <strong className="finding-quote">{nextCheck.about ? <>Verify “{clip(nextCheck.about, 130)}”</> : clip(nextCheck.text, 180)}</strong>
         <small>{nextCheck.about ? `What would settle it: ${clip(nextCheck.text, 160)} · ` : ""}{nextCheck.kind === "evidence" ? "An evidence question: it would change the claim review, not the trade math." : "A scenario: it changes the trade math, not the claim review."}</small>
         <a href={nextCheck.kind === "evidence" ? "#evidence-heading" : "#economics-heading"}>{nextCheck.kind === "evidence" ? "Go to the evidence" : "Go to the trade math"}</a>
       </div>
+    </section>
+  );
+}
+
+function InvestigationPanel({ report }: { report: ResearchResult }) {
+  const result = report.investigation;
+  if (!result || result.status === "disabled") return null;
+  return (
+    <section className="report-card" aria-labelledby="investigation-heading">
+      <div className="card-topline"><h2 id="investigation-heading">Investigating a factual premise</h2><StatusTag tone={result.status === "supported" ? "good" : result.status === "contradicted" ? "bad" : "warn"}>{readableStatus(result.status)}</StatusTag></div>
+      {result.claim ? <h3>{result.claim}</h3> : null}
+      <p>{result.reason}</p>
+      <p>{result.explanation}</p>
+      {result.beforeStatus ? <p className="muted-copy">Before lookup: {readableStatus(result.beforeStatus)} · Reference time: {formatTimestamp(result.asOf)}</p> : null}
+      {result.lookups.length ? <ul>{result.lookups.map((lookup, index) => <li key={index}><strong>{lookup.source}: {readableStatus(lookup.status)}</strong><p>{lookup.detail}</p>{lookup.sourceIds.map((id) => { const source = citationSource(report.sources, id); return <p key={id}>{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{source.label}</a> : source.label}</p>; })}</li>)}</ul> : null}
+      {result.assessment?.citations.length ? <details><summary>Evidence from the investigation</summary><ClaimCard claim={result.assessment} sources={report.sources} /></details> : null}
+      {result.nextFact ? <p><strong>Check next:</strong> {result.nextFact}</p> : null}
     </section>
   );
 }
@@ -706,6 +716,8 @@ function RunDetails({ report }: { report: ResearchResult }) {
     <details className="run-details">
       <summary><span>Run details</span><CaretDown size={17} aria-hidden="true" /></summary>
       <div className="run-details-grid">
+        <p><span>Build</span><strong>{report.buildId ?? "Historical / unversioned"}</strong></p>
+        <p><span>Evidence rules</span><strong>{report.evidenceValidationVersion ?? "Historical"}</strong></p>
         <p><span>Claim model</span><strong>{report.modelId ?? "Not configured"}</strong></p>
         <p><span>Total duration</span><strong>{formatDuration(performance.totalDurationMs)}</strong></p>
         <p><span>Market request</span><strong>{formatDuration(performance.marketDurationMs)}</strong></p>
@@ -1581,8 +1593,9 @@ export default function Workbench() {
             <>
               {!reportIsCurrent ? <div className="stale-banner" role="status"><Info size={16} weight="bold" aria-hidden="true" /><span>This report is from an earlier plan or market mode. Submit again before exporting.</span></div> : null}
               <BriefOverview report={state.report} />
+              <InvestigationPanel report={state.report} />
               <PricedInCard context={state.report.marketContext} economics={state.report.economics} asset={state.report.confirmedPlan.asset} side={state.report.confirmedPlan.side} />
-              {state.report.evidence.status !== "assessed" ? <button className="button button-secondary" type="button" disabled={isBusy} onClick={() => submitResearch({ retryEvidence: true })}>Retry evidence assessment</button> : null}
+              {state.report.evidence.status !== "assessed" || state.report.evidence.assessmentOrigin === "deterministic_validation" ? <button className="button button-secondary" type="button" disabled={isBusy} onClick={() => submitResearch({ retryEvidence: true })}>Retry evidence assessment</button> : null}
               <div className="report-grid"><EvidencePanel report={state.report} /><EconomicsPanel report={state.report} requestedMode={state.reportMarketMode ?? state.marketMode} now={clock} onRefresh={() => { if (!validatePlan(state.plan)) return; invalidateFollowUp(); dispatch({ type: "set-market-mode", marketMode: "live", changedMessage: "Live market refresh requested." }); track("live_refresh_requested", { marketMode: "live" }); submitResearch({ marketMode: "live", forceMarketRefresh: true }); }} isRefreshing={isBusy} /></div>
               <ScenarioTable report={state.report} />
               <SourcesPanel report={state.report} />

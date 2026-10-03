@@ -192,4 +192,26 @@ describe("deterministic export", () => {
     const md = toMarkdown(report());
     expect(md).toContain("| Scenario | Bid-price shift | Effective shift | Net PnL | Goal comparison | Status |");
   });
+
+  it("leads with the same four findings and goal requirement even when scenario PnL exists", () => {
+    const original = report();
+    original.buildId = "tg-test-build";
+    const md = toMarkdown(original);
+    const overview = md.slice(0, md.indexOf("## Report details"));
+    for (const label of ["What the evidence establishes", "Still an assumption", "What the trade requires", "Check next"]) expect(overview).toContain(label);
+    expect(overview).toContain("Goal needs");
+    expect(overview).toContain("Selected scenario:");
+    expect(overview.indexOf("Goal needs")).toBeLessThan(overview.indexOf("Selected scenario:"));
+    expect(md).toContain("Build: tg-test-build");
+  });
+
+  it("uses ask-book and short labels in a short export", () => {
+    const original = report();
+    original.confirmedPlan.side = "short";
+    const md = toMarkdown(original);
+    expect(md).toContain("NVDA SPOT short");
+    expect(md).toContain("buy-back asks");
+    expect(md).toContain("Break-even ask-price shift");
+    expect(md).toContain("| Scenario | Ask-price shift |");
+  });
 });

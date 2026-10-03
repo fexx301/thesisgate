@@ -9,6 +9,12 @@
     "src/domain/economics.ts",
     "src/domain/intent.ts",
     "src/domain/claim-prompt.ts",
+    "src/domain/evidence-validation.ts",
+    "src/domain/investigation.ts",
+    "src/server/investigation.ts",
+    "src/server/investigation-sources.ts",
+    "src/server/model.ts",
+    "src/server/research.ts",
     "evals/run-runner.mjs",
     "package-lock.json"
   ],

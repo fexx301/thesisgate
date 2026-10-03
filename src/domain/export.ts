@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import { ResearchResultSchema, type ResearchResult } from "./contracts";
 import { agentHubHandoff } from "./handoff";
 import { pricedInView } from "./priced-in";
+import { briefFindings, tradeRequirement } from "./brief-findings";
 
 function value(value: string | null) {
   return value ?? "Not available";
@@ -44,6 +45,9 @@ export function toMarkdown(report: ResearchResult) {
   const economics = validated.economics;
   const instrument = validated.instrument;
   const baseAsset = economics.units.baseAsset;
+  const bookSide = plan.side === "short" ? "ask" : "bid";
+  const findings = briefFindings(validated);
+  const requirement = tradeRequirement(validated);
   const instrumentLines = instrument ? [
     `- Instrument symbol: ${instrument.symbol}`,
     `- Underlying asset: ${instrument.asset}`,
@@ -64,6 +68,32 @@ export function toMarkdown(report: ResearchResult) {
     const source = validated.sources[index];
     return `[S${index + 1}] ${source.publisher}${source.publicationDate ? `, ${source.publicationDate.slice(0, 10)}` : ""}${source.originalUrl ? `, ${source.originalUrl}` : ""}`;
   };
+  const correction = findings.correction;
+  const overview = [
+    "## Brief at a glance", "",
+    "### What the evidence establishes", "",
+    correction.kind === "contradicted" ? `“${correction.claim}” — contradicted. ${correction.explanation}${correction.sourceId ? ` (${sourceReference(correction.sourceId)})` : ""}` : correction.kind === "none_contradicted" ? `No premise contradicted. ${correction.checked} claims checked; ${statusLabel(validated.evidence.verdict)} by the supplied evidence.` : `Not checked yet. ${correction.reason}`,
+    "", "### Still an assumption", "",
+    findings.assumption ? `“${findings.assumption.claim}” ${findings.assumption.detail}` : correction.kind === "not_checked" ? "Not assessed." : "No unsupported causal or price claim identified.",
+    "", "### What the trade requires", "",
+    `${requirement.headline}. ${requirement.detail}`, ...(requirement.scenario ? ["", requirement.scenario] : []),
+    "", "### Check next", "",
+    `${findings.nextCheck.about ? `Verify “${findings.nextCheck.about}”. ` : ""}${findings.nextCheck.text}`, "",
+  ];
+  const investigation = validated.investigation;
+  const investigationLines = investigation && investigation.status !== "disabled" ? [
+    "## Investigating a factual premise", "",
+    `- Status: ${statusLabel(investigation.status)}`,
+    `- Claim: ${investigation.claim ?? "No eligible claim"}`,
+    `- Selection: ${investigation.reason}`,
+    `- Previous assessment: ${investigation.beforeStatus ?? "Not applicable"}`,
+    `- Finding: ${investigation.explanation}`,
+    `- Next fact: ${investigation.nextFact ?? "None identified"}`,
+    `- Reference time: ${investigation.asOf}`,
+    ...investigation.lookups.map((lookup) => `- ${lookup.source}: ${lookup.status}. ${lookup.detail}${lookup.sourceIds.length ? ` ${lookup.sourceIds.map(sourceReference).join("; ")}` : ""}`),
+    ...(investigation.assessment?.citations ?? []).map((citation) => `> ${citation.excerpt}\n> — ${sourceReference(citation.sourceId)}`),
+    `- Additional model calls: ${investigation.modelCalls}; model ${investigation.modelId ?? "not used"}; cost ${costLabel(investigation.modelUsage?.costUsd ?? null)}`, "",
+  ] : [];
   const sourceLines = validated.sources.length
     ? validated.sources
         .map((source, index) => [
@@ -105,7 +135,7 @@ export function toMarkdown(report: ResearchResult) {
   const context = validated.marketContext;
   const view = pricedInView(context, economics, plan.side);
   const level = (item: { level: string; vsClose: string | null } | null) => item
-    ? `${new Decimal(item.level).toFixed(4)} USDT top bid (${item.vsClose ? `${percent(item.vsClose)} vs close` : "close unavailable"})`
+    ? `${new Decimal(item.level).toFixed(4)} USDT top ${bookSide} (${item.vsClose ? `${percent(item.vsClose)} vs close` : "close unavailable"})`
     : "Not available";
   const contextLines = context ? [
     `- Data mode: ${context.mode}; observed at ${context.observedAt}`,
@@ -119,7 +149,7 @@ export function toMarkdown(report: ResearchResult) {
     `- Goal level: ${level(view.goal)}`,
     `- Scenario level: ${level(view.scenario)}`,
     `- Share of the goal's move from the close already made: ${view.shareOfGoalAlreadyMoved === null ? "Not applicable" : percent(view.shareOfGoalAlreadyMoved)}`,
-    "- Levels are the best bid moved by the whole-book threshold: an indicator, not a fill price. One rToken is assumed to track one underlying share.",
+    `- Levels are the best ${bookSide} moved by the whole-book threshold: an indicator, not a fill price. One rToken is assumed to track one underlying share. This comparison cannot establish how much news is priced in.`,
     `- Typical daily range (14-day ATR): ${context.signals?.technicals ? `${context.signals.technicals.atrPercent}% (${context.signals.technicals.source === "bitget_signal_technical_analysis" ? "Bitget technical-analysis skill" : "computed from daily bars"})${context.signals.technicals.rsi14 ? `; RSI(14) ${context.signals.technicals.rsi14}` : ""}` : "Not available"}`,
     `- Market mood: ${context.signals?.sentiment ? `${context.signals.sentiment.rating} ${context.signals.sentiment.score} on the US Fear & Greed index at ${context.signals.sentiment.asOf} (Bitget market data)${context.signals.sentiment.previousMonth ? `; ${context.signals.sentiment.previousMonth} a month earlier` : ""}` : "Not available"}`,
     `- Bitget US quote: ${context.signals?.bitgetQuote ? `last ${context.signals.bitgetQuote.lastPrice}, previous close ${context.signals.bitgetQuote.prevClose ?? "not available"}` : "Not available"}`,
@@ -134,7 +164,12 @@ export function toMarkdown(report: ResearchResult) {
   return [
     `# ThesisGate research brief`,
     "",
+    ...overview,
+    ...investigationLines,
+    "## Report details", "",
     `Report: ${validated.reportId}`,
+    `Build: ${validated.buildId ?? "Historical / unversioned"}`,
+    `Evidence rules: ${validated.evidenceValidationVersion ?? "Historical"}`,
     `Revision: ${validated.reportRevision}`,
     `Generated: ${validated.generatedAt}`,
     `Formula version: ${validated.formulaVersion}`,
@@ -150,12 +185,12 @@ export function toMarkdown(report: ResearchResult) {
     "",
     "## Confirmed plan",
     "",
-    `- Asset: ${plan.asset} SPOT long` ,
+    `- Asset: ${plan.asset} SPOT ${plan.side}` ,
     `- Purchase notional excluding fee: ${plan.purchaseNotionalExcludingFee} USDT`,
     `- Horizon: ${plan.horizon.originalText || "Not supplied"}${plan.horizon.endAtUTC ? ` (ends ${plan.horizon.endAtUTC}${plan.horizon.timezone ? ` ${plan.horizon.timezone}` : ""})` : ""}`,
     `- Invalidation: ${plan.invalidation ?? "Not supplied — no stop-loss invented"}`,
     `- Goal: ${plan.goal ? JSON.stringify(plan.goal) : "Not requested"}`,
-    `- Scenario: ${plan.scenario?.bidPriceShift ?? "Not supplied (threshold only)"} bid-price shift${plan.scenario ? ` (origin: ${plan.scenario.assumptionOrigin})` : ""}`,
+    `- Scenario: ${plan.scenario?.bidPriceShift ?? "Not supplied (threshold only)"} ${bookSide}-price shift${plan.scenario ? ` (origin: ${plan.scenario.assumptionOrigin})` : ""}`,
     `- Fees: ${plan.feeIn} in, ${plan.feeOut} out (origin: ${plan.feeOrigin}; published standard is 0.001 each side)`,
     `- Exit depth multiplier: ${plan.exitAssumptions.depthMultiplier} (origin: ${plan.exitAssumptions.depthOrigin})`,
     `- Exit price haircut: ${plan.exitAssumptions.priceHaircut} (origin: ${plan.exitAssumptions.haircutOrigin})`,
@@ -201,7 +236,7 @@ export function toMarkdown(report: ResearchResult) {
     `- Selected scenario gross: ${value(economics.scenarioGross)} USDT`,
     `- Selected scenario net: ${value(economics.scenarioNet)} USDT`,
     `- Immediate friction proxy: ${value(economics.frictionProxy)} USDT`,
-    `- Break-even bid-price shift: ${percent(economics.breakEvenShift)}`,
+    `- Break-even ${bookSide}-price shift: ${percent(economics.breakEvenShift)}`,
     `- Required goal shift: ${percent(economics.requiredGoalShift)} (pre-haircut scenario variable r; label consistently)`,
     `- Selected scenario PnL: ${value(economics.netPnl)} USDT`,
     `- Selected scenario return on entry cash: ${percent(economics.netReturn)}`,
@@ -215,7 +250,7 @@ export function toMarkdown(report: ResearchResult) {
     "",
     "### Scenario comparison",
     "",
-    "| Scenario | Bid-price shift | Effective shift | Net PnL | Goal comparison | Status |",
+    `| Scenario | ${plan.side === "short" ? "Ask" : "Bid"}-price shift | Effective shift | Net PnL | Goal comparison | Status |`,
     "| --- | ---: | ---: | ---: | --- | --- |",
     scenarioLines,
     "",
@@ -232,7 +267,7 @@ export function toMarkdown(report: ResearchResult) {
     "## What would change this",
     "",
     `- Evidence to look for: ${openClaim ? `${openClaim.missingEvidence ?? `a source that directly establishes "${openClaim.exactText.slice(0, 160)}"`} (claim currently ${openClaim.status})` : validated.claims.length ? `every assessed claim is supported; a dated source contradicting "${validated.claims[0].exactText.slice(0, 140)}" would change that` : "select a headline or paste a source so the claims can be checked"}.`,
-    `- Price levels that matter: ${economics.requiredGoalShift ? `the goal needs a ${percent(economics.requiredGoalShift)} bid-book shift (${level(view.goal)}); break-even needs ${percent(economics.breakEvenShift)}` : economics.breakEvenShift ? `break-even needs a ${percent(economics.breakEvenShift)} bid-book shift` : "a usable order-book snapshot is needed before thresholds can be calculated"}. Thinner exit liquidity raises both. These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.`,
+    `- Price levels that matter: ${economics.requiredGoalShift ? `the goal needs a ${percent(economics.requiredGoalShift)} ${bookSide}-book shift (${level(view.goal)}); break-even needs ${percent(economics.breakEvenShift)}` : economics.breakEvenShift ? `break-even needs a ${percent(economics.breakEvenShift)} ${bookSide}-book shift` : "a usable order-book snapshot is needed before thresholds can be calculated"}. Thinner exit liquidity can make both harder to meet. These are conditions to investigate, not promises that a limit order will fill or a stop will bound loss.`,
     "",
     "## Hand off to Bitget Agent Hub (not sent by ThesisGate)",
     "",

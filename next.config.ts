@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
+import { execFileSync } from "node:child_process";
 
 const nextConfig: NextConfig = {
+  // Baked into the server build and exported reports; includes uncommitted source content.
+  env: { THESIS_BUILD_ID: execFileSync(process.execPath, ["scripts/build-fingerprint.mjs"], { encoding: "utf8" }).trim() },
   agentRules: false,
   // Self-hosted deploys (deploy/) run the minimal traced server; Vercel ignores this setting.
   output: "standalone",

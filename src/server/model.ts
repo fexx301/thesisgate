@@ -1,4 +1,5 @@
 import "server-only";
+import { validateAnnouncementDates } from "@/domain/evidence-validation";
 
 import {
   ClaimAssessmentSchema,
@@ -264,7 +265,7 @@ function extractContent(response: unknown, protocol: ModelConfig["protocol"]) {
   return stringValue(message.content);
 }
 
-async function callModel(config: ModelConfig, prompt: string, context: { requestId: string; visitorKey: string }, options: { system: string; maxTokens: number; kind?: "analysis" | "chat" }) {
+async function callModel(config: ModelConfig, prompt: string, context: { requestId: string; visitorKey: string }, options: { system: string; maxTokens: number; kind?: "analysis" | "chat"; timeoutMs?: number }) {
   const startedAt = Date.now();
   let providerStarted = false;
   let releaseSlot: (() => void) | null = null;
@@ -285,7 +286,7 @@ async function callModel(config: ModelConfig, prompt: string, context: { request
     providerStarted = true;
     modelId = config.model;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), options.kind === "chat" ? CHAT_TIMEOUT_MS : ANALYSIS_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? (options.kind === "chat" ? CHAT_TIMEOUT_MS : ANALYSIS_TIMEOUT_MS));
     try {
       const reasoning = config.reasoningEffort ? { effort: config.reasoningEffort } : undefined;
       const body = config.protocol === "openai_responses"
@@ -484,10 +485,10 @@ export function claimPromptFor(plan: Plan, sources: SourceDocument[], asOf = new
     : { prompt: claimAssessmentPrompt(plan, sources), version: PROMPT_VERSION };
 }
 
-export async function assessClaims(plan: Plan, sources: SourceDocument[], context: { requestId: string; visitorKey: string } = { requestId: "local-request", visitorKey: "local-visitor" }, asOf = new Date()) {
+export async function assessClaims(plan: Plan, sources: SourceDocument[], context: { requestId: string; visitorKey: string } = { requestId: "local-request", visitorKey: "local-visitor" }, asOf = new Date(), options: { timeoutMs?: number } = {}) {
   const config = configuredModel();
   const { prompt, version } = claimPromptFor(plan, sources, asOf);
-  const result = await callModel(config, prompt, context, { system: `You are a source-bounded claim assessor. Prompt version: ${version}.`, maxTokens: 2200 });
+  const result = await callModel(config, prompt, context, { system: `You are a source-bounded claim assessor. Prompt version: ${version}.`, maxTokens: 2200, timeoutMs: options.timeoutMs });
   let parsed;
   try {
     parsed = parseModelClaims(result.parsed);
@@ -540,8 +541,7 @@ export async function assessClaims(plan: Plan, sources: SourceDocument[], contex
     throw modelError(error, result.durationMs, true, result.usage, result.modelId);
   }
   return {
-    evidence,
-    claims,
+    ...validateAnnouncementDates(plan, sources, claims, evidence, asOf),
     promptVersion: version,
     modelId: result.modelId ?? config.model,
     performance: {

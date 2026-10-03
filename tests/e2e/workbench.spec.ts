@@ -1,6 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import type { Plan } from "../../src/domain/contracts";
+
+test.beforeEach(async ({ context }, testInfo) => {
+  // Production keys visitor limits by the trusted proxy's address. These are isolated local test
+  // visitors, not one person issuing all 30 journeys from localhost within the same rate window.
+  const address = createHash("sha256").update(testInfo.testId).digest("hex").slice(0, 24).match(/.{4}/g)!.join(":");
+  await context.setExtraHTTPHeaders({ "x-forwarded-for": `2001:db8:${address}` });
+});
 
 async function openPlanForEditing(page: Page) {
   const editPlan = page.getByRole("link", { name: "Edit plan" });
@@ -88,7 +96,7 @@ test("threshold-only mode is reachable and labeled", async ({ page }) => {
   await page.getByRole("button", { name: "Threshold only" }).click();
   await page.getByRole("button", { name: "Stress-test my thesis" }).click();
   await expect(page.locator(".economics-card")).toContainText(/threshold.only/i);
-  await expect(page.locator(".brief-overview")).toContainText("Your goal needs");
+  await expect(page.locator(".brief-overview")).toContainText("Goal needs");
   await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
 });
 
@@ -280,4 +288,36 @@ test("every suggestion shown after a brief works in quick-edit mode", async ({ p
   await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "What if exit liquidity halves?" }).click();
   await expect(page.locator(".chat-log")).toContainText("exit depth set to 50% of the book");
+});
+
+test("optional investigation failure stays explicit while the brief and matching export remain usable", async ({ page }, testInfo) => {
+  await page.route("**/api/research", async (route) => {
+    const response = await route.fetch();
+    const report = await response.json();
+    report.investigation = {
+      version: "investigation-v1", status: "lookup_failed", claimId: "test-claim", claim: "A material factual premise needs a dated record.",
+      reason: "Test fixture: a checkable factual premise was selected.", beforeStatus: "insufficient",
+      explanation: "The targeted lookup failed. The original assessment is retained; failure is not contradictory evidence.",
+      nextFact: "A dated official record addressing this premise.",
+      lookups: [{ source: "Test evidence source", status: "failed", detail: "Lookup deadline reached; unfinished requests were cancelled.", sourceIds: [] }],
+      assessment: null, modelId: null, promptVersion: null, inputHash: null, modelCalls: 0, modelUsage: null, modelDurationMs: 0, durationMs: 8000, asOf: "2026-09-08T21:51:19Z",
+    };
+    await route.fulfill({ response, json: report });
+  });
+  await replayCaptured(page);
+  const panel = page.getByRole("region", { name: "Investigating a factual premise" });
+  await expect(panel).toContainText("lookup failed");
+  await expect(panel).toContainText("failure is not contradictory evidence");
+  await expect(page.locator(".brief-overview")).toContainText("Goal needs");
+  await expect(page.locator(".brief-overview")).toContainText("Selected scenario:");
+  await expect(page.getByRole("button", { name: "Markdown", exact: true })).toBeEnabled();
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Markdown", exact: true }).click();
+  const download = await downloadEvent;
+  const md = await readFile((await download.path())!, "utf8");
+  expect(md).toContain("Status: lookup failed");
+  expect(md).toContain("What the evidence establishes");
+  expect(md.indexOf("Goal needs")).toBeLessThan(md.indexOf("Selected scenario:"));
+  await panel.scrollIntoViewIfNeeded();
+  await panel.screenshot({ path: testInfo.outputPath("investigation-panel.png") });
 });

@@ -76,6 +76,25 @@ describe("research route", () => {
 });
 
 describe("research with retrieved headlines", () => {
+  it("recovers the captured date correction with model and investigation disabled", async () => {
+    vi.stubEnv("THESIS_LLM_ENABLED", "false");
+    vi.stubEnv("THESIS_INVESTIGATION_ENABLED", "false");
+    const fetchMock = vi.fn(() => { throw new Error("No network expected in replay"); });
+    vi.stubGlobal("fetch", fetchMock);
+    const { capturedHeadlines } = await import("../../src/server/feeds");
+    const [headline] = capturedHeadlines("NVDA");
+    const response = await POST(new Request("http://localhost/api/research", {
+      method: "POST", body: JSON.stringify({ ...requestBody, sourceText: null, headlineIds: [headline.id], plan: { ...requestBody.plan, thesis: "NVIDIA and AWS announced 2 million more GPUs today, so rNVDA will rise tomorrow." } }),
+    }));
+    expect(response.status).toBe(200);
+    const report = await response.json();
+    expect(report.claims[0]).toMatchObject({ status: "contradicted", validation: { referenceDay: "2026-09-08" } });
+    expect(report.evidence.assessmentOrigin).toBe("deterministic_validation");
+    expect(report.investigation.status).toBe("disabled");
+    expect(report.performance.modelCalls).toBe(0);
+    expect(report.economics.computationStatus).toBe("calculated");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it("assesses a captured official release selected by ID and adds the priced-in context", async () => {
     const { capturedHeadlines } = await import("../../src/server/feeds");
     const [headline] = capturedHeadlines("NVDA");
@@ -90,7 +109,7 @@ describe("research with retrieved headlines", () => {
     expect(report.sources).toHaveLength(1);
     expect(report.sources[0].provenance).toBe("captured_official_excerpt");
     expect(report.sources[0].publicationDate).toBe("2026-08-26");
-    expect(report.promptVersion).toBe("claims-v6-multisource");
+    expect(report.promptVersion).toBe("claims-v7-multisource");
     expect(report.marketContext.session.state).toBe("post_market");
     expect(report.marketContext.underlying.lastClose).toBe("225.73");
     expect(report.partialErrors.some((error: { kind: string }) => error.kind === "source_missing")).toBe(false);

@@ -43,7 +43,7 @@ export function parseRpcBody(body: string): { result?: unknown; error?: { messag
   throw new McpError("The data server response had no JSON-RPC result.");
 }
 
-async function post(url: string, payload: unknown, sessionId: string | null, timeoutMs: number) {
+async function post(url: string, payload: unknown, sessionId: string | null, timeoutMs: number, signal?: AbortSignal) {
   const target = new URL(url);
   if (target.protocol !== "https:" || !ALLOWED_HOSTS.has(target.hostname)) throw new McpError(`Refused to contact ${target.hostname}.`);
   const controller = new AbortController();
@@ -59,7 +59,7 @@ async function post(url: string, payload: unknown, sessionId: string | null, tim
       },
       body: JSON.stringify(payload),
       cache: "no-store",
-      signal: controller.signal,
+      signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
     });
     const text = await response.text();
     if (text.length > MAX_BODY_BYTES) throw new McpError("The data server response was too large.");
@@ -201,4 +201,25 @@ export function resetMcpSessionsForTests() {
   for (const session of sessions.values()) if (session.idleTimer) clearTimeout(session.idleTimer);
   sessions.clear();
   opening.clear();
+}
+
+/** A single investigation lookup: independent session, no retry, one shared abort signal across
+ * handshake and tool request. Cancelling it cannot interrupt another visitor's shared session. */
+export async function callMcpToolOnce(url: string, name: string, args: Record<string, unknown>, signal: AbortSignal): Promise<string> {
+  let id: string | null = null;
+  try {
+    signal.throwIfAborted();
+    const init = await post(url, { jsonrpc: "2.0", id: ++requestCounter, method: "initialize", params: { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "thesisgate-investigation", version: "1" } } }, null, 8_000, signal);
+    id = init.sessionId;
+    if (init.status >= 400 || parseRpcBody(init.text).error) throw new McpError("Investigation data session unavailable.");
+    await post(url, { jsonrpc: "2.0", method: "notifications/initialized" }, id, 8_000, signal);
+    const response = await post(url, { jsonrpc: "2.0", id: ++requestCounter, method: "tools/call", params: { name, arguments: args } }, id, 8_000, signal);
+    if (response.status >= 400) throw new McpError(`Investigation lookup failed (HTTP ${response.status}).`);
+    const rpc = parseRpcBody(response.text);
+    const result = rpc.result as { content?: Array<{ type: string; text?: string }>; isError?: boolean } | undefined;
+    if (rpc.error || result?.isError) throw new McpError("Investigation data tool failed.");
+    return (result?.content ?? []).filter((item) => item.type === "text").map((item) => item.text ?? "").join("\n");
+  } finally {
+    await closeSession(url, id);
+  }
 }

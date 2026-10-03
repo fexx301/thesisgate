@@ -1,4 +1,5 @@
 import type { ResearchResult } from "./contracts";
+import Decimal from "decimal.js";
 import { POST_BRIEF_SUGGESTIONS } from "./suggestions";
 
 type Claim = ResearchResult["claims"][number];
@@ -23,7 +24,7 @@ export type BriefFindings = {
 const RANK = { material: 0, contextual: 1 } as const;
 const byMateriality = (a: Claim, b: Claim) => RANK[a.materiality] - RANK[b.materiality];
 
-export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence" | "economics">): BriefFindings {
+export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence" | "economics" | "investigation">): BriefFindings {
   const claims = report.claims;
   const checked = report.evidence.status === "assessed" && claims.length > 0;
 
@@ -44,6 +45,8 @@ export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence"
     .sort((a, b) => byMateriality(a, b) || (a.distinction === "forecast" ? -1 : 0) - (b.distinction === "forecast" ? -1 : 0))[0];
   const assumption = link
     ? { claim: link.exactText, detail: "No selected source establishes this; it is your assumption, and the trade math treats it as one." }
+    : report.evidence.assessmentOrigin === "deterministic_validation"
+      ? { claim: "The rest of this thesis has not been assessed.", detail: "Only the narrow announcement-date check ran. Price and causal assumptions still need review." }
     : report.evidence.mostConsequentialUnknown
       ? { claim: report.evidence.mostConsequentialUnknown, detail: "The most consequential unknown the claim review found." }
       : null;
@@ -56,11 +59,26 @@ export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence"
   const target = factualGap ?? (top?.missingEvidence ? top : null);
   // The review's "most consequential unknown" is not used here: it is almost always the price forecast, which
   // the assumption cell already shows, and a forecast is not a fact anyone can go and check.
-  const nextCheck: BriefFindings["nextCheck"] = target?.missingEvidence
+  const investigation = report.investigation;
+  const openInvestigation = investigation?.claim && investigation.nextFact && !["supported", "contradicted", "disabled", "no_eligible_claim"].includes(investigation.status);
+  const nextCheck: BriefFindings["nextCheck"] = openInvestigation
+    ? { kind: "evidence", text: investigation.nextFact!, about: investigation.claim }
+    : target?.missingEvidence
     ? { kind: "evidence", text: target.missingEvidence, about: target.exactText }
     : !checked
         ? { kind: "evidence", text: "Select a dated headline or paste the source so each part of the thesis can be checked.", about: null }
         : { kind: "scenario", text: `Stress the trade math: "${report.economics.requiredGoalShift !== null ? POST_BRIEF_SUGGESTIONS.halveDepth : POST_BRIEF_SUGGESTIONS.halveAmount}"`, about: null };
 
   return { correction, assumption, nextCheck };
+}
+
+/** Shared by the UI and Markdown so the headline always states a requirement, even with a scenario. */
+export function tradeRequirement(report: Pick<ResearchResult, "economics" | "confirmedPlan">) {
+  const { economics: e, confirmedPlan: plan } = report;
+  const percent = (value: string) => `${new Decimal(value).gte(0) ? "+" : ""}${new Decimal(value).mul(100).toFixed(2)}%`;
+  const reference = plan.side === "short" ? "buy-back asks" : "exit bids";
+  const headline = e.requiredGoalShift !== null ? `Goal needs ${percent(e.requiredGoalShift)}` : e.breakEvenShift !== null ? `Break-even needs ${percent(e.breakEvenShift)}` : "Trade math unavailable";
+  const detail = e.breakEvenShift === null ? e.warnings.at(-1) ?? "The order book did not support a calculation." : `On ${reference} under the fee and depth assumptions; break-even ${percent(e.breakEvenShift)}. This is a required move, not a forecast.`;
+  const scenario = e.netPnl === null ? null : `Selected scenario: ${new Decimal(e.netPnl).toFixed(2)} USDT net · ${e.goalComparison.replaceAll("_", " ")} · under your assumptions.`;
+  return { headline, detail, scenario };
 }

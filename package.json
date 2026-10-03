@@ -20,7 +20,10 @@
     "eval:packets": "node evals/print-packets.mjs",
     "eval:runner": "node --experimental-strip-types evals/run-runner.mjs",
     "eval:compare": "vitest run --config evals/e2e/vitest.config.mts",
-    "eval:capture": "node evals/e2e/capture.mjs"
+    "eval:capture": "node evals/e2e/capture.mjs",
+    "study:freeze": "node evals/freeze-study.mjs",
+    "study:packet": "node evals/study-packet.mjs",
+    "investigation:live": "vitest run --config evals/investigation/vitest.config.mts"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",
