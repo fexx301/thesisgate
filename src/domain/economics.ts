@@ -291,6 +291,8 @@ export function calculateEconomics(input: EconomicsInput): EconomicsResult {
   const warnings = [...initialWarnings, ...bookCheck.warnings];
   if (!bookCheck.valid) return emptyResult(input, "invalid_book", warnings);
 
+  if (input.plan.side === "short") return shortEconomics(input, bookCheck, warnings);
+
   const budget = decimal(input.plan.purchaseNotionalExcludingFee);
   const entryPlan = budgetQuantity(bookCheck.asks.levels, budget);
   const quantity = roundDown(entryPlan.quantity, decimal(input.instrument.quantityStep));
@@ -432,6 +434,165 @@ export function calculateEconomics(input: EconomicsInput): EconomicsResult {
     unmatchedExitQuantity: output(exitPlan.remainingQty),
     visibleEntryCapacity: output(entryPlan.visibleCapacity),
     visibleExitCapacity: output(visibleExitCapacity),
+    exitDepthMultiplier: input.plan.exitAssumptions.depthMultiplier,
+    exitPriceHaircut: input.plan.exitAssumptions.priceHaircut,
+    warnings,
+    scenarioTable,
+  };
+}
+
+// --- Short side (the mirror of the long path) ---------------------------------------------------------
+// A short opens by SELLING the token into the BIDS (receiving cash) and closes by BUYING it back from the
+// ASKS (paying cash); it profits when the price FALLS. Fees cut the open proceeds and add to the close cost;
+// a borrow/hold fee is subtracted. The adverse stress raises the buy-back (ask) price, mirroring how the
+// long haircut lowers the sell (bid) price. `scenario.bidPriceShift` is read as the close-side (ask) shift,
+// so a negative shift is favourable for a short.
+
+function shortScenarioValues(baseCloseGross: Decimal, openCashNet: Decimal, borrow: Decimal, feeOut: Decimal, haircut: Decimal, shift: Decimal, goal: Decimal | null) {
+  const closeGross = baseCloseGross.mul(new Decimal(1).plus(shift));
+  const closePaid = closeGross.mul(new Decimal(1).plus(feeOut));
+  const netPnl = openCashNet.minus(borrow).minus(closePaid);
+  const netReturn = netPnl.div(openCashNet);
+  return {
+    closeGross,
+    closePaid,
+    netPnl,
+    netReturn,
+    effectiveShift: new Decimal(1).plus(shift).mul(new Decimal(1).plus(haircut)).minus(1),
+    goalComparison: goal === null ? "not_requested" : netPnl.gte(goal) ? "meets" : "below",
+  } as const;
+}
+
+function buildShortScenarioTable(baseCloseGross: Decimal, openCashNet: Decimal, borrow: Decimal, feeOut: Decimal, haircut: Decimal, goal: Decimal | null): ScenarioRow[] {
+  return SCENARIO_PRESETS.map(({ label, value }) => {
+    const values = shortScenarioValues(baseCloseGross, openCashNet, borrow, feeOut, haircut, decimal(value), goal);
+    return {
+      label,
+      bidPriceShift: value,
+      effectivePriceShift: output(values.effectiveShift),
+      netPnl: output(values.netPnl),
+      netReturn: output(values.netReturn),
+      goalComparison: values.goalComparison,
+      status: "calculated",
+    } satisfies ScenarioRow;
+  });
+}
+
+function shortEconomics(input: EconomicsInput, bookCheck: ReturnType<typeof normalizeBook>, baseWarnings: string[]): EconomicsResult {
+  const warnings = [...baseWarnings];
+  const budget = decimal(input.plan.purchaseNotionalExcludingFee);
+  // Open the short: SELL into the bids until the proceeds cover the requested notional.
+  const openPlan = budgetQuantity(bookCheck.bids.levels, budget);
+  const quantity = roundDown(openPlan.quantity, decimal(input.instrument.quantityStep));
+  const open = sweep(bookCheck.bids.levels, quantity);
+  const unspent = budget.minus(open.value);
+
+  warnings.push(`Visible bid capacity is ${openPlan.visibleCapacity.toString()} USDT at this snapshot.`);
+  if (openPlan.remainingBudget.gt(0)) {
+    return {
+      ...emptyResult(input, "insufficient_depth", [...warnings, `The visible bids cannot cover the requested ${budget.toString()} USDT short. ${openPlan.remainingBudget.toString()} USDT remains unallocated.`]),
+      visibleEntryCapacity: output(openPlan.visibleCapacity),
+      unspentNotional: output(openPlan.remainingBudget),
+    };
+  }
+  if (quantity.lte(0) || open.filledQty.lt(quantity)) {
+    return emptyResult(input, "insufficient_depth", [...warnings, "Quantity rounding left no valid position in the visible bids."]);
+  }
+  if (quantity.lt(decimal(input.instrument.minOrderQty)) || open.value.lt(decimal(input.instrument.minOrderNotional))) {
+    return emptyResult(input, "invalid_instrument", [...warnings, "The rounded order falls below the venue minimum quantity or notional."]);
+  }
+  if (decimal(input.instrument.maxOrderQty).gt(0) && quantity.gt(decimal(input.instrument.maxOrderQty))) {
+    return emptyResult(input, "invalid_instrument", [...warnings, "The rounded quantity exceeds the configured venue maximum."]);
+  }
+  if (decimal(input.instrument.maxPositionQty).gt(0) && quantity.gt(decimal(input.instrument.maxPositionQty))) {
+    return emptyResult(input, "invalid_instrument", [...warnings, "The rounded quantity exceeds the configured venue position maximum."]);
+  }
+
+  const openGross = open.value;
+  const openCashNet = openGross.mul(new Decimal(1).minus(decimal(input.plan.feeIn)));
+  const feeHold = decimal(input.plan.feeHold ?? "0");
+  const borrow = openGross.mul(feeHold);
+  const depthMultiplier = decimal(input.plan.exitAssumptions.depthMultiplier);
+  const haircut = decimal(input.plan.exitAssumptions.priceHaircut);
+  // Close the short: BUY BACK from the asks; the adverse stress raises the ask you pay (mirror of the long haircut).
+  const closePlan = sweep(bookCheck.asks.levels, quantity, (price, available) => [
+    price.mul(new Decimal(1).plus(haircut)),
+    available.mul(depthMultiplier),
+  ]);
+  const visibleCloseCapacity = bookCheck.asks.levels.reduce(
+    (sum, [price, available]) => sum.plus(decimal(price).mul(new Decimal(1).plus(haircut)).mul(decimal(available).mul(depthMultiplier))),
+    new Decimal(0),
+  );
+  const partial = {
+    quantity: output(quantity),
+    spentNotional: output(openGross),
+    entryCash: output(openCashNet),
+    unspentNotional: output(unspent),
+    entryVWAP: output(open.vwap),
+    matchedExitQuantity: output(closePlan.filledQty),
+    unmatchedExitQuantity: output(closePlan.remainingQty),
+    visibleEntryCapacity: output(openPlan.visibleCapacity),
+    visibleExitCapacity: output(visibleCloseCapacity),
+  };
+  if (closePlan.remainingQty.gt(0)) {
+    return { ...emptyResult(input, "insufficient_depth", [...warnings, `The stressed ask depth leaves ${closePlan.remainingQty.toString()} ${input.instrument.baseCoin} unmatched. No whole-position PnL is shown.`]), ...partial };
+  }
+
+  const baseCloseGross = closePlan.value;
+  const feeOut = decimal(input.plan.feeOut);
+  if (baseCloseGross.lte(0) || openCashNet.lte(0) || feeOut.lt(0)) {
+    return { ...emptyResult(input, "invalid_book", [...warnings, "The stressed book produced no valid close value; thresholds are unavailable."]), ...partial };
+  }
+  const closePaidUnit = baseCloseGross.mul(new Decimal(1).plus(feeOut));
+  const netCashBasis = openCashNet.minus(borrow);
+  const friction = closePaidUnit.minus(netCashBasis);
+  const breakEvenShift = netCashBasis.div(closePaidUnit).minus(1);
+  const goal = goalAmount(input.plan, openCashNet);
+  const requiredGoalShift = goal === null ? null : netCashBasis.minus(goal).div(closePaidUnit).minus(1);
+  const selectedShift = input.plan.scenario ? decimal(input.plan.scenario.bidPriceShift) : null;
+  const selectedScenario = selectedShift === null ? null : shortScenarioValues(baseCloseGross, openCashNet, borrow, feeOut, haircut, selectedShift, goal);
+  const scenarioTable = buildShortScenarioTable(baseCloseGross, openCashNet, borrow, feeOut, haircut, goal);
+
+  const SUPPORTED_SHIFT = new Decimal("0.03");
+  if (breakEvenShift.abs().gt(SUPPORTED_SHIFT)) {
+    warnings.push(`Break-even shift ${breakEvenShift.mul(100).toDecimalPlaces(2).toString()}% is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
+  }
+  if (requiredGoalShift !== null && requiredGoalShift.abs().gt(SUPPORTED_SHIFT)) {
+    warnings.push(`Goal threshold ${requiredGoalShift.mul(100).toDecimalPlaces(2).toString()}% is outside the ±3% scenario band; it is a computed threshold, not a simulated row.`);
+  }
+  if (feeHold.gt(0)) {
+    warnings.push(`Borrow/hold fee assumed at ${feeHold.mul(100).toString()}% of the shorted notional: ${borrow.toDecimalPlaces(4).toString()} USDT. This is an assumption, not an account rate.`);
+  }
+
+  return {
+    computationStatus: selectedScenario ? "calculated" : "threshold_only",
+    goalComparison: !input.plan.goal ? "not_requested" : !selectedScenario ? "unavailable" : selectedScenario.goalComparison,
+    snapshotId: input.snapshot.id,
+    planRevision: input.planRevision,
+    scenarioRevision: input.scenarioRevision,
+    units: { quoteCurrency: "USDT", baseAsset: input.instrument.baseCoin },
+    requestedNotional: input.plan.purchaseNotionalExcludingFee,
+    quantity: output(quantity),
+    spentNotional: output(openGross),
+    entryCash: output(openCashNet),
+    unspentNotional: output(unspent),
+    entryVWAP: output(open.vwap),
+    modeledExitVWAP: output(closePlan.vwap),
+    modeledExitGross: output(baseCloseGross),
+    modeledExitNet: output(closePaidUnit),
+    netPnl: selectedScenario ? output(selectedScenario.netPnl) : null,
+    netReturn: selectedScenario ? output(selectedScenario.netReturn) : null,
+    frictionProxy: output(friction),
+    breakEvenShift: output(breakEvenShift),
+    requiredGoalShift: output(requiredGoalShift),
+    scenarioBidPriceShift: selectedShift !== null ? output(selectedShift) : null,
+    effectivePriceShift: selectedScenario ? output(selectedScenario.effectiveShift) : null,
+    scenarioGross: selectedScenario ? output(selectedScenario.closeGross) : null,
+    scenarioNet: selectedScenario ? output(selectedScenario.closePaid) : null,
+    matchedExitQuantity: output(closePlan.filledQty),
+    unmatchedExitQuantity: output(closePlan.remainingQty),
+    visibleEntryCapacity: output(openPlan.visibleCapacity),
+    visibleExitCapacity: output(visibleCloseCapacity),
     exitDepthMultiplier: input.plan.exitAssumptions.depthMultiplier,
     exitPriceHaircut: input.plan.exitAssumptions.priceHaircut,
     warnings,

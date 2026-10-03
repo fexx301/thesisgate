@@ -289,3 +289,55 @@ describe("deterministic decimal economics", () => {
     expect(result.visibleEntryCapacity).toBe("503");
   });
 });
+
+describe("short-side economics (mirror of the long path)", () => {
+  const shortPlan = (overrides: Partial<Plan> = {}): Plan =>
+    plan({ side: "short", purchaseNotionalExcludingFee: "198", goal: null, scenario: null, feeIn: "0", feeOut: "0", ...overrides });
+  const run = (p: Plan) => calculateEconomics({ plan: p, instrument: syntheticInstrument(), snapshot: syntheticSnapshot(), planRevision: 1, scenarioRevision: 1 });
+
+  it("sizes the open on the bids and the close on the asks, break-even when the ask must fall", () => {
+    // Open: sell 2 @99 into the bids = 198 proceeds. Close: buy back 2 @100 from the asks = 200.
+    // With no fees the ask must fall 198/200 - 1 = -1% to break even; the spread costs 2 USDT at no move.
+    const result = run(shortPlan());
+    expect(result.computationStatus).toBe("threshold_only");
+    expect(result.quantity).toBe("2");
+    expect(result.spentNotional).toBe("198"); // open proceeds (notional transacted)
+    expect(result.entryCash).toBe("198"); // net cash received at open
+    expect(result.entryVWAP).toBe("99"); // sold into the bids
+    expect(result.modeledExitVWAP).toBe("100"); // bought back from the asks
+    expect(result.modeledExitGross).toBe("200");
+    expect(result.breakEvenShift).toBe("-0.01");
+    expect(result.frictionProxy).toBe("2");
+    expect(result.requiredGoalShift).toBeNull();
+  });
+
+  it("profits when the ask falls and loses when it rises (direction is inverted vs long)", () => {
+    const favourable = run(shortPlan({ scenario: { bidPriceShift: "-0.02", assumptionOrigin: "illustrative_preset" } }));
+    expect(favourable.computationStatus).toBe("calculated");
+    expect(favourable.netPnl).toBe("2"); // 198 - 200*0.98 = 2
+    const breakEven = run(shortPlan({ scenario: { bidPriceShift: "-0.01", assumptionOrigin: "illustrative_preset" } }));
+    expect(breakEven.netPnl).toBe("0"); // exactly the -1% break-even
+    const adverse = run(shortPlan({ scenario: { bidPriceShift: "0.01", assumptionOrigin: "illustrative_preset" } }));
+    expect(adverse.netPnl).toBe("-4"); // 198 - 200*1.01 = -4
+  });
+
+  it("applies entry/exit fees and the borrow fee to the thresholds", () => {
+    const result = run(shortPlan({ feeIn: "0.001", feeOut: "0.001", feeHold: "0.0005", goal: { kind: "profit_usdt", amount: "10" } }));
+    // openCashNet = 198*0.999 = 197.802; borrow = 198*0.0005 = 0.099; closePaidUnit = 200*1.001 = 200.2.
+    expect(result.entryCash).toBe("197.802");
+    expect(Number(result.breakEvenShift)).toBeCloseTo((197.802 - 0.099) / 200.2 - 1, 6);
+    expect(Number(result.requiredGoalShift)).toBeCloseTo((197.802 - 0.099 - 10) / 200.2 - 1, 6);
+    expect(result.warnings.some((w) => w.includes("Borrow/hold fee assumed at 0.05%"))).toBe(true);
+  });
+
+  it("reports insufficient depth when the bids cannot cover the shorted notional", () => {
+    // Total visible bid capacity on the synthetic book is 99*2 + 98*3 = 492 USDT.
+    const result = run(shortPlan({ purchaseNotionalExcludingFee: "600" }));
+    expect(result.computationStatus).toBe("insufficient_depth");
+  });
+
+  it("rejects a short below the venue minimum notional", () => {
+    const result = run(shortPlan({ purchaseNotionalExcludingFee: "5" }));
+    expect(result.computationStatus).toBe("invalid_instrument");
+  });
+});

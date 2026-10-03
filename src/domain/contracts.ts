@@ -123,7 +123,7 @@ export const PlanSchema = z
   .object({
     asset: AssetSchema,
     category: CategorySchema,
-    side: z.literal("long"),
+    side: z.enum(["long", "short"]),
     quoteCurrency: z.literal("USDT"),
     thesis: z.string().trim().max(4000),
     purchaseNotionalExcludingFee: PositiveDecimalStringSchema,
@@ -134,6 +134,9 @@ export const PlanSchema = z
     invalidation: z.string().trim().max(800).nullable(),
     feeIn: BoundedFractionSchema,
     feeOut: BoundedFractionSchema,
+    // Borrow/hold fee for a short position (fraction of the opened notional). Absent/zero for a long. A
+    // clearly labeled assumption, like feeIn/feeOut — never an account lookup. Optional so long plans are unaffected.
+    feeHold: BoundedFractionSchema.optional(),
     feeOrigin: z.enum(["published_standard_assumption", "user_supplied"]),
   })
   .strict();
