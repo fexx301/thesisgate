@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const OG_SIZE = { width: 1200, height: 630 };
-export const OG_ALT = "ThesisGate: stress-test the trade behind the headline. Is the news new, what is already priced in, and what does the trade need after fees?";
+export const OG_ALT = "ThesisGate: stress-test the trade behind the headline. Is the news new, how far has the token moved since the US close, and what does the trade need after fees?";
 
 /** The link-preview card shown when the site is shared (X, Telegram, Discord). Uses only built-in fonts. */
 export function renderOgCard() {
@@ -26,7 +26,7 @@ export function renderOgCard() {
         </div>
         <div style={{ display: "flex", gap: 22, marginTop: "auto", paddingTop: 24 }}>
           {point("Is it new?", "Sources checked claim by claim, with dates.")}
-          {point("Priced in?", "Token vs the last US close, right now.")}
+          {point("Moved since the close?", "Token vs the last US close, right now.")}
           {point("What it needs", "Break-even after fees, from the live book.")}
         </div>
       </div>

@@ -9,7 +9,7 @@ ThesisGate is a research copilot for that moment. Describe the trade you're weig
 1. **Turns the message into a precise plan**: token, amount, horizon, goal, and any what-if you ask for. Follow-ups such as *"what if I only put in 1,500?"* or *"what if exit liquidity halves?"* edit the same plan.
 2. **Pulls the evidence itself**: current company headlines, the issuer's official newsroom (full text of NVIDIA releases), and optionally SEC 8-K filings. You can also paste your own passage.
 3. **Checks what the sources actually support**, claim by claim, with quotes verified against the source text and publication dates compared with your thesis. An old announcement circulating again is flagged as old, not new.
-4. **Shows what is already priced in**: where the rToken trades against the underlying stock's last US close, whether the US market is open, and where your break-even and goal sit relative to that close.
+4. **Shows how far the token has already moved**: where the rToken trades against the underlying stock's last US close, whether the US market is open, and where your break-even and goal sit relative to that close.
 5. **Works out the trade math** from the live order book: fees, quantity steps, depth, the break-even move and your goal's threshold.
 
 You make the decision. ThesisGate never places orders, predicts prices, or tells you to buy or sell. The evidence verdict and the trade math are separate conclusions, and neither is a forecast.
@@ -39,7 +39,7 @@ After a brief exists, economics-only changes (amount, goal, fees, depth, scenari
 | Section | Question it answers |
 | --- | --- |
 | **At a glance** | Evidence verdict, plus the scenario result (or, with no scenario, what your goal needs). |
-| **Priced in since the close?** | Where the rToken trades against the underlying's last regular-session close, the US session state, and your break-even and goal as price levels versus that close. |
+| **Token price vs. the last US close** | Where the rToken trades against the underlying's last regular-session close, the US session state, and your break-even and goal as price levels versus that close. |
 | **Evidence behind your thesis** | Each claim in your thesis (factual, causal, forecast) marked supported, contradicted or insufficient, with verified quotes. |
 | **Economics under your assumptions** | Entry VWAP, fees, friction, break-even shift, goal threshold and scenario PnL from the displayed book. |
 | **What would change this?** | The specific evidence to look for, and the price levels that matter. |
@@ -47,7 +47,7 @@ After a brief exists, economics-only changes (amount, goal, fees, depth, scenari
 
 **Assessment unavailable** (`not_assessed` in exports) means no model result exists (disabled, over budget, or failed). It is not a negative verdict. If the model quotes text that cannot be found in the source, that claim is downgraded to *insufficient* with an explanation, instead of being trusted.
 
-The price levels in the priced-in card are the best bid moved by the whole-book threshold. They indicate where the market must trade; they are not fill prices. One rToken is assumed to track one underlying share; the live tracking basis is shown when a fresh US print exists.
+The price levels in the close-comparison card are the best bid (best ask for a short) moved by the whole-book threshold. They indicate where the market must trade; they are not fill prices. One rToken is assumed to track one underlying share; the live tracking basis is shown when a fresh US print exists.
 
 ## What the terms mean
 
@@ -69,7 +69,7 @@ The price levels in the priced-in card are the best bid moved by the whole-book 
 | --- | --- | --- |
 | **Bitget Agent Hub: `bitget-mcp-server`** (`agent.bitget.com/mcp`) | Dated analyst price targets, earnings calendar, Bitget news and the daily macro briefing as selectable evidence; the US Fear & Greed index for market mood | Live |
 | **Bitget Agent Hub: `bitget-signal` news-briefing, sentiment-analyst and macro-analyst skills** | Company news, crypto market mood and the rates backdrop, each called through the skill's own tool. When a skill doesn't answer, the brief says so and uses the Bitget data above instead | Live |
-| **Bitget US quote** (`bitget-mcp-server`) | Cross-checks the underlying close used for the priced-in comparison | Live |
+| **Bitget US quote** (`bitget-mcp-server`) | Cross-checks the underlying close used for the close comparison | Live |
 | **Bitget Agent Hub CLI (`bgc`) handoff** | Copy-only commands (read-only price check, then a dry-run IOC limit order) for the trader to run themselves; ThesisGate sends nothing | Live |
 | **Bitget Agent Hub: `bitget-signal` technical-analysis skill** | 14-day ATR (typical daily range) and RSI, shown as scale context next to the goal; falls back to the same indicators computed from daily bars | Live |
 | Bitget public API (`/api/v3/market/*`) | rToken instrument rules, ticker, 50-level order book | Live; captured Sep 8 fixture for replay |
@@ -98,8 +98,8 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - After-hours radar: live company headlines, official newsroom full text, SEC 8-K filings, US session state, and the rToken's move since the last close.
 - Bitget Agent Hub integration (the Track 3 recommended toolchain): `bitget-mcp-server` supplies dated analyst price targets, the earnings calendar, Bitget news and the macro briefing as evidence, plus market mood; the `bitget-signal` technical-analysis skill supplies the typical daily range. With it, "analysts say $660" is contradicted by the actual $300–515 targets, and "Tesla just reported earnings" by the Jul 22 report date. Skill output is shown as descriptive context only: its verdicts and suggested stops are never displayed.
 - Multi-source claim review with dated provenance, recirculation detection, tolerant but verified citation matching, and honest downgrading of unverifiable quotes.
-- Priced-in card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
-- Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the priced-in context and selected headlines.
+- Close-comparison card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
+- Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the close comparison and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
 - Current local verification: typecheck, lint, 205 unit/integration tests across 24 files, production build, and 30 Chromium/mobile browser journeys pass.
 
@@ -247,7 +247,7 @@ All money and quantity arithmetic uses Decimal.js. `null` means unavailable; it 
 
 ### API surface
 
-- `POST /api/radar` returns headlines and the priced-in market context for an asset and mode.
+- `POST /api/radar` returns headlines and the close-comparison market context for an asset and mode.
 - `POST /api/chat` turns a conversation turn into a validated plan patch, evidence selection and action.
 - `POST /api/research` builds the validated evidence, market-context and economics brief.
 - `POST /api/market` retrieves captured or live market data plus the market context.
@@ -317,7 +317,7 @@ On reading evidence, a well-prompted general chatbot ties ThesisGate. The measur
 
 [`evidence/benchmark-gate-v4/`](evidence/benchmark-gate-v4/) is a paid re-run of the same 12 cases on the current code with `openai/gpt-6-luna`: 22 provider calls, $0.0066 in total. With builder scoring (assistant-assisted, not independent), it has 11/12 complete-correct cases (E11 has no model call by design), every numeric check passing, no material fabrication, and **0 unique omissions corrected** versus the same model with a strong general prompt. `RESEARCH_GATE=failed`, because the gate needs at least 3.
 
-What this shows: when both prompts get the same single pre-supplied passage, the claim prompt is not measurably better than a good general prompt. The baseline was slightly stronger on E06 (provenance) and E12 (injected return claim). The benchmark does not measure what the product now adds on top of that step: retrieving and dating sources, recirculation checks against publication dates, the priced-in comparison, the order-book math, and the conversation. Those need an end-to-end comparison, such as the planned trader study.
+What this shows: when both prompts get the same single pre-supplied passage, the claim prompt is not measurably better than a good general prompt. The baseline was slightly stronger on E06 (provenance) and E12 (injected return claim). The benchmark does not measure what the product now adds on top of that step: retrieving and dating sources, recirculation checks against publication dates, the close comparison, the order-book math, and the conversation. Those need an end-to-end comparison, such as the planned trader study.
 
 Validate it with `THESISGATE_EVAL_REPORT=evidence/benchmark-gate-v4/report.scored.json npm run eval`.
 

@@ -24,6 +24,7 @@ import {
 import { toJson, toMarkdown } from "@/domain/export";
 import { ChatResultSchema, InstrumentSchema, MarketContextSchema, MAX_SELECTED_HEADLINES, MAX_SOURCE_CHARS, MarketSnapshotSchema, MULTI_SOURCE_PROMPT_VERSION, PlanSchema, PROMPT_VERSION, RadarResultSchema, RecomputeResultSchema, ResearchResultSchema, type Asset, type Instrument, type MarketContext, type MarketSnapshot, type Plan, type RadarResult, type ResearchResult } from "@/domain/contracts";
 import { pricedInView } from "@/domain/priced-in";
+import { briefFindings } from "@/domain/brief-findings";
 import { POST_BRIEF_SUGGESTIONS, RUN_CHECKS, switchAssetSuggestion } from "@/domain/suggestions";
 import { AgentHubHandoffCard } from "./AgentHubHandoff";
 import { ChatPanel, type ChatEntry } from "./ChatPanel";
@@ -606,17 +607,66 @@ function ScenarioTable({ report }: { report: ResearchResult }) {
   );
 }
 
+function clip(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
 function BriefOverview({ report }: { report: ResearchResult }) {
+  const findings = briefFindings(report);
+  const { correction, assumption, nextCheck } = findings;
+  const correctionSource = correction.kind === "contradicted" && correction.sourceId ? citationSource(report.sources, correction.sourceId).label : null;
   return (
     <section className="brief-overview" aria-label="Brief at a glance">
-      <div><span>Source evidence</span><strong>{evidenceStatusLabel(report.evidence.status, report.evidence.verdict)}</strong><a href="#evidence-heading">Read claim review</a></div>
+      <div className="finding finding-correction">
+        <span>What the sources correct</span>
+        {correction.kind === "contradicted" ? (
+          <>
+            <strong className="finding-quote">“{clip(correction.claim, 150)}” — contradicted</strong>
+            <small>{clip(correction.explanation, 220)}{correctionSource ? ` · ${correctionSource}` : ""}</small>
+          </>
+        ) : correction.kind === "none_contradicted" ? (
+          <>
+            <strong>No premise contradicted</strong>
+            <small>{correction.checked} claim{correction.checked === 1 ? "" : "s"} checked · {evidenceStatusLabel(report.evidence.status, report.evidence.verdict)} · by the supplied evidence</small>
+          </>
+        ) : (
+          <>
+            <strong>Not checked yet</strong>
+            <small>{clip(correction.reason, 200)}</small>
+          </>
+        )}
+        <a href="#evidence-heading">Read claim review</a>
+      </div>
+      <div className="finding finding-assumption">
+        <span>Still an assumption</span>
+        {assumption ? (
+          <>
+            <strong className="finding-quote">“{clip(assumption.claim, 150)}”</strong>
+            <small>{assumption.detail}</small>
+          </>
+        ) : (
+          <>
+            <strong>{correction.kind === "not_checked" ? "Not assessed" : "None identified"}</strong>
+            <small>{correction.kind === "not_checked" ? "Unknown until the sources are checked." : "No unsupported causal or price claim was found in the thesis."}</small>
+          </>
+        )}
+        <a href="#evidence-heading">See the open claims</a>
+      </div>
       {report.economics.netPnl !== null ? (
         <div><span>Scenario net result</span><strong>{formatMoney(report.economics.netPnl)}</strong><small>{readableStatus(report.economics.goalComparison)} · under your assumptions</small><a href="#economics-heading">Review trade math</a></div>
       ) : report.economics.requiredGoalShift !== null ? (
         <div><span>Your goal needs</span><strong>{signedPercent(report.economics.requiredGoalShift)}</strong><small>on {report.confirmedPlan.side === "short" ? "the buy-back asks" : "exit bids"} after fees · break-even {signedPercent(report.economics.breakEvenShift)}</small><a href="#economics-heading">Review trade math</a></div>
+      ) : report.economics.breakEvenShift === null ? (
+        <div><span>What the trade requires</span><strong>Trade math unavailable</strong><small>{clip(report.economics.warnings[report.economics.warnings.length - 1] ?? "The order book did not support a calculation.", 200)}</small><a href="#economics-heading">Review trade math</a></div>
       ) : (
         <div><span>Break-even needs</span><strong>{signedPercent(report.economics.breakEvenShift)}</strong><small>on {report.confirmedPlan.side === "short" ? "the buy-back asks" : "exit bids"} after fees and depth</small><a href="#economics-heading">Review trade math</a></div>
       )}
+      <div className="finding finding-next">
+        <span>Check next</span>
+        <strong className="finding-quote">{clip(nextCheck.text, 180)}</strong>
+        <small>{nextCheck.kind === "evidence" ? "An evidence question: it would change the claim review, not the trade math." : "A scenario: it changes the trade math, not the claim review."}</small>
+        <a href={nextCheck.kind === "evidence" ? "#evidence-heading" : "#economics-heading"}>{nextCheck.kind === "evidence" ? "Go to the evidence" : "Go to the trade math"}</a>
+      </div>
     </section>
   );
 }

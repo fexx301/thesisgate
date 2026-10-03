@@ -47,10 +47,11 @@ export function simpleAverage(values: number[], period: number): string | null {
 }
 
 /**
- * How a required move compares with the instrument's typical daily range. This is scale context,
- * not a probability: "your goal needs about 1.5 typical days of movement in your favour".
+ * The required move expressed as a multiple of the average true range (e.g. 1.5 means the move equals
+ * 1.5x the 14-day ATR). ATR measures volatility only: it says nothing about direction, probability, or how
+ * long a move would take, so callers must not present this as a timeline.
  */
-export function requiredMoveInTypicalDays(requiredMovePercent: string, atrPercentValue: string): string | null {
+export function requiredMoveInAtrMultiples(requiredMovePercent: string, atrPercentValue: string): string | null {
   const atr = new Decimal(atrPercentValue);
   if (atr.lte(0)) return null;
   return new Decimal(requiredMovePercent).abs().div(atr).toDecimalPlaces(1).toString();

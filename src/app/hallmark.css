@@ -993,6 +993,12 @@ select[aria-invalid="true"] {
   padding-block: var(--space-2);
 }
 
+.brief-overview .finding-quote {
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 .source-title {
   grid-column: 1 / -1;
 }

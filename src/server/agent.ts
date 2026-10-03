@@ -100,9 +100,9 @@ export function finalizeModelTurn(raw: unknown, request: ChatRequest, modelId: s
   let action = turn.action ?? "none";
   const hasEvidence = request.hasSourceText || (selectHeadlineIds ?? request.selectedHeadlineIds).length > 0;
   if (action === "run_brief" && !plan.thesis.trim()) action = "none";
-  // A brief without evidence is still useful (trade math, priced-in check), so it may run; the reply says so.
+  // A brief without evidence is still useful (trade math, close comparison), so it may run; the reply says so.
   if (action === "run_brief" && !hasEvidence && !/source|headline|evidence/i.test(reply)) {
-    reply = `${reply} No evidence is selected yet, so the brief will show the trade math and priced-in check without a claim review.`;
+    reply = `${reply} No evidence is selected yet, so the brief will show the trade math and the comparison with the last close without a claim review.`;
   }
   return ChatResultSchema.parse({
     reply: reply.slice(0, 1_200),

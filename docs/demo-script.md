@@ -1,6 +1,6 @@
 # ThesisGate walkthrough: 3-minute shot list
 
-**Story in one line:** stock tokens trade while Wall Street sleeps, so before you trade a headline you need three answers: is it new, what's already priced in, and what does your trade need after costs?
+**Story in one line:** stock tokens trade while Wall Street sleeps, so before you trade a headline you need three answers: is it new, how far has the token already moved, and what does your trade need after costs?
 
 ## Before you hit record
 
@@ -35,9 +35,9 @@ Press Enter. Show the reply and the green "changed" chips: amount, goal, horizon
 
 > "No forms. It turns my message into a precise plan and picks the evidence, and it won't tell me whether to buy."
 
-### 1:00–1:25 · The brief: evidence, then what's priced in
+### 1:00–1:25 · The brief: evidence, then the move since the close
 
-Show **At a glance**, then **Priced in since the close?**. Point along the gauge: close → token now → break-even → your goal.
+Show **At a glance**, then **Token price vs. the last US close**. Point along the gauge: close → token now → break-even → your goal.
 
 > "My goal needs rNVDA bids around this level, X% above yesterday's close. The token has already moved Y%, so here's how much of my move is already gone."
 
@@ -47,7 +47,7 @@ Scroll to **Evidence behind your thesis**. Show one supported claim with its quo
 
 ### 1:25–1:40 · Data sources & integrations, on screen (a scoring criterion)
 
-In the radar, expand **Data sources & integrations** so the whole list is on screen at once (this is the "integration count and effectiveness" criterion, made visible in one shot): the Bitget order book, the five Bitget MCP-server feeds (analyst targets, earnings calendar, Bitget news, macro, Fear & Greed), the technical-analysis skill, NVIDIA Newsroom, SEC EDGAR filings, **SEC EDGAR XBRL financials**, and Yahoo. Then point at the priced-in card's context row — typical daily range, market mood, and the **last reported revenue from SEC's XBRL data**.
+In the radar, expand **Data sources & integrations** so the whole list is on screen at once (this is the "integration count and effectiveness" criterion, made visible in one shot): the Bitget order book, the five Bitget MCP-server feeds (analyst targets, earnings calendar, Bitget news, macro, Fear & Greed), the technical-analysis skill, NVIDIA Newsroom, SEC EDGAR filings, **SEC EDGAR XBRL financials**, and Yahoo. Then point at the close-comparison card's context row — typical daily range, market mood, and the **last reported revenue from SEC's XBRL data**.
 
 > "It's built on Bitget's own Agent Hub — analyst targets, earnings, news, macro and the technical-analysis skill — plus independent primary sources: NVIDIA's newsroom, SEC filings, and SEC's XBRL financials for the last reported revenue. The brief shows which answered and falls back when one doesn't."
 

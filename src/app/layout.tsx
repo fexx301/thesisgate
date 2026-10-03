@@ -3,7 +3,7 @@ import "./hallmark.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://thesisgate.duckdns.org";
 const TITLE = "ThesisGate | Stress-test the trade behind the headline";
-const DESCRIPTION = "Stock tokens trade 24/7. Describe your rNVDA or rTSLA trade idea: ThesisGate checks whether the news is new, what is already priced in since the US close, and what your trade needs after fees, using live Bitget data. Research only; it never places orders.";
+const DESCRIPTION = "Stock tokens trade 24/7. Describe your trade idea on a Bitget stock token: ThesisGate checks whether the news is new, how far the token has moved since the US close, and what your trade needs after fees, using live Bitget data. Research only; it never places orders.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

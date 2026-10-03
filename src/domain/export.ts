@@ -178,7 +178,7 @@ export function toMarkdown(report: ResearchResult) {
     "",
     claimLines,
     "",
-    "## Priced in since the close?",
+    "## Token price versus the last US close",
     "",
     contextLines,
     "",

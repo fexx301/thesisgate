@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { analystTargetsEvidence, earningsCalendarEvidence, newsEvidence, parseSecRevenue } from "../../src/server/bitget-agent";
 import { parseRpcBody } from "../../src/server/mcp-client";
-import { atrPercent, requiredMoveInTypicalDays, rsi, simpleAverage } from "../../src/domain/technicals";
+import { atrPercent, requiredMoveInAtrMultiples, rsi, simpleAverage } from "../../src/domain/technicals";
 import { createTtlCache } from "../../src/server/fetch-text";
 
 describe("Bitget MCP responses", () => {
@@ -75,10 +75,10 @@ describe("technical context", () => {
     expect(rsi([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])).toBe("100");
   });
 
-  it("expresses a required move in typical days of movement", () => {
-    expect(requiredMoveInTypicalDays("2.9", "1.9")).toBe("1.5");
-    expect(requiredMoveInTypicalDays("-0.4", "2")).toBe("0.2");
-    expect(requiredMoveInTypicalDays("1", "0")).toBeNull();
+  it("expresses a required move as a multiple of the ATR (volatility, not time)", () => {
+    expect(requiredMoveInAtrMultiples("2.9", "1.9")).toBe("1.5");
+    expect(requiredMoveInAtrMultiples("-0.4", "2")).toBe("0.2");
+    expect(requiredMoveInAtrMultiples("1", "0")).toBeNull();
   });
 });
 

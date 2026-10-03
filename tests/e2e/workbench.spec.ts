@@ -40,7 +40,7 @@ test("captured research flow keeps evidence and economics distinct", async ({ pa
   await expect(page.getByRole("heading", { name: "Economics under your assumptions" })).toBeVisible();
   await expect(page.getByText("Captured example at")).toBeVisible();
   await expect(page.getByText("Goal threshold")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Priced in since the close?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Token price vs. the last US close" })).toBeVisible();
   await expect(page.locator(".priced-card")).toContainText("NVDA close");
   expect(researchRequests).toHaveLength(1);
 
@@ -246,7 +246,7 @@ test("downloaded markdown preserves calculated warnings and position details", a
   for (const warning of report.economics.warnings) expect(markdown).toContain(warning);
   expect(markdown).toContain(report.instrument.symbol);
   expect(markdown).toContain(report.economics.unmatchedExitQuantity);
-  expect(markdown).toContain("## Priced in since the close?");
+  expect(markdown).toContain("## Token price versus the last US close");
   expect(markdown).toContain(`NVDA ${report.marketContext.underlying.lastClose} USD`);
 });
 

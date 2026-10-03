@@ -4,7 +4,7 @@ import Decimal from "decimal.js";
 import { Clock } from "@phosphor-icons/react";
 import type { EconomicsResult, MarketContext } from "@/domain/contracts";
 import { pricedInView } from "@/domain/priced-in";
-import { requiredMoveInTypicalDays } from "@/domain/technicals";
+import { requiredMoveInAtrMultiples } from "@/domain/technicals";
 import { price, SessionPill, signedPercent } from "./RadarPanel";
 
 type Marker = { key: string; label: string; value: Decimal; detail: string };
@@ -19,7 +19,7 @@ export function PricedInCard({ context, economics, asset, side = "long" }: { con
     return (
       <section className="report-card priced-card" aria-labelledby="priced-heading">
         <div className="priced-head">
-          <h2 id="priced-heading"><Clock size={20} aria-hidden="true" />Priced in since the close?</h2>
+          <h2 id="priced-heading"><Clock size={20} aria-hidden="true" />Token price vs. the last US close</h2>
         </div>
         <p className="muted-copy">{context?.warnings[0] ?? "The underlying close or the rToken book was unavailable, so the move since the close cannot be measured for this brief."}</p>
       </section>
@@ -46,23 +46,27 @@ export function PricedInCard({ context, economics, asset, side = "long" }: { con
   const closed = !context.session.underlyingOpen;
   const share = view.shareOfGoalAlreadyMoved ? new Decimal(view.shareOfGoalAlreadyMoved).mul(100).toFixed(0) : null;
 
+  // Describes an observed price difference only. Comparing the token with the last close cannot establish
+  // how much of any particular news is "priced in", so the copy never claims that.
+  const bookWord = side === "short" ? "asks" : "bids";
   let headline: string;
   if (view.goal?.vsClose) {
     const goalVsClose = new Decimal(view.goal.vsClose);
-    headline = `Your goal needs r${asset} bids near ${price(view.goal.level)} USDT, ${signedPercent(view.goal.vsClose)} versus ${symbol}'s last close. `
-      + (share && moved.gt(0)
-        ? `${share}% of that move has already happened on Bitget${closed ? " while the US market was closed" : ""}.`
-        : goalVsClose.gt(0) && moved.lt(0)
-          ? `The rToken is currently ${moved.abs().mul(100).toFixed(2)}% below the close, so the whole move is still ahead.`
-          : `The rToken has moved ${signedPercent(context.moveSinceClose)} since the close.`);
+    const against = !moved.isZero() && !goalVsClose.isZero() && moved.isPositive() !== goalVsClose.isPositive();
+    headline = `Your goal needs r${asset} ${bookWord} near ${price(view.goal.level)} USDT, ${signedPercent(view.goal.vsClose)} versus ${symbol}'s last close. `
+      + (share
+        ? `The token already trades ${share}% of that distance from the close${closed ? ", measured while the US market was closed" : ""}.`
+        : against
+          ? `The token has moved ${signedPercent(context.moveSinceClose)} since the close, the opposite direction, so the full distance remains.`
+          : `The token has moved ${signedPercent(context.moveSinceClose)} since the close.`);
   } else {
-    headline = `r${asset} trades ${signedPercent(context.moveSinceClose)} versus ${symbol}'s last close. Set a goal to see how much of the required move has already happened.`;
+    headline = `r${asset} trades ${signedPercent(context.moveSinceClose)} versus ${symbol}'s last close. Set a goal to compare it with your required move.`;
   }
 
   return (
     <section className="report-card priced-card" aria-labelledby="priced-heading">
       <div className="priced-head">
-        <h2 id="priced-heading"><Clock size={20} aria-hidden="true" />Priced in since the close?</h2>
+        <h2 id="priced-heading"><Clock size={20} aria-hidden="true" />Token price vs. the last US close</h2>
         <SessionPill context={context} />
       </div>
       <p className="priced-headline">{headline}</p>
@@ -84,7 +88,7 @@ export function PricedInCard({ context, economics, asset, side = "long" }: { con
       <p className="priced-footnote">
         Close {context.underlying.lastCloseSessionDate} ({timeLabel(context.underlying.lastCloseAt)}){context.session.nextRegularOpenAt ? ` · next US open ${timeLabel(context.session.nextRegularOpenAt)}` : ""}
         {context.basisVsLatest !== null ? ` · r${asset} tracks the latest ${symbol} print within ${signedPercent(context.basisVsLatest, 3)}` : ""}.
-        Levels are the best bid moved by the whole-book threshold, an indicator rather than a fill price. Assumes one r{asset} tracks one {symbol} share.
+        Levels are the best {side === "short" ? "ask" : "bid"} moved by the whole-book threshold, an indicator rather than a fill price. The comparison shows where the token trades, not how much of any news is priced in. Assumes one r{asset} tracks one {symbol} share.
       </p>
     </section>
   );
@@ -100,7 +104,7 @@ function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; 
   if (!signals) return null;
   const { technicals, sentiment, macro, cryptoSentiment, bitgetQuote, secFinancials } = signals;
   const goalPercent = goalVsBids ? new Decimal(goalVsBids).mul(100).toString() : null;
-  const days = technicals && goalPercent ? requiredMoveInTypicalDays(goalPercent, technicals.atrPercent) : null;
+  const atrMultiple = technicals && goalPercent ? requiredMoveInAtrMultiples(goalPercent, technicals.atrPercent) : null;
   const symbol = context.underlying?.symbol ?? asset;
   const close = context.underlying ? new Decimal(context.underlying.lastClose) : null;
   const quoteMatches = bitgetQuote?.prevClose && close ? new Decimal(bitgetQuote.prevClose).minus(close).abs().div(close).lte("0.0025") : null;
@@ -114,7 +118,7 @@ function SkillContext({ context, goalVsBids, asset }: { context: MarketContext; 
           <span className="skill-label">Typical daily range</span>
           <strong>{new Decimal(technicals.atrPercent).toFixed(2)}%</strong>
           <small>
-            {symbol} 14-day ATR{days ? ` · your goal needs about ${days} typical days of movement in your favour` : ""}
+            {symbol} 14-day ATR{atrMultiple ? ` · your required move is ${atrMultiple}× this daily range (a volatility scale, not a direction or a timeline)` : ""}
             {technicals.rsi14 ? ` · RSI(14) ${new Decimal(technicals.rsi14).toFixed(0)}` : ""}
           </small>
         </div>
