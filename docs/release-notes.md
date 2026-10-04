@@ -2,9 +2,15 @@
 
 [Back to the project overview](../README.md) · [Live verification](../evals/investigation/validation-2026-10-04.json) · [Deployment runbook](../deploy/README.md)
 
+## October 4, 2026 — form-section spacing
+
+The first form section now has a 24px gap below the draft-toolbar divider, matching the form's existing section spacing. The application fingerprint is `tg-1f00bbb2be6f0881cc0a`.
+
+Verification: the rendered gap measured 24px at 1200px and 375px viewport widths, with no horizontal overflow on mobile; the production build passed. This CSS-only follow-up did not repeat the earlier full test suite or live research checks.
+
 ## October 4, 2026 — compact brief and enabled investigation
 
-The public demo at https://thesisgate.duckdns.org serves source commit `e23b0f5`, build `tg-8cec4bfa9fd413e41945`, with `openai/gpt-6-luna-pro` through OpenRouter. `THESIS_INVESTIGATION_ENABLED=true` in production; fresh installations remain default-off. Subsequent documentation-only changes do not alter the application fingerprint.
+The compact-brief release was deployed at https://thesisgate.duckdns.org from source commit `e23b0f5`, build `tg-8cec4bfa9fd413e41945`, with `openai/gpt-6-luna-pro` through OpenRouter. `THESIS_INVESTIGATION_ENABLED=true` in production; fresh installations remain default-off. Subsequent documentation-only changes do not alter the application fingerprint. Check Run details or an export for the actual served version.
 
 ### Interface
 

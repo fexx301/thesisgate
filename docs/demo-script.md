@@ -7,7 +7,7 @@
 ## Prepare the take
 
 - Use the public demo at https://thesisgate.duckdns.org. Start with an empty brief and keep **Replay captured example** visible. The case uses the September 8, 2026 book and the August 26 NVIDIA/AWS announcement; “today” means September 8 throughout this replay.
-- Confirm the actual served build in **Run details** or an export. The October 4 UI release is `tg-8cec4bfa9fd413e41945`, with `openai/gpt-6-luna-pro`; production investigation is enabled. Record the actual values with the take. Historical replay does not run current-source investigation.
+- Confirm the actual served build in **Run details** or an export; compare it with the [release record](release-notes.md). The recorded production model is `openai/gpt-6-luna-pro` and investigation is enabled. Record the actual values with the take. Historical replay does not run current-source investigation.
 - Use the existing replay defaults: long rNVDA, 10,000 USDT purchase notional excluding fees, 100 USDT net-profit goal, +0.3% exit-bid scenario, 0.1% fee per side, full exit depth and no haircut.
 - Rehearse **“What if I only put in half?”** once. It should change the notional to 5,000 while keeping the 100 USDT goal, thesis and scenario. Check the applied values before narrating the result. Keep the original and revised exports.
 - Keep this script and the [historical comparison](../evidence/e2e-comparison-v2/) available. Have a Markdown viewer ready for the downloaded brief. The [trader study](../evals/study/results.md) currently records **0 participants**; use the narration below unless real results have been added.

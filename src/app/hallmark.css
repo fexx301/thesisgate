@@ -577,6 +577,10 @@ fieldset {
   border-top: var(--rule-thin) solid var(--color-rule);
 }
 
+.plan-fields > fieldset:first-of-type {
+  margin-top: var(--space-6);
+}
+
 legend {
   width: 100%;
   padding: 0;
