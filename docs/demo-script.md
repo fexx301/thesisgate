@@ -1,66 +1,117 @@
-# ThesisGate — one discovery in three minutes
+# ThesisGate — one discovery in under three minutes
 
-Record only after the final build and study configuration are frozen. Record the build ID, model, investigation flag, source timestamps and scenario assumptions with the take. Preserve failed runs as validation evidence; do not report a hand-picked recording as a reliability benchmark. A captured example must stay visibly labelled captured.
+**Recording script, not a completed video.** Aim for **2:40**, leaving 20 seconds for transitions. The [official AI Trading Desk requirement](https://bitget-ai.gitbook.io/bitgetai_hackathons2/base-camp-hackathon-s2-en) is one complete research task, from question to actionable insight. Keep the main take on one trader's plan.
 
-## 0:00–0:20 — the trader's question
+**Story:** the trader discovers that an announcement is older than their thesis assumes, sees the move their profit goal requires, and tests a smaller position without losing the evidence context.
 
-Show the September 8 captured NVIDIA example, including its timestamp.
+## Prepare the take
 
-> “I read that NVIDIA and AWS announced two million more GPUs today. I’m considering 10,000 USDT and want 100 USDT net profit by tomorrow. Before deciding, I need to know what that headline actually establishes and what my trade would require.”
+- Use the public demo at https://thesisgate.duckdns.org. Start with an empty brief and keep **Replay captured example** visible. The case uses the September 8, 2026 book and the August 26 NVIDIA/AWS announcement; “today” means September 8 throughout this replay.
+- Confirm the actual served build in **Run details** or an export. The October 4 UI release is `tg-8cec4bfa9fd413e41945`, with `openai/gpt-6-luna-pro`; production investigation is enabled. Record the actual values with the take. Historical replay does not run current-source investigation.
+- Use the existing replay defaults: long rNVDA, 10,000 USDT purchase notional excluding fees, 100 USDT net-profit goal, +0.3% exit-bid scenario, 0.1% fee per side, full exit depth and no haircut.
+- Rehearse **“What if I only put in half?”** once. It should change the notional to 5,000 while keeping the 100 USDT goal, thesis and scenario. Check the applied values before narrating the result. Keep the original and revised exports.
+- Keep this script and the [historical comparison](../evidence/e2e-comparison-v2/) available. Have a Markdown viewer ready for the downloaded brief. The [trader study](../evals/study/results.md) currently records **0 participants**; use the narration below unless real results have been added.
 
-The displayed reference day must be September 8, not the recording day. Never describe the captured book as current.
+Freeze and record the build used for the take. Preserve failed runs separately. If editing shortens a wait or joins separate runs, label the cut; do not present it as an uninterrupted latency demonstration. The spoken copy below is a draft timing estimate until an actual timed rehearsal is completed.
 
-## 0:20–0:55 — the discovery
+## Main take — 2:40
 
-Show the first overview cell, then the official source and exact quotation.
+### 0:00–0:20 · The question and the input
 
-> “The matching official release is dated August 26 and explicitly says ‘today announced.’ This announcement predates September 8. That corrects my timing premise. An old publication date by itself would not be enough; ThesisGate checks that it is the same announcement.”
+**Show:** empty workbench → click **Replay captured example** → the populated plan and loading state. Keep the historical label visible. Do not start with an unexplained finished report.
 
-Show the still-unproven price assumption next to it. If the model is disabled and only the deterministic date check ran, say that explicitly; do not imply the rest of the thesis was model-reviewed.
+> “I'm considering an NVIDIA trade after hours. This September eighth replay uses ten thousand USDT before fees and a hundred-USDT profit goal by tomorrow. My premise: NVIDIA and AWS announced two million more GPUs today.”
 
-## 0:55–1:25 — what the trade requires
+### 0:20–0:45 · The discovery
 
-Show the threshold first, then the selected scenario PnL. Read the actual displayed values, not numbers copied from a previous version.
+**Show:** **What the evidence establishes** → **Why this matters** → the cited official announcement. Point to August 26 and its explicit announcement wording; then return to the brief.
 
-> “My profit goal needs this move in the exit bid book under the displayed fees and liquidity assumptions. This other number is the result of my selected scenario. Neither is a forecast. The token’s difference from the stock’s last close does not tell us how much this news is priced in.”
+> “The matching official announcement is dated August twenty-sixth. My claim that it was new on September eighth is wrong. The citation lets me inspect that correction. It still doesn't tell me whether the token will rise tomorrow.”
 
-Change the amount, then halve exit depth. Show the changed economics while the evidence remains the same. Do not claim there is no AI parsing cost if a natural-language edit used the model; point out that the evidence review was reused.
+**Recording note:** the correction requires matching announcement content, not publication age alone. If the displayed assessment is unavailable, describe the narrow date check and leave the rest explicitly unassessed; do not read a full-review narration over a fallback result.
 
-## 1:25–2:05 — investigate one checkable premise (only if enabled and verified)
+### 0:45–1:10 · What the trade actually needs
 
-Use a separate saved live case with one material factual gap, such as a precisely dated earnings claim. Show its original review, the targeted lookup, the dated record and the resulting supported/contradicted/insufficient answer. Name the source that made this check possible.
+**Show:** **What the trade requires** → **Calculation assumptions**. Point to the required move, break-even and selected scenario in that order.
 
-> “This claim is factual and material, so ThesisGate checks the relevant record. It makes at most two targeted source lookups and at most one additional assessment call. Forecasts are left as assumptions.”
+> “With these fees and liquidity assumptions, my hundred-USDT goal needs about a one-point-four-three percent rise in exit bid prices. Break-even needs zero-point-four-three percent. My chosen zero-point-three percent scenario actually loses 12.88 USDT. These are conditional calculations, not a forecast.”
 
-Keep the live reference time visible. Do not mix current records into the September 8 replay. If investigation is disabled at the cutoff, use this time to show the source details and a useful follow-up on the existing workflow, and state that targeted investigation is not included in this release.
+**Recording note:** read the actual displayed figures if the inputs differ. The percentage is a shift from the captured bid book, not a percentage of the underlying stock's last close.
 
-## 2:05–2:30 — the honest unknown
+### 1:10–1:35 · One meaningful conversation turn
 
-Show a prepared case asserting that a particular deal already produced revenue, where the available SEC evidence only contains company totals.
+**Show:** send **“What if I only put in half?”**. Show the confirmation and updated notional, then the new required move. Keep the objective at 100 USDT. Briefly open **Run details** to show that the evidence review was reused if that is the observed path.
 
-> “The SEC facts establish reported revenue for a period. They do not establish how much came from this deal. The answer stays insufficient, and names the filing passage we would need next.”
+> “What if I only put in half? The amount becomes five thousand, while my hundred-USDT goal stays fixed. Now the required move is about two-point-four-three percent. The announcement correction stays with the plan. I can compare the trade requirements without starting the research again.”
 
-Do not force a contradiction, invent a missing fact, or imply the existence of a particular disclosure.
+**Recording note:** the chat may use a model to interpret the edit. Evidence reuse does not mean the entire interaction had no AI call or cost. If the goal or another field changes unexpectedly, correct it openly or retain the run as a failed rehearsal.
 
-## 2:30–2:50 — evidence of usefulness
+### 1:35–2:00 · The honest unknown and next evidence
 
-Show the frozen-build comparison table and actual study results, if completed. Name Claude with web search and its recorded model label. Report sample size, failures and relevant limitations. Historical numeric comparisons belong to their historical build and restricted baseline.
+**Show:** **Still an assumption** → **What remains unknown**. Then open the timing claim's missing-evidence detail or **What would change this?**.
 
-If no sessions happened:
+> “The price reaction is still an assumption. A separately dated official update could change the timing conclusion, but it wouldn't establish tomorrow's profit. This tells me what fact to check next, and what my trade would need even if I still believe the idea.”
 
-> “The automated checks cover the calculation and failure paths. We have zero participants and no independent trader validation yet. The comparison protocol and limitations are published.”
+**Recording note:** some model runs return generic **Check next** wording. Use the specific missing evidence attached to the timing claim; do not claim that every top-level next step is equally specific. This scene already demonstrates insufficient evidence, so the main take does not need a third deal-revenue case.
 
-## 2:50–3:00 — the portable brief
+### 2:00–2:15 · The portable result
 
-Download Markdown and show the same four answers at the top, with the source references and build ID below.
+**Show:** click **Markdown**, open the downloaded file, and show the four answers and source references. This is the revised 5,000-USDT brief; do not narrate the original 1.43% threshold over it.
 
-> “The evidence, trade requirements and next question stay together in a brief you can inspect. The trading decision stays with you.”
+> “I can export the revised brief with the claims, costs, assumptions and citations. The trade requirements and evidence stay together.”
 
-## Final checks
+### 2:15–2:40 · Evidence and close
 
-- Demo opens without private credentials; source links, exports and mobile flow work.
-- The recorded build matches the published artifact and study log.
-- Include a genuine insufficient-evidence outcome, not only a successful correction.
-- Distinguish model assessment, deterministic date validation and hypothetical scenario math.
-- State observed latency and cost only from the actual report, including optional investigation calls.
-- Preserve the frozen build through judging; record any necessary repair as a new version.
+**Show:** the README's historical comparison table, with the limitations immediately below it. Finish on the live-demo URL and the product brief.
+
+> “In fourteen historical test cases, ThesisGate calculated every goal threshold correctly; the same-model assistant with identical data got ten. Those assistants couldn't browse, and evidence interpretation tied. We have zero trader-study participants so far. ThesisGate makes the premise and required outcome inspectable. You make the trading decision.”
+
+If trader sessions have actually happened, replace the zero-participant sentence with the observed sample and one measured outcome. Name Claude with web search and its recorded model version. Do not present the historical comparison as a test of the current investigation feature or a search-enabled baseline.
+
+## Optional investigation segment — one replacement, not a third case
+
+**Use this version only after the exact UI case has been rehearsed and saved with citations.** The feature is enabled, but the current three-minute script does not assume a recorded investigation clip already exists. The [October 4 integration record](../evals/investigation/validation-2026-10-04.json) is backend evidence, not a prepared browser recording.
+
+Replace **1:35–2:15** with this 40-second segment; put export at **2:15–2:25** and the evidence/close at **2:25–2:50**. Keep the earlier line that tomorrow's price remains unknown. That preserves a complete question-to-result journey and a 10-second buffer.
+
+### Prepare one concrete SEC check
+
+Use a separate **Live** tab, clearly labelled as a different run. This is a **deliberately incorrect numerical test claim**, not a genuine news headline:
+
+```text
+NVIDIA reported 908050000000 USD revenue for the period 2025-01-27 to 2025-07-27.
+```
+
+The recorded SEC lookup returned **90,805,000,000 USD** for that period, not 908,050,000,000. This is a six-month period; do not call it one quarter. Keep the literal claim unchanged when rehearsing so its amount and date range can be checked against the record.
+
+1. In the separate tab, use rNVDA and the **Live** data mode. Enter the literal claim in **What do you think will happen?**, with complete trade inputs. Use an actual relevant source that does not itself settle the revenue amount, or paste a clearly labelled unverified research note: `I want to check NVIDIA's revenue for the period 2025-01-27 to 2025-07-27. This note contains no reported amount.` Leave the source URL blank for that note. The model requires a source packet before it can produce a claim for investigation.
+2. Run the brief and inspect **Investigation**. Use the segment only if the displayed selected claim matches the numerical test, the prior status is unresolved, SEC evidence was retrieved, and a cited new assessment resolves it. Inspect the amount, exact period and provenance; save the actual exports and reference time. The initial model extraction and current source response may differ from the earlier integration check.
+3. Do not depend on earnings or analyst lookups for this shot: both returned 503 in the last recorded integration check. Do not inject the current SEC response into the September 8 replay. If the lookup fails, no new finding appears, or the initial review already settles it, use the main take instead of forcing a before/after claim.
+
+### 1:35–2:15 · What the targeted lookup added
+
+**Show:** the separately prepared live run, its literal test claim, expanded **Investigation**, prior status, SEC citation, corrected amount and exact period. Put **“Separate live run · deliberate numerical-error test”** on screen. If it was recorded beforehand, also show its actual timestamp.
+
+> “Here's a separate factual test: a revenue figure that's ten times too large. The initial evidence doesn't establish it. ThesisGate checks the SEC record for that exact period and produces a cited correction: ninety-point-eight-zero-five billion dollars. Those company totals still don't establish revenue from a particular deal. The lookup resolves one fact, not a future return.”
+
+Only read this narration over the matching observed result. If a prepared run is unavailable, the main take remains complete. A source failure is unavailable evidence, not a contradiction. A supported claim still supplies no probability of a profitable trade.
+
+## Rehearsal reference and recording checks
+
+These values were recalculated with the current production economics function against the stored NVIDIA replay inputs. They verify the script's numeric example, not model consistency or independent user benefit.
+
+| Replay inputs | Goal shift | Break-even shift | PnL at +0.3% |
+| --- | --- | --- | --- |
+| 10,000 USDT, 100-USDT goal, full exit depth | +1.4325% | +0.4292% | −12.8808 USDT |
+| 5,000 USDT, same 100-USDT goal, full exit depth | +2.4289% | +0.4225% | −6.1048 USDT |
+| 10,000 USDT, same goal, half exit depth | +1.4352% | +0.4319% | −13.1481 USDT |
+
+Halving the amount provides the clearer visible change for this particular book. Halving depth changes the goal by only about 0.0027 percentage points here; do not imply that every liquidity stress produces a dramatic result.
+
+- Time a complete rehearsal, including loading, clicks, exports and transitions. Cut optional material rather than rushing the explanation. If a wait is shortened in editing, label it with the measured elapsed time.
+- Show a genuine unestablished forecast and a checkable citation. Keep captured and live runs labelled separately.
+- Confirm the final export matches the last visible plan. Retain its build, model, investigation status, source timestamps and assumptions with the recording.
+- Use actual study counts, failures and timing. The screenshot, script and automated tests are not participant results.
+- Keep the served build and public evidence links aligned through judging; record necessary repairs as new versions.
+
+Detailed evidence, failures and reproduction commands: [evaluation guide](evaluation.md). Application and model configuration: [release record](release-notes.md).
