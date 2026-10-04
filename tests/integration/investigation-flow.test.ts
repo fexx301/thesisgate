@@ -21,13 +21,19 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("investigation through the real model/citation adapter", () => {
   it.each([true, false])("validates provider citations and uses a separate quota identity (valid quote: %s)", async (valid) => {
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      expect(body.messages[0].content).toContain("Copy exactText VERBATIM from THESIS");
+      expect(body.messages[0].content).toContain("targeted-v1");
+      return Response.json({
       model: "reported-model", usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15, cost: 0.002 },
       choices: [{ message: { content: JSON.stringify({
         summary: "The source contradicts the date", mostConsequentialUnknown: null,
         claims: [{ ...claim, status: "contradicted", explanation: "The actual report date is July 22", citations: [{ sourceId: source.id, excerpt: valid ? "reported 2026-07-22." : "reported 2026-10-03." }] }],
       }) } }],
-    })));
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
     const result = await investigateClaim(plan, [claim], [], "live", new Date("2026-10-03T12:00:00Z"), { requestId: "base-brief", visitorKey: "visitor" });
     expect(reserveModelBudget).toHaveBeenCalledExactlyOnceWith({ requestId: "base-brief:investigation-v1", visitorKey: "visitor" });
     expect(result.investigation).toMatchObject({ status: valid ? "contradicted" : "insufficient", modelCalls: 1, modelUsage: { costUsd: "0.002" } });

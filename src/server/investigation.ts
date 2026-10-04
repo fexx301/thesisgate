@@ -59,7 +59,7 @@ export async function investigateClaim(plan: Plan, claims: ClaimAssessment[], or
     const citedIds = new Set(target.claim.citations.map((citation) => citation.sourceId));
     const packet = [...originalSources.filter((source) => citedIds.has(source.id)).slice(0, 3), ...addedSources];
     // A second provider call needs its own idempotent reservation, never the base brief's spend slot.
-    const assessed = await assessClaims({ ...plan, thesis: target.claim.exactText }, packet, { ...context, requestId: `${context.requestId}:investigation-v1` }, asOf, { timeoutMs: 12_000 });
+    const assessed = await assessClaims({ ...plan, thesis: target.claim.exactText }, packet, { ...context, requestId: `${context.requestId}:investigation-v1` }, asOf, { timeoutMs: 12_000, targeted: true });
     const reference = referenceDay(asOf, plan.horizon.timezone);
     Object.assign(base, { modelId: assessed.modelId, promptVersion: assessed.promptVersion, modelDurationMs: assessed.performance.modelDurationMs, modelCalls: assessed.performance.modelCalls, modelUsage: assessed.performance.modelUsage });
     base.inputHash = await evidenceInputHash({ ...plan, thesis: target.claim.exactText }, packet, assessed.promptVersion, assessed.modelId, { referenceDay: reference.date, timezone: reference.timezone, validationVersion: EVIDENCE_VALIDATION_VERSION, investigationVersion: base.version });

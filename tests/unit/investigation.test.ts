@@ -45,7 +45,7 @@ describe("bounded factual investigation", () => {
     expect(result.investigation).toMatchObject({ status, claim: claim.exactText, beforeStatus: "insufficient", modelCalls: 1 });
     expect(result.sources).toEqual([source]);
     expect(lookupInvestigation).toHaveBeenCalledExactlyOnceWith("earnings", "TSLA", claim.exactText, asOf, expect.any(AbortSignal));
-    expect(assessClaims).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ thesis: claim.exactText }), [source], { ...context, requestId: "test:investigation-v1" }, asOf, { timeoutMs: 12000 });
+    expect(assessClaims).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ thesis: claim.exactText }), [source], { ...context, requestId: "test:investigation-v1" }, asOf, { timeoutMs: 12000, targeted: true });
     if (status === "insufficient") expect(result.investigation.assessment).toBeNull();
     else expect(result.investigation.assessment?.materiality).toBe("material");
     expect(result.investigation.inputHash).toMatch(/^evidence-v3:sha256:/);
