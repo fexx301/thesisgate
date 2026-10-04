@@ -6,6 +6,8 @@ import { afterAll, expect, test } from "vitest";
 import { lookupInvestigation } from "../../src/server/investigation-sources";
 import { investigateClaim } from "../../src/server/investigation";
 import { callMcpToolOnce, closeMcpSessions } from "../../src/server/mcp-client";
+import { fetchBoundedText } from "../../src/server/fetch-text";
+import { parseFeed } from "../../src/server/feeds";
 import { resetLocalRateLimitsForTests } from "../../src/server/quota";
 import type { Asset, ClaimAssessment, Plan } from "../../src/domain/contracts";
 import type { InvestigationSource } from "../../src/domain/investigation";
@@ -70,7 +72,14 @@ test.skipIf(!optedIn)("bounded live investigation: source retrieval, supported/c
     return;
   }
   if (process.env.THESIS_LIVE_SOURCE_ONLY === "1") {
-    const source = await probe("newsroom", "NVDA", "NVIDIA announced AI infrastructure");
+    // Prepare a concrete current release as the test input, like a trader selecting a radar headline.
+    // An underspecified topic query may validly find no relevant record and is not a retrieval oracle.
+    const url = "https://nvidianews.nvidia.com/releases.xml";
+    const feed = await fetchBoundedText(url, { allowedHosts: new Set(["nvidianews.nvidia.com"]), maxBytes: 2_000_000, timeoutMs: 8000, accept: "application/rss+xml" });
+    const headline = parseFeed(feed.text, { feed: "issuer_newsroom", kind: "issuer_official", publisher: "NVIDIA Newsroom", url, host: "nvidianews.nvidia.com", format: "rss" }, "NVDA")
+      .find((item) => item.url && new URL(item.url).hostname === "nvidianews.nvidia.com");
+    expect(headline, "The current index must contain an allowlisted official release").toBeDefined();
+    const source = await probe("newsroom", "NVDA", `NVIDIA announced ${headline!.title}`);
     expect(source).not.toBeNull();
     expect(source!.finalApprovedUrl).toContain("https://nvidianews.nvidia.com/");
     return;
