@@ -64,4 +64,19 @@ describe("brief findings (top of the brief)", () => {
     expect(findings.nextCheck.kind).toBe("scenario");
     expect(findings.nextCheck.text).toContain("exit liquidity halves");
   });
+
+  it("asks for a separately dated update instead of repeating an already-corrected announcement in replay", () => {
+    const corrected = claim({ claimId: "date-check", exactText: "NVIDIA and AWS announced 2 million GPUs today", status: "contradicted", missingEvidence: "A separate official release on the reference day.", validation: { rule: "evidence-rules-v1", referenceDay: "2026-09-08", timezone: "UTC" } });
+    const duplicate = claim({ claimId: "model-date", exactText: "AWS and NVIDIA announced the GPU plan today, September 8, 2026", status: "contradicted", missingEvidence: null });
+    const result = briefFindings({ claims: [corrected, duplicate], evidence: evidence(), economics: economics("0.0143"), investigation: { status: "captured_only", claimId: duplicate.claimId, claim: duplicate.exactText, nextFact: `A dated record directly addressing: ${duplicate.exactText}` } as ResearchResult["investigation"] });
+    expect(result.nextCheck.text).toBe("Look for a separate official release or substantive update dated 2026-09-08.");
+    expect(result.nextCheck.text).not.toContain(duplicate.exactText);
+  });
+
+  it("turns a generic failed revenue lookup into the specific attribution evidence needed", () => {
+    const gap = claim({ claimId: "revenue", exactText: "The AWS deployment already generated revenue", status: "insufficient", missingEvidence: "A dated record directly addressing this claim" });
+    const result = briefFindings({ claims: [gap], evidence: evidence(), economics: economics("0.01"), investigation: { status: "lookup_failed", claimId: gap.claimId, claim: gap.exactText, nextFact: `A dated record directly addressing: ${gap.exactText}` } as ResearchResult["investigation"] });
+    expect(result.nextCheck.text).toBe("Find a filing passage attributing realized revenue to this specific deal or deployment.");
+    expect(result.nextCheck.about).toBe(gap.exactText);
+  });
 });

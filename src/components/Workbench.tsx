@@ -72,7 +72,7 @@ const CAPTURED_THESIS = "NVIDIA and AWS announced 2 million more GPUs today, so 
 const GREETING: ChatEntry = {
   id: "greeting",
   role: "assistant",
-  content: "Tell me the trade you're weighing: the news behind it, rNVDA or rTSLA, how much, how long you'd hold, and what you want out of it. I'll set up the plan, pick evidence from the radar and run the checks. I won't tell you whether to buy.",
+  content: "Share the token, amount, holding time and goal. Add the headline behind your idea.",
 };
 
 function percentToFraction(raw: string) {
@@ -507,7 +507,7 @@ function EvidencePanel({ report }: { report: ResearchResult }) {
           <ClaimCard claim={report.claims[0]} sources={report.sources} />
           {report.claims.length > 1 ? (
             <details className="claim-details">
-              <summary><span>View {report.claims.length - 1} supporting claim{report.claims.length === 2 ? "" : "s"}</span><CaretDown size={17} aria-hidden="true" /></summary>
+              <summary><span>View {report.claims.length - 1} other claim{report.claims.length === 2 ? "" : "s"}</span><CaretDown size={17} aria-hidden="true" /></summary>
               <div className="claim-list claim-list-secondary">
                 {report.claims.slice(1).map((claim) => <ClaimCard key={claim.claimId} claim={claim} sources={report.sources} />)}
               </div>
@@ -612,53 +612,45 @@ function clip(text: string, max: number) {
 }
 
 function BriefOverview({ report }: { report: ResearchResult }) {
-  const findings = briefFindings(report);
+  const { correction, assumption, nextCheck } = briefFindings(report);
   const requirement = tradeRequirement(report);
-  const { correction, assumption, nextCheck } = findings;
   const correctionSource = correction.kind === "contradicted" && correction.sourceId ? citationSource(report.sources, correction.sourceId).label : null;
+  const reference = report.confirmedPlan.side === "short" ? "buy-back asks" : "exit bids";
   return (
     <section className="brief-overview" aria-label="Brief at a glance">
       <div className="finding finding-correction">
         <span>What the evidence establishes</span>
         {correction.kind === "contradicted" ? (
           <>
-            <strong className="finding-quote">“{clip(correction.claim, 150)}” — contradicted</strong>
-            <small>{clip(correction.explanation, 220)}{correctionSource ? ` · ${correctionSource}` : ""}</small>
+            <strong className="finding-quote">“{clip(correction.claim, 130)}” — contradicted</strong>
+            {correctionSource ? <small>{correctionSource}</small> : null}
+            <details className="finding-details"><summary>Why this matters <CaretDown size={14} aria-hidden="true" /></summary><p>{correction.claim}</p><p>{correction.explanation}</p><a href="#evidence-heading">Read claim review</a></details>
           </>
         ) : correction.kind === "none_contradicted" ? (
-          <>
-            <strong>No premise contradicted</strong>
-            <small>{correction.checked} claim{correction.checked === 1 ? "" : "s"} checked · {evidenceStatusLabel(report.evidence.status, report.evidence.verdict)} · by the supplied evidence</small>
-          </>
+          <><strong>No premise contradicted</strong><small>{correction.checked} claims checked · {evidenceStatusLabel(report.evidence.status, report.evidence.verdict)}</small><a href="#evidence-heading">Read claim review</a></>
         ) : (
-          <>
-            <strong>Not checked yet</strong>
-            <small>{clip(correction.reason, 200)}</small>
-          </>
+          <><strong>Not checked yet</strong><details className="finding-details"><summary>Assessment status <CaretDown size={14} aria-hidden="true" /></summary><p>{correction.reason}</p><a href="#evidence-heading">Go to the evidence</a></details></>
         )}
-        <a href="#evidence-heading">Read claim review</a>
+      </div>
+      <div className="finding finding-requirement">
+        <span>What the trade requires</span>
+        <strong>{requirement.headline}</strong>
+        {report.economics.breakEvenShift !== null ? <small>On {reference} after fees · break-even {signedPercent(report.economics.breakEvenShift)}</small> : null}
+        {report.economics.netPnl !== null ? <small>Scenario: {formatMoney(report.economics.netPnl)} · {readableStatus(report.economics.goalComparison)}</small> : null}
+        <details className="finding-details"><summary>Calculation assumptions <CaretDown size={14} aria-hidden="true" /></summary><p>{requirement.detail}</p>{requirement.scenario ? <p>{requirement.scenario}</p> : null}<a href="#economics-heading">Review trade math</a></details>
       </div>
       <div className="finding finding-assumption">
         <span>Still an assumption</span>
         {assumption ? (
-          <>
-            <strong className="finding-quote">“{clip(assumption.claim, 150)}”</strong>
-            <small>{assumption.detail}</small>
-          </>
+          <><strong className="finding-quote">“{clip(assumption.claim, 110)}”</strong><details className="finding-details"><summary>What remains unknown <CaretDown size={14} aria-hidden="true" /></summary><p>{assumption.claim}</p><p>{assumption.detail}</p><a href="#evidence-heading">See the open claims</a></details></>
         ) : (
-          <>
-            <strong>{correction.kind === "not_checked" ? "Not assessed" : "None identified"}</strong>
-            <small>{correction.kind === "not_checked" ? "Unknown until the sources are checked." : "No unsupported causal or price claim was found in the thesis."}</small>
-          </>
+          <><strong>{correction.kind === "not_checked" ? "Not assessed" : "None identified"}</strong><small>{correction.kind === "not_checked" ? "The evidence needs review." : "No unsupported price or causal claim found."}</small></>
         )}
-        <a href="#evidence-heading">See the open claims</a>
       </div>
-      <div className="finding"><span>What the trade requires</span><strong>{requirement.headline}</strong><small>{requirement.detail}</small>{requirement.scenario ? <small>{requirement.scenario}</small> : null}<a href="#economics-heading">Review trade math</a></div>
       <div className="finding finding-next">
         <span>Check next</span>
-        <strong className="finding-quote">{nextCheck.about ? <>Verify “{clip(nextCheck.about, 130)}”</> : clip(nextCheck.text, 180)}</strong>
-        <small>{nextCheck.about ? `What would settle it: ${clip(nextCheck.text, 160)} · ` : ""}{nextCheck.kind === "evidence" ? "An evidence question: it would change the claim review, not the trade math." : "A scenario: it changes the trade math, not the claim review."}</small>
-        <a href={nextCheck.kind === "evidence" ? "#evidence-heading" : "#economics-heading"}>{nextCheck.kind === "evidence" ? "Go to the evidence" : "Go to the trade math"}</a>
+        <strong className="finding-quote">{clip(nextCheck.text, 150)}</strong>
+        <details className="finding-details"><summary>{nextCheck.kind === "evidence" ? "Evidence needed" : "Scenario to test"} <CaretDown size={14} aria-hidden="true" /></summary><p>{nextCheck.text}</p>{nextCheck.about ? <p>For the premise: “{nextCheck.about}”</p> : null}<a href={nextCheck.kind === "evidence" ? "#evidence-heading" : "#economics-heading"}>{nextCheck.kind === "evidence" ? "Go to the evidence" : "Go to the trade math"}</a></details>
       </div>
     </section>
   );
@@ -667,16 +659,21 @@ function BriefOverview({ report }: { report: ResearchResult }) {
 function InvestigationPanel({ report }: { report: ResearchResult }) {
   const result = report.investigation;
   if (!result || result.status === "disabled") return null;
+  const newFinding = result.assessment !== null && ["supported", "contradicted"].includes(result.status) && result.beforeStatus !== result.status;
+  const label = result.status === "captured_only" ? "Historical replay" : result.status === "no_eligible_claim" ? "No additional check" : readableStatus(result.status);
   return (
-    <section className="report-card" aria-labelledby="investigation-heading">
-      <div className="card-topline"><h2 id="investigation-heading">Investigating a factual premise</h2><StatusTag tone={result.status === "supported" ? "good" : result.status === "contradicted" ? "bad" : "warn"}>{readableStatus(result.status)}</StatusTag></div>
-      {result.claim ? <h3>{result.claim}</h3> : null}
-      <p>{result.reason}</p>
-      <p>{result.explanation}</p>
-      {result.beforeStatus ? <p className="muted-copy">Before lookup: {readableStatus(result.beforeStatus)} · Reference time: {formatTimestamp(result.asOf)}</p> : null}
-      {result.lookups.length ? <ul>{result.lookups.map((lookup, index) => <li key={index}><strong>{lookup.source}: {readableStatus(lookup.status)}</strong><p>{lookup.detail}</p>{lookup.sourceIds.map((id) => { const source = citationSource(report.sources, id); return <p key={id}>{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{source.label}</a> : source.label}</p>; })}</li>)}</ul> : null}
-      {result.assessment?.citations.length ? <details><summary>Evidence from the investigation</summary><ClaimCard claim={result.assessment} sources={report.sources} /></details> : null}
-      {result.nextFact ? <p><strong>Check next:</strong> {result.nextFact}</p> : null}
+    <section className="investigation-section" aria-label="Investigation details">
+      <details className="investigation-details" open={newFinding} key={`${report.reportId}-${result.status}`}>
+        <summary><h2>Investigation</h2><StatusTag tone={result.status === "supported" ? "good" : result.status === "contradicted" ? "bad" : "warn"}>{label}</StatusTag><CaretDown size={17} aria-hidden="true" /></summary>
+        <div className="investigation-body">
+          {result.claim ? <h3>{result.claim}</h3> : null}
+          <p>{result.reason}</p><p>{result.explanation}</p>
+          {result.beforeStatus ? <p className="muted-copy">Before lookup: {readableStatus(result.beforeStatus)} · Reference time: {formatTimestamp(result.asOf)}</p> : null}
+          {result.lookups.length ? <ul>{result.lookups.map((lookup, index) => <li key={index}><strong>{lookup.source}: {readableStatus(lookup.status)}</strong><p>{lookup.detail}</p>{lookup.sourceIds.map((id) => { const source = citationSource(report.sources, id); return <p key={id}>{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{source.label}</a> : source.label}</p>; })}</li>)}</ul> : null}
+          {result.assessment?.citations.length ? <details><summary>Evidence from the investigation</summary><ClaimCard claim={result.assessment} sources={report.sources} /></details> : null}
+          {result.nextFact ? <p><strong>Evidence needed:</strong> {result.nextFact}</p> : null}
+        </div>
+      </details>
     </section>
   );
 }
@@ -891,7 +888,11 @@ export default function Workbench() {
     if (state.report && state.report.reportId !== lastReportIdRef.current) {
       lastReportIdRef.current = state.report.reportId;
       setPlanExpanded(false);
-      if (state.report.inputRevision === state.planRevision && state.reportMarketMode === state.marketMode) reportHeadingRef.current?.focus();
+      if (state.report.inputRevision === state.planRevision && state.reportMarketMode === state.marketMode) {
+        const heading = reportHeadingRef.current;
+        heading?.focus({ preventScroll: true });
+        heading?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      }
     }
   }, [state.report, state.planRevision, state.marketMode, state.reportMarketMode]);
 
@@ -1390,7 +1391,7 @@ export default function Workbench() {
           ];
 
   return (
-    <main className="app-shell" data-theme="cobalt">
+    <main className={`app-shell${state.report ? " has-report" : ""}`} data-theme="cobalt">
       <a className="skip-link" href="#workbench">Skip to workbench</a>
       <header className="app-header">
         <div className="brand-lockup">
@@ -1412,9 +1413,9 @@ export default function Workbench() {
 
       <section className="intro-block" aria-labelledby="page-title">
         <div>
-          <p className="eyebrow">rNVDA · rTSLA · Bitget Reality SPOT</p>
+          <p className="eyebrow">Bitget Reality stock tokens</p>
           <h1 id="page-title">Stress-test the trade behind the headline.</h1>
-          <p className="intro-copy">Stock tokens trade 24/7, even when Wall Street is closed. Describe the trade you&apos;re weighing: ThesisGate pulls the news, checks what the sources actually say, shows how far the token has already moved since the US close, and works out what your trade needs after fees and liquidity.</p>
+          <p className="intro-copy">Describe your trade. Check the evidence and see the move your goal needs after costs.</p>
         </div>
         <aside className="intro-preview" aria-label="Market right now">
           <p className="panel-kicker">{state.marketMode === "live" ? "Right now" : "Captured replay"} · r{state.plan.asset}</p>
@@ -1579,7 +1580,7 @@ export default function Workbench() {
 
         <section id="report" className="report-column" aria-live="polite" aria-busy={isBusy}>
           <div className="report-header">
-            <div><span className="panel-kicker">Research brief</span><h2 ref={reportHeadingRef} tabIndex={-1}>Evidence, timing and trade math, kept separate.</h2></div>
+            <div><span className="panel-kicker">Research brief</span><h2 ref={reportHeadingRef} tabIndex={-1}>Your research brief.</h2></div>
             <span className="panel-index" aria-hidden="true">02</span>
             <div className="report-actions">
               <a className="report-plan-link" href="#plan" onClick={() => setPlanExpanded(true)}>Edit plan</a>

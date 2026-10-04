@@ -24,6 +24,25 @@ export type BriefFindings = {
 const RANK = { material: 0, contextual: 1 } as const;
 const byMateriality = (a: Claim, b: Claim) => RANK[a.materiality] - RANK[b.materiality];
 
+/** Name the missing evidence, rather than asking the trader to verify the same premise again. */
+function nextEvidence(claim: Claim, supplied: string | null): string | null {
+  if (claim.validation?.referenceDay && claim.status === "contradicted") {
+    return `Look for a separate official release or substantive update dated ${claim.validation.referenceDay}.`;
+  }
+  const generic = !supplied || /(?:directly (?:addressing|establishing|resolving)|directly (?:address|establish|resolve)|evidence (?:supporting|establishing) (?:this|the) claim|whether the claim)/i.test(supplied);
+  if (!generic) return supplied;
+  const text = claim.exactText;
+  if (/\b(?:deal|contract|customer|deployment|partnership|product|gpu|aws)\b/i.test(text) && /\brevenue\b/i.test(text)) {
+    return "Find a filing passage attributing realized revenue to this specific deal or deployment.";
+  }
+  if (/\bannounc\w*\b/i.test(text)) return "Look for a separately dated official announcement or substantive update.";
+  if (/\b(?:earnings|results)\b/i.test(text)) return "Find the dated earnings release or filing that establishes the report date.";
+  if (/\banalysts?\b|\btargets?\b/i.test(text)) return "Find the named analyst firm’s dated revision, including its previous and new targets.";
+  if (/\brevenue\b/i.test(text)) return "Check the filed revenue amount and the exact reporting period in the company’s SEC records.";
+  if (/\b(?:filed|filing|8-k|10-q|10-k)\b/i.test(text)) return "Find the dated filing and the passage that addresses this premise.";
+  return supplied ? "Find an independent dated source that directly establishes this factual premise." : null;
+}
+
 export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence" | "economics" | "investigation">): BriefFindings {
   const claims = report.claims;
   const checked = report.evidence.status === "assessed" && claims.length > 0;
@@ -60,11 +79,13 @@ export function briefFindings(report: Pick<ResearchResult, "claims" | "evidence"
   // The review's "most consequential unknown" is not used here: it is almost always the price forecast, which
   // the assumption cell already shows, and a forecast is not a fact anyone can go and check.
   const investigation = report.investigation;
-  const openInvestigation = investigation?.claim && investigation.nextFact && !["supported", "contradicted", "disabled", "no_eligible_claim"].includes(investigation.status);
-  const nextCheck: BriefFindings["nextCheck"] = openInvestigation
-    ? { kind: "evidence", text: investigation.nextFact!, about: investigation.claim }
-    : target?.missingEvidence
-    ? { kind: "evidence", text: target.missingEvidence, about: target.exactText }
+  const investigatedClaim = investigation?.claimId ? claims.find((claim) => claim.claimId === investigation.claimId && claim.distinction === "factual") : null;
+  // Replay/no-lookup states add no new question. A genuine unresolved factual gap takes priority.
+  const openInvestigation = investigatedClaim && investigation?.nextFact && ["insufficient", "no_relevant_evidence", "lookup_failed", "assessment_unavailable"].includes(investigation.status);
+  const nextTarget = factualGap ?? (openInvestigation ? investigatedClaim : target);
+  const evidenceStep = nextTarget ? nextEvidence(nextTarget, openInvestigation && nextTarget === investigatedClaim ? investigation!.nextFact : nextTarget.missingEvidence) : null;
+  const nextCheck: BriefFindings["nextCheck"] = evidenceStep
+    ? { kind: "evidence", text: evidenceStep, about: nextTarget!.exactText }
     : !checked
         ? { kind: "evidence", text: "Select a dated headline or paste the source so each part of the thesis can be checked.", about: null }
         : { kind: "scenario", text: `Stress the trade math: "${report.economics.requiredGoalShift !== null ? POST_BRIEF_SUGGESTIONS.halveDepth : POST_BRIEF_SUGGESTIONS.halveAmount}"`, about: null };

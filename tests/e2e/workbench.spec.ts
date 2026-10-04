@@ -118,7 +118,7 @@ test("keyboard-only flow reaches submit and export controls", async ({ page }) =
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Evidence behind your thesis" })).toBeVisible({ timeout: 30_000 });
   // Report heading receives focus for screen-reader announcement.
-  await expect(page.getByRole("heading", { name: "Evidence, timing and trade math, kept separate." })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Your research brief." })).toBeFocused();
   await page.keyboard.press("Tab");
   const editPlan = page.getByRole("link", { name: "Edit plan" });
   if (await editPlan.isVisible()) {
@@ -305,11 +305,13 @@ test("optional investigation failure stays explicit while the brief and matching
     await route.fulfill({ response, json: report });
   });
   await replayCaptured(page);
-  const panel = page.getByRole("region", { name: "Investigating a factual premise" });
+  const panel = page.getByRole("region", { name: "Investigation details" });
   await expect(panel).toContainText("lookup failed");
+  await expect(panel.locator(".investigation-details")).not.toHaveAttribute("open", "");
+  await panel.locator("summary").first().click();
   await expect(panel).toContainText("failure is not contradictory evidence");
   await expect(page.locator(".brief-overview")).toContainText("Goal needs");
-  await expect(page.locator(".brief-overview")).toContainText("Selected scenario:");
+  await expect(page.locator(".brief-overview")).toContainText("Scenario:");
   await expect(page.getByRole("button", { name: "Markdown", exact: true })).toBeEnabled();
   const downloadEvent = page.waitForEvent("download");
   await page.getByRole("button", { name: "Markdown", exact: true }).click();
@@ -320,4 +322,32 @@ test("optional investigation failure stays explicit while the brief and matching
   expect(md.indexOf("Goal needs")).toBeLessThan(md.indexOf("Selected scenario:"));
   await panel.scrollIntoViewIfNeeded();
   await panel.screenshot({ path: testInfo.outputPath("investigation-panel.png") });
+});
+
+test("the composer starts in view and the completed brief prioritizes the correction and required move", async ({ page }, testInfo) => {
+  await page.route("**/api/research", async (route) => {
+    const response = await route.fetch();
+    const report = await response.json();
+    report.investigation = { ...report.investigation, status: "captured_only", claimId: report.claims[0].claimId, claim: report.claims[0].exactText, beforeStatus: "contradicted", reason: "Test fixture: no current lookup in historical replay.", explanation: "Historical replay uses only frozen sources.", nextFact: "A separately dated official update.", assessment: null, lookups: [], modelCalls: 0 };
+    await route.fulfill({ response, json: report });
+  });
+  await page.goto("/");
+  await expect(page.locator("#chat-input")).toBeInViewport({ ratio: 1 });
+  const composerBounds = await page.locator("#chat-input").boundingBox();
+  expect(composerBounds!.y + composerBounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  await page.screenshot({ path: testInfo.outputPath("first-screen.png") });
+  await page.getByRole("button", { name: "Replay captured example", exact: true }).click();
+  await expect(page.getByRole("button", { name: "JSON", exact: true })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "Your research brief." })).toBeFocused();
+  const firstTwo = await page.locator(".brief-overview > .finding > span").allTextContents();
+  expect(firstTwo.slice(0, 2)).toEqual(["What the evidence establishes", "What the trade requires"]);
+  await expect(page.locator(".finding-requirement")).toContainText("Goal needs +1.43%");
+  await expect(page.locator(".finding-next")).toContainText("Look for a separate official release or substantive update dated 2026-09-08.");
+  const investigation = page.getByRole("region", { name: "Investigation details" });
+  await expect(investigation.locator("details").first()).not.toHaveAttribute("open", "");
+  const heights = await page.evaluate(() => ({ overview: document.querySelector(".brief-overview")!.getBoundingClientRect().height, investigation: document.querySelector(".investigation-section")!.getBoundingClientRect().height }));
+  expect(heights.investigation).toBeLessThan(110);
+  if (testInfo.project.name === "mobile") expect(heights.overview).toBeLessThan(800);
+  testInfo.annotations.push({ type: "layout", description: JSON.stringify({ composerBottom: composerBounds!.y + composerBounds!.height, ...heights }) });
+  await page.locator(".brief-overview").screenshot({ path: testInfo.outputPath("compact-brief.png") });
 });

@@ -73,12 +73,13 @@ export function toMarkdown(report: ResearchResult) {
     "## Brief at a glance", "",
     "### What the evidence establishes", "",
     correction.kind === "contradicted" ? `“${correction.claim}” — contradicted. ${correction.explanation}${correction.sourceId ? ` (${sourceReference(correction.sourceId)})` : ""}` : correction.kind === "none_contradicted" ? `No premise contradicted. ${correction.checked} claims checked; ${statusLabel(validated.evidence.verdict)} by the supplied evidence.` : `Not checked yet. ${correction.reason}`,
-    "", "### Still an assumption", "",
-    findings.assumption ? `“${findings.assumption.claim}” ${findings.assumption.detail}` : correction.kind === "not_checked" ? "Not assessed." : "No unsupported causal or price claim identified.",
     "", "### What the trade requires", "",
     `${requirement.headline}. ${requirement.detail}`, ...(requirement.scenario ? ["", requirement.scenario] : []),
+    "", "### Still an assumption", "",
+    findings.assumption ? `“${findings.assumption.claim}” ${findings.assumption.detail}` : correction.kind === "not_checked" ? "Not assessed." : "No unsupported causal or price claim identified.",
     "", "### Check next", "",
-    `${findings.nextCheck.about ? `Verify “${findings.nextCheck.about}”. ` : ""}${findings.nextCheck.text}`, "",
+    findings.nextCheck.text,
+    ...(findings.nextCheck.about ? ["", `For the premise: “${findings.nextCheck.about}”.`] : []), "",
   ];
   const investigation = validated.investigation;
   const investigationLines = investigation && investigation.status !== "disabled" ? [

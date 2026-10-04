@@ -2,6 +2,8 @@
 
 ## Research workflow update
 
+The October 4 UI pass puts the composer before the greeting, uses a compact introduction, gives the result more width, and leads the four-answer overview with the correction and required move. Detailed reasons remain expandable. Investigation states that add no finding start collapsed with their status visible. “Check next” names the missing evidence; replay timing corrections ask for a separate dated update rather than repeating the corrected premise. Markdown uses the same answer order. Verification now includes 259 unit/integration tests and 34 desktop/mobile browser journeys, with zero retries.
+
 **Live as of October 4:** investigation is enabled at https://thesisgate.duckdns.org on source commit `d3133e3`, build `tg-bfc794679571affd6050`, using `openai/gpt-6-luna-pro`. The [live verification](evals/investigation/validation-2026-10-04.json) covers repeated supported SEC revenue assessments, a cited contradiction of an incorrect amount, and insufficient deal attribution. SEC filing metadata and a concrete NVIDIA release were retrieved. Bitget earnings/analyst data returned HTTP 503; their failure states preserved the original review and made no model calls. This is a small integration check, not trader validation or a scored benchmark.
 
 The complete deployed research request returned a cited contradiction and calculated economics in 14.4 seconds, with two model calls costing $0.0016842. The six live-check calls cost $0.00603; total reported cost was $0.0077142. The provider cap was left unchanged at the owner's request. The source default remains off for fresh installations; the existing production environment explicitly enables it.

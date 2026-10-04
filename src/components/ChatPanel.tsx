@@ -46,9 +46,29 @@ export function ChatPanel({
         <span className="chat-heading-icon" aria-hidden="true"><ChatCircleText size={20} weight="regular" /></span>
         <div>
           <h2 id="chat-heading">Describe the trade</h2>
-          <p>Say it the way you would to a friend. ThesisGate fills in the plan, picks evidence and runs the checks.</p>
+          <p>Start with the trade you’re considering.</p>
         </div>
       </div>
+      <form className="chat-compose" onSubmit={submit}>
+        <label htmlFor="chat-input" className="sr-only">Message ThesisGate</label>
+        <textarea
+          id="chat-input"
+          rows={2}
+          maxLength={2000}
+          value={draft}
+          placeholder="e.g. rNVDA, 3k until Monday, goal 60 USDT"
+          onChange={(event) => onDraftChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
+        />
+        <button className="button button-primary chat-send" type="submit" disabled={pending || !draft.trim()} aria-label="Send message">
+          <PaperPlaneRight size={18} weight="bold" aria-hidden="true" />
+        </button>
+      </form>
       <ol className="chat-log" ref={logRef} aria-live="polite" aria-label="Conversation">
         {entries.map((entry) => (
           <li key={entry.id} className={`chat-message chat-${entry.role}`}>
@@ -76,26 +96,7 @@ export function ChatPanel({
           ))}
         </div>
       ) : null}
-      <form className="chat-compose" onSubmit={submit}>
-        <label htmlFor="chat-input" className="sr-only">Message ThesisGate</label>
-        <textarea
-          id="chat-input"
-          rows={2}
-          maxLength={2000}
-          value={draft}
-          placeholder="e.g. Put 3k into rNVDA on the AWS news, hold until Monday's open, I want 60 USDT"
-          onChange={(event) => onDraftChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              event.currentTarget.form?.requestSubmit();
-            }
-          }}
-        />
-        <button className="button button-primary chat-send" type="submit" disabled={pending || !draft.trim()} aria-label="Send message">
-          <PaperPlaneRight size={18} weight="bold" aria-hidden="true" />
-        </button>
-      </form>
+
     </section>
   );
 }
