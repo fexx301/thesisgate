@@ -57,6 +57,10 @@ yarn-error.log*
 !/public/finished-brief/nvda-captured.md
 !/deploy/README.md
 !/docs/demo-script.md
+!/docs/development.md
+!/docs/evaluation.md
+!/docs/release-notes.md
+!/docs/images/README.md
 !/evidence/e2e-comparison-v1/**/*.md
 !/evidence/e2e-comparison-v2/**/*.md
 

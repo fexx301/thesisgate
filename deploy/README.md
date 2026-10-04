@@ -106,7 +106,7 @@ deploy/deploy.sh ubuntu@<static-ip> <lightsail-key.pem>      # builds and starts
 
 ## Investigation enablement — verified October 4
 
-Production has `THESIS_INVESTIGATION_ENABLED=true` on source commit `d3133e3`, build `tg-bfc794679571affd6050`. The upgrade script does not overwrite this runtime flag from the example file. Change it in the root-only production environment and recreate the app via the normal upgrade path to turn investigation off. Preserve the model and quota settings.
+Investigation was first enabled and verified on source commit `d3133e3`, build `tg-bfc794679571affd6050`. It remains enabled on the subsequent UI release `e23b0f5`, build `tg-8cec4bfa9fd413e41945`; see the [release record](../docs/release-notes.md). The upgrade script does not overwrite this runtime flag from the example file. Change it in the root-only production environment and recreate the app via the normal upgrade path to turn investigation off. Preserve the model and quota settings.
 
 Before enabling, the bounded live check verified supported, contradicted and insufficient states, repeatability, citations and source-failure handling. Bitget earnings/analyst upstream data were returning 503; this remains an explicit unavailable state. The provider cap was left unchanged at the owner’s direction. See `evals/investigation/validation-2026-10-04.json`.
 
