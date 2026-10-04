@@ -1,4 +1,5 @@
 import { loadEnvConfig } from "@next/env";
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterAll, expect, test } from "vitest";
@@ -29,7 +30,8 @@ const probe = async (source: InvestigationSource, asset: Asset, claim: string) =
 const check = async (name: string, asset: Asset, exactText: string, expected: string) => {
   const claim: ClaimAssessment = { claimId: name, exactText, distinction: "factual", materiality: "material", status: "insufficient", explanation: "Not established by the initial packet", citations: [], missingEvidence: "A dated authoritative record directly establishing this fact." };
   const plan = { asset, thesis: exactText, horizon: { timezone: "UTC" } } as Plan;
-  const result = await investigateClaim(plan, [claim], [], "live", new Date(), { requestId: `live-${runId}-${name}`, visitorKey: `live-${runId}` });
+  const visitorKey = createHash("sha256").update(`live-${runId}`).digest("hex");
+  const result = await investigateClaim(plan, [claim], [], "live", new Date(), { requestId: `live-${runId}-${name}`, visitorKey });
   cases.push({ kind: "investigation", name, expected, ...result });
   writeFileSync(resolve(output, "cases.json"), JSON.stringify(cases, null, 2));
   expect(result.investigation.status, `${name}: ${result.investigation.explanation}`).toBe(expected);
