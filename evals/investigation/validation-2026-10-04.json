@@ -1,0 +1,993 @@
+{
+  "scope": "bounded live integration verification; not trader validation",
+  "runs": [
+    {
+      "run": "20261004T052052405Z",
+      "summary": {
+        "runId": "20261004T052052405Z",
+        "model": "openai/gpt-6-luna-pro",
+        "maxCalls": 6,
+        "maxChargedOrReservedUsd": 0.2,
+        "calls": 3,
+        "reportedCostUsd": 0.0032995000000000003,
+        "chargedOrReservedUsd": 0.0032995000000000003,
+        "cases": [
+          {
+            "kind": "source_probe",
+            "source": "earnings"
+          },
+          {
+            "kind": "investigation",
+            "name": "earnings-source-unavailable",
+            "expected": "lookup_failed",
+            "status": "lookup_failed"
+          },
+          {
+            "kind": "source_probe",
+            "source": "analysts"
+          },
+          {
+            "kind": "investigation",
+            "name": "analyst-source-unavailable",
+            "expected": "lookup_failed",
+            "status": "lookup_failed"
+          },
+          {
+            "kind": "source_probe",
+            "source": "revenue"
+          },
+          {
+            "kind": "investigation",
+            "name": "revenue-supported",
+            "expected": "supported",
+            "status": "supported"
+          },
+          {
+            "kind": "investigation",
+            "name": "revenue-supported-repeat",
+            "expected": "supported",
+            "status": "supported"
+          },
+          {
+            "kind": "investigation",
+            "name": "revenue-wrong-amount",
+            "expected": "contradicted",
+            "status": "insufficient"
+          }
+        ],
+        "note": "Bounded live integration check, not independent trader validation. Source records are public; credentials and provider request headers are excluded."
+      },
+      "cases": [
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "earnings",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "Bitget earnings",
+              "status": "failed",
+              "detail": "Bitget earnings data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+              "sourceIds": []
+            }
+          ],
+          "sources": []
+        },
+        {
+          "kind": "investigation",
+          "name": "earnings-source-unavailable",
+          "source": null,
+          "expected": "lookup_failed",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "lookup_failed",
+            "claimId": "earnings-source-unavailable",
+            "claim": "Tesla reported its most recent earnings today.",
+            "reason": "This material factual premise is insufficient; earnings records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The targeted lookup failed. The original assessment is retained; failure is not contradictory evidence.",
+            "nextFact": "A dated authoritative record directly establishing this fact.",
+            "lookups": [
+              {
+                "source": "Bitget earnings",
+                "status": "failed",
+                "detail": "Bitget earnings data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+                "sourceIds": []
+              }
+            ],
+            "assessment": null,
+            "modelId": null,
+            "promptVersion": null,
+            "inputHash": null,
+            "modelCalls": 0,
+            "modelUsage": null,
+            "modelDurationMs": 0,
+            "durationMs": 708,
+            "asOf": "2026-10-04T05:20:53.276Z"
+          },
+          "lookups": [],
+          "sources": []
+        },
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "analysts",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "Bitget analysts",
+              "status": "failed",
+              "detail": "Bitget analysts data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+              "sourceIds": []
+            }
+          ],
+          "sources": []
+        },
+        {
+          "kind": "investigation",
+          "name": "analyst-source-unavailable",
+          "source": null,
+          "expected": "lookup_failed",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "lookup_failed",
+            "claimId": "analyst-source-unavailable",
+            "claim": "Analysts raised NVIDIA price targets today.",
+            "reason": "This material factual premise is insufficient; analysts records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The targeted lookup failed. The original assessment is retained; failure is not contradictory evidence.",
+            "nextFact": "A dated authoritative record directly establishing this fact.",
+            "lookups": [
+              {
+                "source": "Bitget analysts",
+                "status": "failed",
+                "detail": "Bitget analysts data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+                "sourceIds": []
+              }
+            ],
+            "assessment": null,
+            "modelId": null,
+            "promptVersion": null,
+            "inputHash": null,
+            "modelCalls": 0,
+            "modelUsage": null,
+            "modelDurationMs": 0,
+            "durationMs": 704,
+            "asOf": "2026-10-04T05:20:55.077Z"
+          },
+          "lookups": [],
+          "sources": []
+        },
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "revenue",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "SEC EDGAR Revenues",
+              "status": "found",
+              "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+              "sourceIds": [
+                "src_27c9f6fd-70c3-424a-bd39-3abac1025991"
+              ]
+            }
+          ],
+          "sources": [
+            {
+              "id": "src_27c9f6fd-70c3-424a-bd39-3abac1025991",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:20:55.782Z",
+              "textHash": "875551b8bedcb34d8f0728f5bb1ebb1ef1c4779634d721d534d39ef09a6380ba",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "investigation",
+          "name": "revenue-supported",
+          "source": null,
+          "expected": "supported",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "supported",
+            "claimId": "revenue-supported",
+            "claim": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+            "reason": "This material factual premise is insufficient; revenue records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The source reports the stated revenue amount and period.",
+            "nextFact": "A newer authoritative record that revises this fact would change the assessment.",
+            "lookups": [
+              {
+                "source": "SEC EDGAR Revenues",
+                "status": "found",
+                "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+                "sourceIds": [
+                  "src_3e545cb2-47a0-4890-8866-0dc11eabf88c"
+                ]
+              }
+            ],
+            "assessment": {
+              "claimId": "revenue-supported",
+              "exactText": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+              "distinction": "factual",
+              "materiality": "material",
+              "status": "supported",
+              "explanation": "The source reports the stated revenue amount and period.",
+              "citations": [
+                {
+                  "sourceId": "src_3e545cb2-47a0-4890-8866-0dc11eabf88c",
+                  "excerpt": "Revenues: 90805000000 USD; period 2025-01-27 to 2025-07-27; form 10-Q; filed 2026-08-26; accession 0001045810-26-000075.",
+                  "startOffset": 60,
+                  "endOffset": 180
+                }
+              ],
+              "missingEvidence": null
+            },
+            "modelId": "openai/gpt-6-luna-pro",
+            "promptVersion": "claims-v7-multisource",
+            "inputHash": "evidence-v3:sha256:dea8f6583e9592ffe14b2266b5dfe7544b91bdcca228132f4ceb01d3f5535c17",
+            "modelCalls": 1,
+            "modelUsage": {
+              "promptTokens": 4871,
+              "completionTokens": 964,
+              "totalTokens": 5835,
+              "costUsd": "0.0009691"
+            },
+            "modelDurationMs": 6920,
+            "durationMs": 6977,
+            "asOf": "2026-10-04T05:20:55.950Z"
+          },
+          "lookups": [],
+          "sources": [
+            {
+              "id": "src_3e545cb2-47a0-4890-8866-0dc11eabf88c",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:20:55.950Z",
+              "textHash": "dbb6361a63fc95d8085fea6b28f6c96521fd667c80b474f040225970750ef0a8",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "investigation",
+          "name": "revenue-supported-repeat",
+          "source": null,
+          "expected": "supported",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "supported",
+            "claimId": "revenue-supported-repeat",
+            "claim": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+            "reason": "This material factual premise is insufficient; revenue records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The source reports consolidated revenue of 90,805,000,000 USD for exactly the stated period. It does not attribute that revenue to a deal, product, or customer.",
+            "nextFact": "A newer authoritative record that revises this fact would change the assessment.",
+            "lookups": [
+              {
+                "source": "SEC EDGAR Revenues",
+                "status": "found",
+                "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+                "sourceIds": [
+                  "src_4f8889f4-c4e8-4d25-831b-eec979d6bd56"
+                ]
+              }
+            ],
+            "assessment": {
+              "claimId": "revenue-supported-repeat",
+              "exactText": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+              "distinction": "factual",
+              "materiality": "material",
+              "status": "supported",
+              "explanation": "The source reports consolidated revenue of 90,805,000,000 USD for exactly the stated period. It does not attribute that revenue to a deal, product, or customer.",
+              "citations": [
+                {
+                  "sourceId": "src_4f8889f4-c4e8-4d25-831b-eec979d6bd56",
+                  "excerpt": "Revenues: 90805000000 USD; period 2025-01-27 to 2025-07-27",
+                  "startOffset": 60,
+                  "endOffset": 118
+                }
+              ],
+              "missingEvidence": null
+            },
+            "modelId": "openai/gpt-6-luna-pro",
+            "promptVersion": "claims-v7-multisource",
+            "inputHash": "evidence-v3:sha256:9a99f3cd909c94f0c616782385def0d6983787f0e0014944a30a8bcd4d9d63d6",
+            "modelCalls": 1,
+            "modelUsage": {
+              "promptTokens": 4844,
+              "completionTokens": 944,
+              "totalTokens": 5788,
+              "costUsd": "0.0009564"
+            },
+            "modelDurationMs": 7058,
+            "durationMs": 7104,
+            "asOf": "2026-10-04T05:21:02.928Z"
+          },
+          "lookups": [],
+          "sources": [
+            {
+              "id": "src_4f8889f4-c4e8-4d25-831b-eec979d6bd56",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:21:02.928Z",
+              "textHash": "dbb6361a63fc95d8085fea6b28f6c96521fd667c80b474f040225970750ef0a8",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "investigation",
+          "name": "revenue-wrong-amount",
+          "source": null,
+          "expected": "contradicted",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "insufficient",
+            "claimId": "revenue-wrong-amount",
+            "claim": "NVIDIA reported 908050000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+            "reason": "This material factual premise is insufficient; revenue records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The additional assessment did not resolve the exact factual claim. The original review is retained.",
+            "nextFact": "A dated authoritative record directly establishing this fact.",
+            "lookups": [
+              {
+                "source": "SEC EDGAR Revenues",
+                "status": "found",
+                "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+                "sourceIds": [
+                  "src_0109d922-4ed9-4773-8862-40162529a574"
+                ]
+              }
+            ],
+            "assessment": null,
+            "modelId": "openai/gpt-6-luna-pro",
+            "promptVersion": "claims-v7-multisource",
+            "inputHash": "evidence-v3:sha256:318e3d70ea61f2c3474349a02fc2548e13649d039fdfcd4692308bbc4ff257c1",
+            "modelCalls": 1,
+            "modelUsage": {
+              "promptTokens": 5420,
+              "completionTokens": 1664,
+              "totalTokens": 7084,
+              "costUsd": "0.001374"
+            },
+            "modelDurationMs": 9753,
+            "durationMs": 9803,
+            "asOf": "2026-10-04T05:21:10.033Z"
+          },
+          "lookups": [],
+          "sources": [
+            {
+              "id": "src_0109d922-4ed9-4773-8862-40162529a574",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:21:10.033Z",
+              "textHash": "dbb6361a63fc95d8085fea6b28f6c96521fd667c80b474f040225970750ef0a8",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "20261004T053136175Z",
+      "summary": {
+        "runId": "20261004T053136175Z",
+        "model": "openai/gpt-6-luna-pro",
+        "maxCalls": 3,
+        "maxChargedOrReservedUsd": 0.2,
+        "calls": 3,
+        "reportedCostUsd": 0.0027301,
+        "chargedOrReservedUsd": 0.0027301,
+        "cases": [
+          {
+            "kind": "source_probe",
+            "source": "earnings"
+          },
+          {
+            "kind": "investigation",
+            "name": "earnings-source-unavailable",
+            "expected": "lookup_failed",
+            "status": "lookup_failed"
+          },
+          {
+            "kind": "source_probe",
+            "source": "analysts"
+          },
+          {
+            "kind": "investigation",
+            "name": "analyst-source-unavailable",
+            "expected": "lookup_failed",
+            "status": "lookup_failed"
+          },
+          {
+            "kind": "source_probe",
+            "source": "revenue"
+          },
+          {
+            "kind": "investigation",
+            "name": "revenue-supported",
+            "expected": "supported",
+            "status": "supported"
+          },
+          {
+            "kind": "investigation",
+            "name": "revenue-supported-repeat",
+            "expected": "supported",
+            "status": "supported"
+          },
+          {
+            "kind": "investigation",
+            "name": "revenue-wrong-amount",
+            "expected": "contradicted",
+            "status": "contradicted"
+          },
+          {
+            "kind": "investigation",
+            "name": "deal-attribution-insufficient",
+            "expected": "insufficient",
+            "status": "insufficient"
+          },
+          {
+            "kind": "source_probe",
+            "source": "filings"
+          },
+          {
+            "kind": "source_probe",
+            "source": "newsroom"
+          }
+        ],
+        "note": "Bounded live integration check, not independent trader validation. Source records are public; credentials and provider request headers are excluded."
+      },
+      "cases": [
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "earnings",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "Bitget earnings",
+              "status": "failed",
+              "detail": "Bitget earnings data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+              "sourceIds": []
+            }
+          ],
+          "sources": []
+        },
+        {
+          "kind": "investigation",
+          "name": "earnings-source-unavailable",
+          "source": null,
+          "expected": "lookup_failed",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "lookup_failed",
+            "claimId": "earnings-source-unavailable",
+            "claim": "Tesla reported its most recent earnings today.",
+            "reason": "This material factual premise is insufficient; earnings records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The targeted lookup failed. The original assessment is retained; failure is not contradictory evidence.",
+            "nextFact": "A dated authoritative record directly establishing this fact.",
+            "lookups": [
+              {
+                "source": "Bitget earnings",
+                "status": "failed",
+                "detail": "Bitget earnings data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+                "sourceIds": []
+              }
+            ],
+            "assessment": null,
+            "modelId": null,
+            "promptVersion": null,
+            "inputHash": null,
+            "modelCalls": 0,
+            "modelUsage": null,
+            "modelDurationMs": 0,
+            "durationMs": 712,
+            "asOf": "2026-10-04T05:31:37.111Z"
+          },
+          "lookups": [],
+          "sources": []
+        },
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "analysts",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "Bitget analysts",
+              "status": "failed",
+              "detail": "Bitget analysts data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+              "sourceIds": []
+            }
+          ],
+          "sources": []
+        },
+        {
+          "kind": "investigation",
+          "name": "analyst-source-unavailable",
+          "source": null,
+          "expected": "lookup_failed",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "lookup_failed",
+            "claimId": "analyst-source-unavailable",
+            "claim": "Analysts raised NVIDIA price targets today.",
+            "reason": "This material factual premise is insufficient; analysts records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The targeted lookup failed. The original assessment is retained; failure is not contradictory evidence.",
+            "nextFact": "A dated authoritative record directly establishing this fact.",
+            "lookups": [
+              {
+                "source": "Bitget analysts",
+                "status": "failed",
+                "detail": "Bitget analysts data service returned HTTP 503. The source is unavailable; this does not contradict the claim.",
+                "sourceIds": []
+              }
+            ],
+            "assessment": null,
+            "modelId": null,
+            "promptVersion": null,
+            "inputHash": null,
+            "modelCalls": 0,
+            "modelUsage": null,
+            "modelDurationMs": 0,
+            "durationMs": 725,
+            "asOf": "2026-10-04T05:31:39.090Z"
+          },
+          "lookups": [],
+          "sources": []
+        },
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "revenue",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "SEC EDGAR Revenues",
+              "status": "found",
+              "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+              "sourceIds": [
+                "src_f6109f08-25f0-4a1f-8fd6-0e88553ea468"
+              ]
+            }
+          ],
+          "sources": [
+            {
+              "id": "src_f6109f08-25f0-4a1f-8fd6-0e88553ea468",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:31:39.816Z",
+              "textHash": "875551b8bedcb34d8f0728f5bb1ebb1ef1c4779634d721d534d39ef09a6380ba",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "investigation",
+          "name": "revenue-supported",
+          "source": null,
+          "expected": "supported",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "supported",
+            "claimId": "revenue-supported",
+            "claim": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+            "reason": "This material factual premise is insufficient; revenue records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The source reports consolidated revenue of 90805000000 USD for the stated period. It does not attribute that revenue to a deal, product, or customer.",
+            "nextFact": "A newer authoritative record that revises this fact would change the assessment.",
+            "lookups": [
+              {
+                "source": "SEC EDGAR Revenues",
+                "status": "found",
+                "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+                "sourceIds": [
+                  "src_1c5f8c80-2e69-4424-9a97-0919e8ed60dc"
+                ]
+              }
+            ],
+            "assessment": {
+              "claimId": "revenue-supported",
+              "exactText": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+              "distinction": "factual",
+              "materiality": "material",
+              "status": "supported",
+              "explanation": "The source reports consolidated revenue of 90805000000 USD for the stated period. It does not attribute that revenue to a deal, product, or customer.",
+              "citations": [
+                {
+                  "sourceId": "src_1c5f8c80-2e69-4424-9a97-0919e8ed60dc",
+                  "excerpt": "Revenues: 90805000000 USD; period 2025-01-27 to 2025-07-27; form 10-Q;",
+                  "startOffset": 60,
+                  "endOffset": 130
+                }
+              ],
+              "missingEvidence": null
+            },
+            "modelId": "openai/gpt-6-luna-pro",
+            "promptVersion": "claims-v7-multisource-targeted-v1",
+            "inputHash": "evidence-v3:sha256:170bb3f582182057b5d83dcafb7097b70aab5feeedf4f920bc2218e405135554",
+            "modelCalls": 1,
+            "modelUsage": {
+              "promptTokens": 5197,
+              "completionTokens": 940,
+              "totalTokens": 6137,
+              "costUsd": "0.0009897"
+            },
+            "modelDurationMs": 6490,
+            "durationMs": 6529,
+            "asOf": "2026-10-04T05:31:39.924Z"
+          },
+          "lookups": [],
+          "sources": [
+            {
+              "id": "src_1c5f8c80-2e69-4424-9a97-0919e8ed60dc",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:31:39.924Z",
+              "textHash": "dbb6361a63fc95d8085fea6b28f6c96521fd667c80b474f040225970750ef0a8",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "investigation",
+          "name": "revenue-supported-repeat",
+          "source": null,
+          "expected": "supported",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "supported",
+            "claimId": "revenue-supported-repeat",
+            "claim": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+            "reason": "This material factual premise is insufficient; revenue records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The source reports consolidated revenue of 90805000000 USD for the stated period.",
+            "nextFact": "A newer authoritative record that revises this fact would change the assessment.",
+            "lookups": [
+              {
+                "source": "SEC EDGAR Revenues",
+                "status": "found",
+                "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+                "sourceIds": [
+                  "src_fd0cd348-06c6-430b-a52e-a4d206263cb1"
+                ]
+              }
+            ],
+            "assessment": {
+              "claimId": "revenue-supported-repeat",
+              "exactText": "NVIDIA reported 90805000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+              "distinction": "factual",
+              "materiality": "material",
+              "status": "supported",
+              "explanation": "The source reports consolidated revenue of 90805000000 USD for the stated period.",
+              "citations": [
+                {
+                  "sourceId": "src_fd0cd348-06c6-430b-a52e-a4d206263cb1",
+                  "excerpt": "Revenues: 90805000000 USD; period 2025-01-27 to 2025-07-27; form 10-Q; filed 2025-08-27; accession 0001045810-25-000209.",
+                  "startOffset": 181,
+                  "endOffset": 301
+                }
+              ],
+              "missingEvidence": null
+            },
+            "modelId": "openai/gpt-6-luna-pro",
+            "promptVersion": "claims-v7-multisource-targeted-v1",
+            "inputHash": "evidence-v3:sha256:2432f77b3020dfe5c3e4c5d98770e20c1a2d7831a33093da702e54c716fbfc0f",
+            "modelCalls": 1,
+            "modelUsage": {
+              "promptTokens": 5075,
+              "completionTokens": 780,
+              "totalTokens": 5855,
+              "costUsd": "0.0008975"
+            },
+            "modelDurationMs": 6467,
+            "durationMs": 6516,
+            "asOf": "2026-10-04T05:31:46.454Z"
+          },
+          "lookups": [],
+          "sources": [
+            {
+              "id": "src_fd0cd348-06c6-430b-a52e-a4d206263cb1",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:31:46.454Z",
+              "textHash": "dbb6361a63fc95d8085fea6b28f6c96521fd667c80b474f040225970750ef0a8",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "investigation",
+          "name": "revenue-wrong-amount",
+          "source": null,
+          "expected": "contradicted",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "contradicted",
+            "claimId": "revenue-wrong-amount",
+            "claim": "NVIDIA reported 908050000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+            "reason": "This material factual premise is insufficient; revenue records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The SEC record reports 90,805,000,000 USD for that period, not 908,050,000,000 USD.",
+            "nextFact": "An authoritative record directly resolving the disagreement.",
+            "lookups": [
+              {
+                "source": "SEC EDGAR Revenues",
+                "status": "found",
+                "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+                "sourceIds": [
+                  "src_86d04024-8773-4c7f-bfab-0783656aab4d"
+                ]
+              }
+            ],
+            "assessment": {
+              "claimId": "revenue-wrong-amount",
+              "exactText": "NVIDIA reported 908050000000 USD revenue for the period 2025-01-27 to 2025-07-27.",
+              "distinction": "factual",
+              "materiality": "material",
+              "status": "contradicted",
+              "explanation": "The SEC record reports 90,805,000,000 USD for that period, not 908,050,000,000 USD.",
+              "citations": [
+                {
+                  "sourceId": "src_86d04024-8773-4c7f-bfab-0783656aab4d",
+                  "excerpt": "Revenues: 90805000000 USD; period 2025-01-27 to 2025-07-27;",
+                  "startOffset": 60,
+                  "endOffset": 119
+                }
+              ],
+              "missingEvidence": null
+            },
+            "modelId": "openai/gpt-6-luna-pro",
+            "promptVersion": "claims-v7-multisource-targeted-v1",
+            "inputHash": "evidence-v3:sha256:8d3e785e83e485f1773cc676bfc09fa25540720476a993a4e47977929f3fdaf3",
+            "modelCalls": 1,
+            "modelUsage": {
+              "promptTokens": 5104,
+              "completionTokens": 665,
+              "totalTokens": 5769,
+              "costUsd": "0.0008429"
+            },
+            "modelDurationMs": 5772,
+            "durationMs": 5820,
+            "asOf": "2026-10-04T05:31:52.971Z"
+          },
+          "lookups": [],
+          "sources": [
+            {
+              "id": "src_86d04024-8773-4c7f-bfab-0783656aab4d",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:31:52.971Z",
+              "textHash": "dbb6361a63fc95d8085fea6b28f6c96521fd667c80b474f040225970750ef0a8",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "investigation",
+          "name": "deal-attribution-insufficient",
+          "source": null,
+          "expected": "insufficient",
+          "investigation": {
+            "version": "investigation-v1",
+            "status": "insufficient",
+            "claimId": "deal-attribution-insufficient",
+            "claim": "NVIDIA's AWS deployment already generated revenue.",
+            "reason": "This material factual premise is insufficient; revenue records can address it. Forecasts are left as assumptions.",
+            "beforeStatus": "insufficient",
+            "explanation": "The SEC facts report consolidated revenue. They do not establish revenue from this particular deal, customer or deployment.",
+            "nextFact": "A passage in the actual filing explicitly establishing this specific claim.",
+            "lookups": [
+              {
+                "source": "SEC EDGAR Revenues",
+                "status": "found",
+                "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+                "sourceIds": [
+                  "src_fef04d2f-95d5-4dac-b4cd-9ca89e958647"
+                ]
+              }
+            ],
+            "assessment": null,
+            "modelId": null,
+            "promptVersion": null,
+            "inputHash": null,
+            "modelCalls": 0,
+            "modelUsage": null,
+            "modelDurationMs": 0,
+            "durationMs": 44,
+            "asOf": "2026-10-04T05:31:58.792Z"
+          },
+          "lookups": [],
+          "sources": [
+            {
+              "id": "src_fef04d2f-95d5-4dac-b4cd-9ca89e958647",
+              "title": "NVDA reported revenue: SEC XBRL Revenues",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "finalApprovedUrl": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001045810/us-gaap/Revenues.json",
+              "publicationDate": null,
+              "fetchedAt": "2026-10-04T05:31:58.792Z",
+              "textHash": "875551b8bedcb34d8f0728f5bb1ebb1ef1c4779634d721d534d39ef09a6380ba",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "filings",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "SEC EDGAR filing dates",
+              "status": "found",
+              "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+              "sourceIds": [
+                "src_1cb1d56f-099c-4b4d-8742-d417c6e501c5"
+              ]
+            }
+          ],
+          "sources": [
+            {
+              "id": "src_1cb1d56f-099c-4b4d-8742-d417c6e501c5",
+              "title": "TSLA recent 8-K filing records",
+              "publisher": "SEC EDGAR",
+              "originalUrl": "https://data.sec.gov/submissions/CIK0001318605.json",
+              "finalApprovedUrl": "https://data.sec.gov/submissions/CIK0001318605.json",
+              "publicationDate": "2026-10-02",
+              "fetchedAt": "2026-10-04T05:31:58.837Z",
+              "textHash": "9826ec2d5034ef5df6df5453696dd722b356d83b383d7de9ab73e3e479b6e069",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        },
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "newsroom",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "NVIDIA newsroom index",
+              "status": "empty",
+              "detail": "No relevant record found in the returned data.",
+              "sourceIds": []
+            }
+          ],
+          "sources": []
+        }
+      ]
+    },
+    {
+      "run": "20261004T055429310Z",
+      "summary": {
+        "runId": "20261004T055429310Z",
+        "model": "openai/gpt-6-luna-pro",
+        "maxCalls": 3,
+        "maxChargedOrReservedUsd": 0.2,
+        "calls": 0,
+        "reportedCostUsd": 0,
+        "chargedOrReservedUsd": 0,
+        "cases": [
+          {
+            "kind": "source_probe",
+            "source": "newsroom"
+          }
+        ],
+        "note": "Bounded live integration check, not independent trader validation. Source records are public; credentials and provider request headers are excluded."
+      },
+      "cases": [
+        {
+          "kind": "source_probe",
+          "name": null,
+          "source": "newsroom",
+          "expected": null,
+          "lookups": [
+            {
+              "source": "NVIDIA newsroom index",
+              "status": "found",
+              "detail": "A potentially relevant official release was found; its full text is checked next.",
+              "sourceIds": []
+            },
+            {
+              "source": "NVIDIA official release",
+              "status": "found",
+              "detail": "Dated evidence retrieved; this is not itself a claim verdict.",
+              "sourceIds": [
+                "src_2ac781cb-e247-4a26-a6b1-67df17fb2646"
+              ]
+            }
+          ],
+          "sources": [
+            {
+              "id": "src_2ac781cb-e247-4a26-a6b1-67df17fb2646",
+              "title": "NVIDIA Announces a $150 Billion Share Repurchase Authorization Increase",
+              "publisher": "NVIDIA Newsroom",
+              "originalUrl": "https://nvidianews.nvidia.com/news/nvidia-announces-a-150-billion-share-repurchase-authorization-increase",
+              "finalApprovedUrl": "https://nvidianews.nvidia.com/news/nvidia-announces-a-150-billion-share-repurchase-authorization-increase",
+              "publicationDate": "2026-09-28",
+              "fetchedAt": "2026-10-04T05:54:29.452Z",
+              "textHash": "4ebb64b67ae8021837969a84874f5272751385a0edbd7350101d084ecb6934bf",
+              "provenance": "retrieved_official",
+              "truncated": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "providerCap": "unchanged at owner request",
+  "bitgetAvailability": "earnings and analyst upstream data returned HTTP 503; graceful failure verified",
+  "validation": {
+    "deployedCommit": "d3133e3",
+    "deployedBuildId": "tg-bfc794679571affd6050",
+    "investigationEnabled": true,
+    "qualityPhase": "20261004T053136175Z",
+    "newsroomRetrievalPhase": "20261004T055429310Z",
+    "qualityOutcomes": [
+      "supported",
+      "supported",
+      "contradicted",
+      "insufficient"
+    ],
+    "sourceOutages": [
+      "Bitget earnings HTTP 503",
+      "Bitget analysts HTTP 503"
+    ],
+    "modelChecksCostUsd": 0.00603,
+    "deployedFullRequest": {
+      "status": 200,
+      "investigation": "contradicted",
+      "economics": "calculated",
+      "modelCalls": 2,
+      "costUsd": 0.0016842,
+      "durationMs": 14379
+    },
+    "totalReportedCostUsd": 0.0077142,
+    "limitations": [
+      "Small builder-run integration check, not independent trader validation or a scored benchmark.",
+      "The earlier broad-assessment run left the incorrect-amount case insufficient; it is retained as a failed case.",
+      "The initial generic newsroom query correctly found no relevant allowlisted release; source retrieval was separately verified with a concrete current release."
+    ]
+  }
+}

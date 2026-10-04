@@ -103,3 +103,11 @@ deploy/deploy.sh ubuntu@<static-ip> <lightsail-key.pem>      # builds and starts
 - Update: run `deploy/deploy.sh ubuntu@<ip> <key>` again (it rebuilds and restarts only what changed).
 - Logs: `ssh ubuntu@<ip> 'cd ~/thesisgate && docker compose -f deploy/docker-compose.yml --env-file deploy/production.env logs -f --tail 100'`.
 - Turn AI off instantly: set `THESIS_LLM_ENABLED=false` in `production.env` and redeploy. Everything else keeps working, and the chat falls back to simple edits.
+
+## Investigation enablement — verified October 4
+
+Production has `THESIS_INVESTIGATION_ENABLED=true` on source commit `d3133e3`, build `tg-bfc794679571affd6050`. The upgrade script does not overwrite this runtime flag from the example file. Change it in the root-only production environment and recreate the app via the normal upgrade path to turn investigation off. Preserve the model and quota settings.
+
+Before enabling, the bounded live check verified supported, contradicted and insufficient states, repeatability, citations and source-failure handling. Bitget earnings/analyst upstream data were returning 503; this remains an explicit unavailable state. The provider cap was left unchanged at the owner’s direction. See `evals/investigation/validation-2026-10-04.json`.
+
+Pre-deployment snapshots: root `snap-0a544ea11cbb33d27`, quota data `snap-08b62645d890f48ce`, both completed. The previous healthy generation is parked as `tg-*-prev`. Full deployed request: HTTP 200, investigation contradicted with a citation, economics calculated, two model calls, 14.4 seconds, $0.0016842.

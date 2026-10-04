@@ -2,6 +2,10 @@
 
 ## Research workflow update
 
+**Live as of October 4:** investigation is enabled at https://thesisgate.duckdns.org on source commit `d3133e3`, build `tg-bfc794679571affd6050`, using `openai/gpt-6-luna-pro`. The [live verification](evals/investigation/validation-2026-10-04.json) covers repeated supported SEC revenue assessments, a cited contradiction of an incorrect amount, and insufficient deal attribution. SEC filing metadata and a concrete NVIDIA release were retrieved. Bitget earnings/analyst data returned HTTP 503; their failure states preserved the original review and made no model calls. This is a small integration check, not trader validation or a scored benchmark.
+
+The complete deployed research request returned a cited contradiction and calculated economics in 14.4 seconds, with two model calls costing $0.0016842. The six live-check calls cost $0.00603; total reported cost was $0.0077142. The provider cap was left unchanged at the owner's request. The source default remains off for fresh installations; the existing production environment explicitly enables it.
+
 The brief and Markdown export lead with the same four answers: what the evidence establishes, what remains an assumption, what the trade requires, and what to check next. The required goal/break-even move stays above the selected scenario's outcome. Price-versus-close context does not establish how much news is priced in; ATR is a volatility scale, not a time-to-target estimate.
 
 The shared `evidence-rules-v1` check can recover an omitted announcement-date correction when the exact factual premise matches an official release explicitly saying “today announced.” It uses the report's reference date (September 8 in captured replay), not the recording date. Publication date alone, uncertain time zones/adjacent days, unrelated releases and user-pasted material cannot establish that contradiction. When only this narrow rule runs, the report labels its origin and does not claim the full thesis was reviewed.
@@ -12,7 +16,7 @@ Set `THESIS_INVESTIGATION_ENABLED=true` on the server to opt in; default is **fa
 
 The investigation chooses one material factual claim that is insufficient or contradicted and matches an available source: Bitget earnings/analyst records, SEC revenue/filing metadata, or NVIDIA's newsroom. Forecasts are excluded. It performs at most two source lookups under a shared eight-second transport deadline and, when new evidence needs interpretation, at most one additional assessment with a twelve-second provider timeout using the existing quota ledger. Session cleanup and model-budget admission/settlement have their own bounded overhead; the timeout is not an end-to-end latency claim. It reports source failure, no relevant records, unresolved evidence and supported/contradicted claims separately. Historical replay never fetches current investigation records. With the flag off, there are no extra investigation lookups or model calls.
 
-SEC company totals cannot prove revenue from a specific deal; filing metadata cannot prove filing contents. Results show selected claim, reason, prior status, lookup outcomes, citations, next fact, provider usage and reference time. These local features require live-provider evaluation before making reliability or latency claims; mocked tests are not that evidence.
+SEC company totals cannot prove revenue from a specific deal; filing metadata cannot prove filing contents. Results show selected claim, reason, prior status, lookup outcomes, citations, next fact, provider usage and reference time. The bounded October 4 live verification above records observed behavior; it does not establish broad reliability or independent user value.
 
 ### Reproducible trader comparison
 
@@ -129,7 +133,7 @@ All fetches are server-side, to fixed URLs or an allowlisted host, with timeouts
 - Close-comparison card: session, move since close, tracking basis, and break-even, goal and scenario as price levels versus the close.
 - Decimal.js order-book economics, captured and live modes, a math-only recompute path, and deterministic Markdown/JSON exports that include the close comparison and selected headlines.
 - Revision safety: late responses never overwrite newer edits, including chat replies that return after a manual edit.
-- Current local verification (October 3 update): typecheck, lint, **255 unit/integration tests across 31 files**, production build, and **32 Chromium/mobile browser journeys with zero retries** pass. The two previously reported mobile failures were shared test-visitor rate limits; each local test now has an isolated simulated proxy address, with production limits unchanged. A source-deadline regression now verifies that throwing timeout callbacks reject their promise instead of causing an uncaught exception.
+- Current local verification (October 3 update): typecheck, lint, **257 unit/integration tests across 31 files**, production build, and **32 Chromium/mobile browser journeys with zero retries** pass. The two previously reported mobile failures were shared test-visitor rate limits; each local test now has an isolated simulated proxy address, with production limits unchanged. A source-deadline regression now verifies that throwing timeout callbacks reject their promise instead of causing an uncaught exception.
 
 ### What is measurably different
 
@@ -142,7 +146,7 @@ Held to the honest version of our own benchmark, the edge is specific and we sta
 ### External validation still required
 
 - **UNVERIFIED — real trader validation:** No five-trader study has been completed. The [practitioner validation sheet](evals/practitioner-validation-sheet.md) is a protocol, not results; code, automated tests, and developer review do not satisfy it.
-- **Not re-certified in this update — production spending controls:** the durable quota service has transactional ledger tests; investigation uses its own per-call reservation. This local implementation session did not re-certify the running deployment, persistent volume, backup/restore, TLS, multi-instance behavior or provider hard cap. Investigation remains default-off pending explicit enablement and live-provider verification.
+- **Not re-certified in this update — production spending controls:** the durable quota service has transactional ledger tests; investigation uses its own per-call reservation. This local implementation session did not re-certify the running deployment, persistent volume, backup/restore, TLS, multi-instance behavior or provider hard cap. Investigation is now explicitly enabled on the existing production deployment after the bounded live verification above; fresh installations remain default-off.
 - Arbitrary URL retrieval stays disabled; only the fixed feeds and the allowlisted newsroom host are fetched.
 - A public deployment is not implied by this repository. The local app and public source repository are separate from a hosted service.
 
