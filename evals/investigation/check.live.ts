@@ -17,7 +17,8 @@ const output = resolve("evals/investigation/runs", runId);
 let calls = 0;
 let reportedCost = 0;
 let chargedOrReserved = 0;
-const MAX_CALLS = 6;
+const MAX_CALLS = Number(process.env.THESIS_LIVE_MODEL_CALL_CAP ?? "6");
+if (!Number.isInteger(MAX_CALLS) || MAX_CALLS < 3 || MAX_CALLS > 6) throw new Error("Live model call cap must be 3–6.");
 const MAX_CHARGED_OR_RESERVED_USD = 0.20;
 const originalFetch = globalThis.fetch;
 let model = "not-configured";
@@ -87,22 +88,22 @@ test.skipIf(!optedIn)("bounded live investigation: source retrieval, supported/c
     return originalFetch(input, init);
   };
   const earnings = await probe("earnings", "TSLA", "Tesla reported earnings today");
-  if (earnings) {
+  if (earnings && MAX_CALLS > 3) {
     const lastReported = earnings.cleanedText.match(/Most recent results:[^\n]*?reported (\d{4}-\d{2}-\d{2})/)?.[1];
     expect(lastReported).toBeTruthy();
     await check("earnings-supported", "TSLA", `Tesla reported its most recent earnings on ${lastReported}.`, "supported");
     const expectedToday = lastReported === new Date().toISOString().slice(0, 10) ? "supported" : "contradicted";
     await check("earnings-today-1", "TSLA", "Tesla reported its most recent earnings today.", expectedToday);
     await check("earnings-today-2", "TSLA", "Tesla reported its most recent earnings today.", expectedToday);
-  } else {
+  } else if (!earnings) {
     await check("earnings-source-unavailable", "TSLA", "Tesla reported its most recent earnings today.", "lookup_failed");
   }
   const analysts = await probe("analysts", "NVDA", "NVIDIA analysts raised price targets");
-  if (analysts) {
+  if (analysts && MAX_CALLS > 3) {
     const action = analysts.cleanedText.match(/(\d{4}-\d{2}-\d{2}): (.+?) price target (\d+(?:\.\d+)?) USD/);
     expect(action).toBeTruthy();
     await check("analyst-supported", "NVDA", `${action![2]}'s NVIDIA price target was ${action![3]} USD on ${action![1]}.`, "supported");
-  } else {
+  } else if (!analysts) {
     await check("analyst-source-unavailable", "NVDA", "Analysts raised NVIDIA price targets today.", "lookup_failed");
   }
   const revenue = await probe("revenue", "NVDA", "NVIDIA reported revenue");
@@ -111,7 +112,7 @@ test.skipIf(!optedIn)("bounded live investigation: source retrieval, supported/c
   expect(fact).toBeTruthy();
   const revenueClaim = `NVIDIA reported ${fact![1]} USD revenue for the period ${fact![2]} to ${fact![3]}.`;
   await check("revenue-supported", "NVDA", revenueClaim, "supported");
-  if (!earnings) await check("revenue-supported-repeat", "NVDA", revenueClaim, "supported");
+  if (!earnings || MAX_CALLS === 3) await check("revenue-supported-repeat", "NVDA", revenueClaim, "supported");
   await check("revenue-wrong-amount", "NVDA", `NVIDIA reported ${Number(fact![1]) * 10} USD revenue for the period ${fact![2]} to ${fact![3]}.`, "contradicted");
   const before = calls;
   await check("deal-attribution-insufficient", "NVDA", "NVIDIA's AWS deployment already generated revenue.", "insufficient");
