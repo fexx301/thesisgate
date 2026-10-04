@@ -54,6 +54,16 @@ describe("targeted source retrieval", () => {
     const result = await lookupInvestigation("newsroom", "NVDA", "NVIDIA and AWS announced 2 million GPUs today", date, signal());
     expect(fetchBoundedText).toHaveBeenCalledTimes(1); expect(result.sources).toHaveLength(0); expect(result.lookups[0].status).toBe("empty");
   });
+  it("ranks only allowed newsroom releases, so a matching blog does not hide a valid release", async () => {
+    const feed = '<rss><channel><item><title>NVIDIA AI infrastructure cloud</title><link>https://blogs.nvidia.com/blog/ai-infrastructure</link><description>AI infrastructure</description></item><item><title>NVIDIA AI infrastructure</title><link>https://nvidianews.nvidia.com/news/ai-infrastructure</link><description>AI infrastructure release</description></item></channel></rss>';
+    const article = '<title>NVIDIA AI infrastructure</title><div class="article-date">October 3, 2026</div><div class="article-body">NVIDIA today announced AI infrastructure. ' + 'This synthetic test release describes the announced infrastructure and preserves dated official-source context. '.repeat(3) + '</div><div class="article-bottom">';
+    vi.mocked(fetchBoundedText).mockResolvedValueOnce({ finalUrl: "https://nvidianews.nvidia.com/releases.xml", text: feed })
+      .mockResolvedValueOnce({ finalUrl: "https://nvidianews.nvidia.com/news/ai-infrastructure", text: article });
+    const result = await lookupInvestigation("newsroom", "NVDA", "NVIDIA announced AI infrastructure", date, signal());
+    expect(fetchBoundedText).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetchBoundedText).mock.calls[1][0]).toBe("https://nvidianews.nvidia.com/news/ai-infrastructure");
+    expect(result.sources[0].provenance).toBe("retrieved_official");
+  });
   it("honors cancellation before starting transport", async () => {
     const controller = new AbortController(); controller.abort();
     const result = await lookupInvestigation("newsroom", "NVDA", "announcement", date, controller.signal);

@@ -69,6 +69,12 @@ test.skipIf(!optedIn)("bounded live investigation: source retrieval, supported/c
     cases.push({ kind: "diagnostic_only", entry: diagnostic, text });
     return;
   }
+  if (process.env.THESIS_LIVE_SOURCE_ONLY === "1") {
+    const source = await probe("newsroom", "NVDA", "NVIDIA announced AI infrastructure");
+    expect(source).not.toBeNull();
+    expect(source!.finalApprovedUrl).toContain("https://nvidianews.nvidia.com/");
+    return;
+  }
   const provider = process.env.THESIS_LLM_BASE_URL;
   expect(provider).toBeTruthy();
   expect(process.env.THESIS_LLM_API_KEY).toBeTruthy();

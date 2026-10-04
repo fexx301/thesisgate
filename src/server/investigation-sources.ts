@@ -89,7 +89,8 @@ export async function lookupInvestigation(source: InvestigationSource, asset: As
       const headlines = parseFeed(text, { feed: "issuer_newsroom", kind: "issuer_official", publisher: "NVIDIA Newsroom", url, host: "nvidianews.nvidia.com", format: "rss" }, asset);
       const stop = new Set("nvidia nvda announced announcement today the and that with for this was has more".split(" "));
       const terms = [...new Set(claim.toLowerCase().match(/[a-z]+|\d+/g) ?? [])].filter((term) => !stop.has(term));
-      const best = headlines.map((headline) => ({ headline, score: terms.filter((term) => `${headline.title} ${headline.summary}`.toLowerCase().includes(term)).length })).sort((a, b) => b.score - a.score)[0];
+      const best = headlines.filter((headline) => headline.url && new URL(headline.url).hostname === "nvidianews.nvidia.com")
+        .map((headline) => ({ headline, score: terms.filter((term) => `${headline.title} ${headline.summary}`.toLowerCase().includes(term)).length })).sort((a, b) => b.score - a.score)[0];
       if (best && best.score >= 2 && best.headline.url && new URL(best.headline.url).hostname === "nvidianews.nvidia.com") {
         lookups[0].status = "found";
         lookups[0].detail = "A potentially relevant official release was found; its full text is checked next.";
