@@ -1054,6 +1054,15 @@ select[aria-invalid="true"] {
 .plan-report-link,
 .report-plan-link { display: inline-flex; }
 .plan-fields.plan-fields-collapsed { display: none; }
+/* The plan buttons are always shown, and with a report open the plan column is narrow (about 300px): let the
+   buttons wrap under the heading instead of overflowing the card and squeezing the heading. */
+.plan-panel .panel-heading { flex-wrap: wrap; }
+.plan-panel .panel-heading > div:first-child { flex: 1 1 15rem; min-width: 0; }
+.plan-heading-actions { max-width: 100%; flex-wrap: wrap; }
+/* In the narrow report-open column the decorative step number would push "View report" onto its own line. */
+.has-report .plan-panel .panel-index { display: none; }
+.has-report .plan-heading-actions > .plan-toggle,
+.has-report .plan-heading-actions > .plan-report-link { flex: 1 1 auto; justify-content: center; padding-inline: var(--space-2); }
 
 .source-title {
   grid-column: 1 / -1;
@@ -2246,6 +2255,7 @@ select:focus {
   .report-plan-link {
     display: inline-flex;
   }
+
 
   .plan-fields.plan-fields-collapsed {
     display: none;
